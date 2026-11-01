@@ -1,4 +1,4 @@
-import { lineupOps } from '../lineup';
+import { lineupOps, arrangeOutfield } from '../lineup';
 import { decideMotm } from '../motm';
 import { newlyUnlocked, ACHIEVEMENTS } from '../achievements';
 import { rank, formatValue } from '../leaderboard';
@@ -123,5 +123,38 @@ describe('line-up operations', () => {
     const g = lineupOps.setGoalkeeper(base, 'b');
     expect(g.A.filter((s) => s.is_goalkeeper).map((s) => s.user_id)).toEqual(['b']);
     expect(lineupOps.toggleSub(base, 'b').A[1].is_substitute).toBe(true);
+  });
+});
+
+describe('pitch arrangement by position', () => {
+  const p = (id: string, position: 'DEF' | 'MID' | 'FWD' | 'ANY') => ({ id, position });
+  it('puts defenders, midfielders and forwards in their own lines', () => {
+    const rows = arrangeOutfield([p('f', 'FWD'), p('d1', 'DEF'), p('m', 'MID'), p('d2', 'DEF')]);
+    expect(rows.map((r) => r.map((x) => x.id))).toEqual([['d1', 'd2'], ['m'], ['f']]);
+  });
+  it('fills the thinnest line with ANY players', () => {
+    const rows = arrangeOutfield([p('d1', 'DEF'), p('d2', 'DEF'), p('f', 'FWD'), p('a', 'ANY')]);
+    expect(rows.map((r) => r.map((x) => x.id))).toEqual([['d1', 'd2'], ['a'], ['f']]);
+  });
+  it('uses a default formation when nobody has a position', () => {
+    const rows = arrangeOutfield([p('a', 'ANY'), p('b', 'ANY'), p('c', 'ANY'), p('d', 'ANY')]);
+    expect(rows.map((r) => r.length)).toEqual([2, 2]);
+  });
+  it('moving one player to FWD moves them to the front line', () => {
+    const rows = arrangeOutfield([p('a', 'ANY'), p('b', 'FWD'), p('c', 'ANY')]);
+    expect(rows[rows.length - 1].map((x) => x.id)).toContain('b');
+  });
+});
+
+describe('setting positions', () => {
+  const base = lineupOps.fromAssignment(['a', 'b', 'c'], ['d', 'e'], {}, { A: 'a' }, 5);
+  it('GK makes the player the only goalkeeper on their side', () => {
+    const s = lineupOps.setPosition(base, 'b', 'GK');
+    expect(s.A.filter((x) => x.is_goalkeeper).map((x) => x.user_id)).toEqual(['b']);
+    expect(s.B.some((x) => x.is_goalkeeper)).toBe(false);
+  });
+  it('an outfield position removes goalkeeper status', () => {
+    const s = lineupOps.setPosition(base, 'a', 'DEF');
+    expect(s.A[0]).toMatchObject({ user_id: 'a', position: 'DEF', is_goalkeeper: false });
   });
 });

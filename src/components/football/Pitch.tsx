@@ -13,7 +13,7 @@ import { radius, space } from '@/theme/tokens';
 import { Avatar, Text } from '@/components/ui';
 import type { PlayerPosition, PaymentStatus } from '@/types/db';
 import { PaymentBadge } from './PaymentBadge';
-import type { Slot, LineupState, Zone } from '@/domain/lineup';
+import { arrangeOutfield, type Slot, type LineupState, type Zone } from '@/domain/lineup';
 
 export type { Slot, LineupState, Zone } from '@/domain/lineup';
 
@@ -27,17 +27,7 @@ export interface LineupPlayer {
 }
 
 
-/** Row layout for a side: GK first, then outfield rows. */
-export function formationRows(count: number): number[] {
-  if (count <= 0) return [];
-  if (count <= 3) return [count];
-  if (count <= 5) return [2, count - 2];
-  if (count === 6) return [2, 2, 2];
-  if (count === 7) return [3, 2, 2];
-  if (count === 8) return [3, 3, 2];
-  if (count === 9) return [3, 3, 3];
-  return [4, 3, count - 7];
-}
+export { formationRows } from '@/domain/lineup';
 
 interface TokenProps {
   player: LineupPlayer;
@@ -109,6 +99,11 @@ function Token({ player, slot, colour, payment, showPayment, selected, editable,
     >
       <View>
         <Avatar uri={player.avatar_url} name={player.display_name} size={size} ring={selected ? colors.warning : colour} />
+        {slot && !slot.is_goalkeeper && ['DEF', 'MID', 'FWD'].includes(slot.position) && (
+          <View style={{ position: 'absolute', top: -4, left: -6, backgroundColor: colors.elevated, borderRadius: 8, paddingHorizontal: 4, borderWidth: 1, borderColor: colors.borderStrong }}>
+            <Text variant="caption" color={colors.text} style={{ fontSize: 9, lineHeight: 13 }}>{slot.position}</Text>
+          </View>
+        )}
         {slot?.is_goalkeeper && (
           <View style={{ position: 'absolute', top: -4, left: -4, backgroundColor: colors.warning, borderRadius: 8, paddingHorizontal: 4 }}>
             <Text variant="caption" color="#111" style={{ fontSize: 9, lineHeight: 13 }}>GK</Text>
@@ -178,9 +173,7 @@ export function Pitch({ players, lineup, bench, editable, teamNames, teamColours
     const subs = slots.filter((s) => s.is_substitute);
     const gk = starters.filter((s) => s.is_goalkeeper);
     const outfield = starters.filter((s) => !s.is_goalkeeper);
-    const rows = formationRows(outfield.length);
-    let idx = 0;
-    const outfieldRows = rows.map((n) => outfield.slice(idx, (idx += n)));
+    const outfieldRows = arrangeOutfield(outfield);
     const ordered = side === 'A' ? [gk, ...outfieldRows] : [...outfieldRows.reverse(), gk];
     const colour = side === 'A' ? colourA : colourB;
     return (
@@ -233,7 +226,7 @@ export function Pitch({ players, lineup, bench, editable, teamNames, teamColours
           <Text variant="overline" color={colourA}>{teamNames?.A ?? 'Team A'} · {lineup.A.length}</Text>
         </View>
         {renderSide('A')}
-        <View style={{ height: 1 }} />
+        <View style={{ height: space.lg }} />
         {renderSide('B')}
         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: space.md, paddingBottom: space.sm }}>
           <Text variant="overline" color={colourB}>{teamNames?.B ?? 'Team B'} · {lineup.B.length}</Text>

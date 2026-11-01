@@ -16,6 +16,38 @@ export interface LineupState {
 }
 
 /** Pure line-up state transitions (unit-testable). */
+/** Default row sizes (own goal → halfway) when nobody has a specific position. */
+export function formationRows(count: number): number[] {
+  if (count <= 0) return [];
+  if (count <= 3) return [count];
+  if (count <= 5) return [2, count - 2];
+  if (count === 6) return [2, 2, 2];
+  if (count === 7) return [3, 2, 2];
+  if (count === 8) return [3, 3, 2];
+  if (count === 9) return [3, 3, 3];
+  return [4, 3, count - 7];
+}
+
+/**
+ * Arrange outfield players into rows from own goal to halfway: defenders, midfielders, forwards.
+ * Players marked ANY (or GK playing outfield) fill whichever line is thinnest, so the shape stays
+ * sensible. If nobody has a specific position, a default formation is used.
+ */
+export function arrangeOutfield<T extends { position: PlayerPosition }>(players: T[]): T[][] {
+  const specific = players.filter((p) => p.position === 'DEF' || p.position === 'MID' || p.position === 'FWD');
+  if (specific.length === 0) {
+    let idx = 0;
+    return formationRows(players.length).map((n) => players.slice(idx, (idx += n)));
+  }
+  const lines: Record<'DEF' | 'MID' | 'FWD', T[]> = { DEF: [], MID: [], FWD: [] };
+  for (const p of specific) lines[p.position as 'DEF' | 'MID' | 'FWD'].push(p);
+  for (const p of players.filter((x) => !specific.includes(x))) {
+    const target = (['MID', 'DEF', 'FWD'] as const).reduce((a, b) => (lines[b].length < lines[a].length ? b : a));
+    lines[target].push(p);
+  }
+  return [lines.DEF, lines.MID, lines.FWD].filter((row) => row.length > 0);
+}
+
 export const lineupOps = {
   move(state: LineupState, userId: string, to: Zone, formatSize: number): LineupState {
     const existing = [...state.A, ...state.B].find((s) => s.user_id === userId);
@@ -57,6 +89,18 @@ export const lineupOps = {
     const apply = (slots: Slot[]) => {
       if (!slots.some((s) => s.user_id === userId)) return slots;
       return slots.map((s) => ({ ...s, is_goalkeeper: s.user_id === userId ? !s.is_goalkeeper : false, is_substitute: s.user_id === userId ? false : s.is_substitute }));
+    };
+    return { A: apply(state.A), B: apply(state.B) };
+  },
+  /** Set a player's position. GK makes them the side's goalkeeper; an outfield position takes the gloves off. */
+  setPosition(state: LineupState, userId: string, position: PlayerPosition): LineupState {
+    const apply = (slots: Slot[]) => {
+      if (!slots.some((s) => s.user_id === userId)) return slots;
+      return slots.map((s) => {
+        if (s.user_id === userId) return { ...s, position, is_goalkeeper: position === 'GK', is_substitute: position === 'GK' ? false : s.is_substitute };
+        // only one goalkeeper per side
+        return position === 'GK' && s.is_goalkeeper ? { ...s, is_goalkeeper: false, position: s.position === 'GK' ? 'ANY' : s.position } : s;
+      });
     };
     return { A: apply(state.A), B: apply(state.B) };
   },

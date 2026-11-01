@@ -11,6 +11,7 @@ import { useAction } from '@/hooks/useAction';
 import { rpc } from '@/lib/api';
 import { space } from '@/theme/tokens';
 import type { PlayerPosition } from '@/types/db';
+import { POSITION_LABEL } from '@/domain/format';
 
 type Strengths = { players: BalancePlayer[]; pairings: { user_a: string; user_b: string; times: number }[] };
 
@@ -202,12 +203,13 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
               <Chip label={selSlot?.is_substitute ? 'Make starter' : 'Make substitute'} selected={selSlot?.is_substitute} onPress={() => { update(lineupOps.toggleSub(lineup, selected!)); setSelected(null); }} />
             </Row>
           )}
-          <Text variant="smallStrong" tone="muted">Position</Text>
+          <Text variant="smallStrong" tone="muted">{selSide === 'bench' ? 'Move them onto a team to set a position' : 'Position'}</Text>
           <Row gap={space.sm} wrap>
             {(['GK', 'DEF', 'MID', 'FWD', 'ANY'] as PlayerPosition[]).map((p) => (
-              <Chip key={p} label={p} selected={selSlot?.position === p} onPress={() => {
-                if (selSide === 'bench') return;
-                update({ A: lineup.A.map((s) => (s.user_id === selected ? { ...s, position: p } : s)), B: lineup.B.map((s) => (s.user_id === selected ? { ...s, position: p } : s)) });
+              <Chip key={p} label={POSITION_LABEL[p]} selected={p === 'GK' ? !!selSlot?.is_goalkeeper : !selSlot?.is_goalkeeper && selSlot?.position === p} onPress={() => {
+                if (selSide === 'bench' || !selected) return;
+                update(lineupOps.setPosition(lineup, selected, p));
+                setSelected(null);
               }} />
             ))}
           </Row>
