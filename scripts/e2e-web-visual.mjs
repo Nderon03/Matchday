@@ -33,7 +33,10 @@ const team = (side, ids) => ({ id: `t${side}`, fixture_id: FID, side, name: side
 const fixtures = [{ id: FID, session_id: SID, number: 1, played: false, lineup_confirmed_at: kickoff, teams: [team('A', people.slice(0, 5).map((p) => p.id)), team('B', people.slice(5, 9).map((p) => p.id))] }];
 fixtures[0].teams[1].players.push({ fixture_team_id: 'tB', fixture_id: FID, user_id: null, guest_id: 'g1111111-1111-4111-8111-111111111111', position: 'ANY', is_goalkeeper: false, is_substitute: false, sort_order: 9 });
 const attendance = people.map((p, i) => ({ session_id: SID, user_id: p.id, status: 'confirmed', waitlisted_at: null, checked_in_at: i < 3 ? kickoff : null, verification: 'unverified', late_arrival: false, replacement_for: null, profile: p }));
-const lb = people.slice(0, 8).map((p, i) => ({ rank: i + 1, user_id: p.id, username: p.username, display_name: p.display_name, avatar_url: null, value: 24 - i * 3, appearances: 12 - i, is_me: p.id === ME, total: 8 }));
+const lb = [
+  ...people.slice(0, 6).map((p, i) => ({ rank: i + 1, user_id: p.id, username: p.username, display_name: p.display_name, avatar_url: null, value: 24 - i * 3, appearances: 12 - i, is_me: p.id === ME, total: 6, qualified: true, progress: 12 - i, needed: 0 })),
+  ...people.slice(6, 8).map((p, i) => ({ rank: null, user_id: p.id, username: p.username, display_name: p.display_name, avatar_url: null, value: 3 - i, appearances: 2 - i, is_me: false, total: 6, qualified: false, progress: 2 - i, needed: 5 })),
+];
 const home = {
   profile: { ...people[0], onboarded: true }, unread_notifications: 3,
   next_session: { ...session, my_status: 'confirmed', confirmed: 9, lineup_ready: true, is_host: true },
@@ -105,7 +108,13 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.waitForTimeout(300);
       if ((await page.locator('body').innerText()).includes('The host removed you from')) failures.push(`${vpName}: removal notice did not dismiss`);
     }
-    if (name === 'leagues') { await page.getByText('Leaderboards').first().click(); await page.waitForTimeout(500); }
+    if (name === 'leagues') {
+      await page.getByText('Leaderboards').first().click();
+      await page.waitForTimeout(500);
+      if (!/Not qualified yet/i.test(await page.locator('body').innerText())) failures.push(`${vpName}: not-qualified section missing`);
+      await page.getByText(/Not qualified yet/i).first().scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-leaderboard-pending.png`) });
+    }
     if (name === 'session') {
       const text0 = await page.locator('body').innerText();
       if (!/Guest request: Marco/i.test(text0)) failures.push(`${vpName}: guest request not shown`);

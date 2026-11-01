@@ -179,7 +179,12 @@ export interface Payment {
 }
 
 export interface LeaderboardRow {
-  rank: number;
+  /** null when the player hasn't met the category's minimum yet */
+  rank: number | null;
+  qualified: boolean;
+  /** e.g. rated sessions or appearances so far, and how many are needed */
+  progress: number;
+  needed: number;
   user_id: string;
   username: string;
   display_name: string;

@@ -15,8 +15,11 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
   const [period, setPeriod] = useState<'all' | 'month' | 'year'>('all');
   const [seasonId, setSeasonId] = useState<string | null>(null);
   const lb = useLeaderboard({ category, scope, groupId, seasonId, period: seasonId ? 'all' : period });
-  const rows = lb.data?.pages.flat() ?? [];
+  const all = lb.data?.pages.flat() ?? [];
+  const rows = all.filter((r) => r.qualified);
+  const pending = all.filter((r) => !r.qualified);
   const me = rows.find((r) => r.is_me);
+  const unit = category === 'win_pct' ? 'appearances' : category === 'rating' || category === 'form' || category === 'improved' ? 'rated sessions' : 'games';
   const fmt = (v: number) => formatValue(category, v);
   const def = CATEGORIES.find((c) => c.key === category)!;
 
@@ -38,11 +41,14 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
 
       {lb.isLoading && <SkeletonList rows={6} />}
       {lb.error && <ErrorState error={lb.error} onRetry={lb.refetch} compact />}
-      {lb.data && rows.length === 0 && <EmptyState icon="podium-outline" title="No one qualifies yet" message="Play some games — the table fills up as results are finalised." />}
+      {lb.data && all.length === 0 && <EmptyState icon="podium-outline" title="No results yet" message="Play some games — the table fills up as results are finalised." />}
+      {lb.data && rows.length === 0 && pending.length > 0 && (
+        <Card variant="alt"><Text variant="small">Nobody has reached {pending[0].needed} {unit} yet, so there’s no official ranking. Here’s how everyone is getting on:</Text></Card>
+      )}
       {rows.length > 0 && (
         <>
           <Podium rows={rows.slice(0, 3)} format={fmt} onPress={(r) => router.push(`/player/${r.user_id}`)} />
-          {me && me.rank > 3 && (
+          {me && me.rank != null && me.rank > 3 && (
             <Card variant="highlight" padded={false}>
               <Row gap={space.md} style={{ padding: space.md }}>
                 <Text variant="statSmall" tone="primary" style={{ width: 36 }}>#{me.rank}</Text>
@@ -55,8 +61,8 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
           <Card padded={false}>
             {rows.map((r, i) => (
               <Row key={r.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, backgroundColor: r.is_me ? colors.primaryMuted : 'transparent' }}>
-                <View style={{ width: 30, height: 30, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: r.rank <= 3 ? `${[colors.gold, colors.silver, colors.bronze][r.rank - 1]}26` : 'transparent' }}>
-                  <Text variant="smallStrong" color={r.rank <= 3 ? [colors.gold, colors.silver, colors.bronze][r.rank - 1] : colors.textMuted}>{r.rank}</Text>
+                <View style={{ width: 30, height: 30, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: r.rank! <= 3 ? `${[colors.gold, colors.silver, colors.bronze][r.rank! - 1]}26` : 'transparent' }}>
+                  <Text variant="smallStrong" color={r.rank! <= 3 ? [colors.gold, colors.silver, colors.bronze][r.rank! - 1] : colors.textMuted}>{r.rank}</Text>
                 </View>
                 <Avatar uri={r.avatar_url} name={r.display_name} size={34} />
                 <View style={{ flex: 1, minWidth: 0 }}>
@@ -67,9 +73,29 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
               </Row>
             ))}
           </Card>
-          {lb.hasNextPage && <Button title="Load more" variant="secondary" loading={lb.isFetchingNextPage} onPress={() => lb.fetchNextPage()} />}
         </>
       )}
+      {pending.length > 0 && (
+        <View style={{ gap: space.sm }}>
+          <Text variant="overline" tone="muted">Not qualified yet · needs {pending[0].needed} {unit}</Text>
+          <Card padded={false}>
+            {pending.map((r, i) => (
+              <Row key={r.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, backgroundColor: r.is_me ? colors.primaryMuted : 'transparent' }}>
+                <Avatar uri={r.avatar_url} name={r.display_name} size={30} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text variant="bodyStrong" numberOfLines={1} onPress={() => router.push(`/player/${r.user_id}`)}>{r.display_name}{r.is_me ? ' (you)' : ''}</Text>
+                  <Text variant="caption" tone="muted">{r.progress} of {r.needed} {unit}</Text>
+                  <View style={{ height: 4, borderRadius: 2, backgroundColor: colors.surfaceAlt, marginTop: 4, overflow: 'hidden' }}>
+                    <View style={{ width: `${Math.min(100, (100 * r.progress) / Math.max(1, r.needed))}%`, height: 4, backgroundColor: colors.primary }} />
+                  </View>
+                </View>
+                <Text variant="statSmall" tone="faint">{fmt(r.value)}</Text>
+              </Row>
+            ))}
+          </Card>
+        </View>
+      )}
+      {lb.hasNextPage && <Button title="Load more" variant="secondary" loading={lb.isFetchingNextPage} onPress={() => lb.fetchNextPage()} />}
     </View>
   );
 }

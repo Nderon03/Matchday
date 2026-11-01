@@ -164,7 +164,13 @@ describe('single-match journey (5-a-side)', () => {
     expect(Number(lb[0].value)).toBe(3);
     // win% requires the minimum number of appearances — nobody qualifies after one game
     const pct = await db.as(host, `select * from public.get_leaderboard('win_pct', 'group', $1)`, [groupId]);
-    expect(pct).toHaveLength(0);
+    expect(pct.filter((r) => r.qualified)).toHaveLength(0);
+    // …but players still appear as "not qualified yet", with their progress
+    expect(pct.length).toBeGreaterThan(0);
+    expect(pct[0]).toMatchObject({ qualified: false, rank: null, progress: 1, needed: 5 });
+    const rating1 = await db.as(host, `select * from public.get_leaderboard('rating', 'group', $1)`, [groupId]);
+    expect(rating1.find((r) => r.user_id === scorer)).toMatchObject({ qualified: false, progress: 1, needed: 3 });
+    expect(Number(rating1.find((r) => r.user_id === scorer).value)).toBe(9);
 
     // 19: achievements
     const ach = await db.admin(`select achievement_code from player_achievements where user_id = $1 order by 1`, [scorer]);
