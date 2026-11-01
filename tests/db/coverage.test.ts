@@ -160,6 +160,8 @@ describe('removing players and guests', () => {
     await expectAppError(db.rpc(b, 'respond_to_session', { p_session: sid, p_response: 'removed' }), 'invalid');
     // the host invites them again → they can rejoin
     await db.rpc(host, 'invite_to_session', { p_session: sid, p_users: [b] });
+    const tasks = await db.as(b, `select kind, session_id from public.get_pending_tasks()`);
+    expect(tasks).toEqual(expect.arrayContaining([{ kind: 'rsvp', session_id: sid }]));
     expect(await db.rpc(b, 'respond_to_session', { p_session: sid, p_response: 'confirmed' })).toBe('confirmed');
     await expectAppError(db.rpc(host, 'remove_session_player', { p_session: sid, p_user: host }), 'invalid');
     // removing without p_remove_guests keeps their guest

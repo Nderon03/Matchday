@@ -88,6 +88,9 @@ export default function SessionScreen() {
       .join('  ·  ');
   };
   const guestsIn = d.guests.filter((g) => g.status === 'confirmed');
+  // a removed player who has been invited again can rejoin like anyone else
+  const reinvited = me?.status === 'removed' && d.invited.some((p) => p.id === userId);
+  const blocked = me?.status === 'removed' && !reinvited;
   const guestRequests = d.guests.filter((g) => g.status === 'pending');
   const myGuests = d.guests.filter((g) => g.added_by === userId && (g.status === 'confirmed' || g.status === 'pending'));
   const removePlayer = (uid: string, name: string) => removeSessionPlayer({ confirm, run, sessionId: id, userId: uid, name, guests: d.guests });
@@ -126,13 +129,13 @@ export default function SessionScreen() {
         </View>
       </Card>
 
-      {me?.status === 'removed' && (
+      {blocked && (
         <Card style={{ borderColor: colors.danger, backgroundColor: colors.dangerMuted }}>
           <Row gap={space.md} style={{ alignItems: 'flex-start' }}>
             <Ionicons name="person-remove" size={24} color={colors.danger} />
             <View style={{ flex: 1, gap: 4 }}>
               <Text variant="h3" color={colors.danger}>You’ve been removed from this session</Text>
-              {me.removed_reason ? <Text>Reason: {me.removed_reason}</Text> : null}
+              {me?.removed_reason ? <Text>Reason: {me.removed_reason}</Text> : null}
               <Text variant="small" tone="muted">You can only rejoin if the host invites you again.</Text>
             </View>
           </Row>
@@ -144,7 +147,7 @@ export default function SessionScreen() {
         <Card variant={me?.status === 'confirmed' ? 'highlight' : 'default'}>
           <View style={{ gap: space.md }}>
             <Text variant="h3">
-              {me?.status === 'confirmed' ? 'You’re playing' : me?.status === 'waitlisted' ? `Waiting list · position ${waitPos}` : me?.status === 'removed' ? 'Removed by the host' : me && ['declined', 'unavailable', 'withdrawn'].includes(me.status) ? 'You’re not playing' : 'Are you in?'}
+              {me?.status === 'confirmed' ? 'You’re playing' : me?.status === 'waitlisted' ? `Waiting list · position ${waitPos}` : blocked ? 'Removed by the host' : reinvited ? 'The host invited you back — are you in?' : me && ['declined', 'unavailable', 'withdrawn'].includes(me.status) ? 'You’re not playing' : 'Are you in?'}
             </Text>
             {me?.status === 'confirmed' ? (
               <Row gap={space.sm} wrap>
@@ -157,7 +160,7 @@ export default function SessionScreen() {
               </Row>
             ) : me?.status === 'waitlisted' ? (
               <Button title="Leave waiting list" variant="secondary" onPress={() => respond('withdrawn')} />
-            ) : me?.status === 'removed' ? null : (
+            ) : blocked ? null : (
               <Row gap={space.sm} wrap>
                 <Button title={groups.confirmed.length + guestsIn.length >= s.max_attendance ? 'Join waiting list' : 'I’m in'} icon="checkmark" loading={busy === 'rsvp-confirmed'} onPress={() => respond('confirmed')} />
                 <Button title="Can’t make it" variant="secondary" loading={busy === 'rsvp-declined'} onPress={() => respond('declined')} />

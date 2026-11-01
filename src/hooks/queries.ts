@@ -168,9 +168,11 @@ export function useMySessions() {
         supabase.from('sessions').select('*, group:groups(name), attendance:session_attendance(status)').in('id', ids).order('starts_at', { ascending: false }).limit(200),
       );
       const mine = new Map(att.map((a) => [a.session_id, a.status]));
+      const invitedTo = new Set(inv.map((i) => i.session_id));
       return sessions.map((s) => ({
         ...s,
-        my_status: mine.get(s.id),
+        // re-invited after removal: show as a fresh invitation
+        my_status: mine.get(s.id) === 'removed' && invitedTo.has(s.id) ? undefined : mine.get(s.id),
         confirmed_count: (s.attendance ?? []).filter((a: any) => a.status === 'confirmed').length,
       })) as SessionListItem[];
     },
