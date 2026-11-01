@@ -16,7 +16,16 @@ export interface BalancePlayer {
   win_pct?: number | null;
 }
 
+/**
+ * How goalkeepers are handled:
+ *  - auto: a keeper per side only if at least two players' preferred position is GK
+ *  - rotating: no fixed keepers (common in casual football) — everyone is treated as outfield
+ *  - fixed: also count players who have kept goal before (2+ games in goal)
+ */
+export type GoalkeeperMode = 'auto' | 'rotating' | 'fixed';
+
 export interface BalanceOptions {
+  goalkeepers?: GoalkeeperMode;
   /** Pairs [a, b] who were teammates recently, with counts. */
   recentPairings?: { user_a: string; user_b: string; times: number }[];
   /** Deterministic randomness for tests. */
@@ -56,8 +65,9 @@ export function hasEnoughHistory(players: BalancePlayer[]): boolean {
   return known >= Math.ceil(players.length / 2);
 }
 
-function isKeeper(p: BalancePlayer) {
-  return p.position === 'GK' || (p.gk_games ?? 0) >= 2;
+function isKeeper(p: BalancePlayer, mode: GoalkeeperMode) {
+  if (mode === 'rotating') return false;
+  return p.position === 'GK' || (mode === 'fixed' && (p.gk_games ?? 0) >= 2);
 }
 
 function mulberry(seed: number) {
@@ -79,8 +89,8 @@ export function shuffle<T>(xs: T[], random: () => number = Math.random): T[] {
   return a;
 }
 
-function chooseKeepers(players: BalancePlayer[]) {
-  const keepers = players.filter(isKeeper).sort((a, b) => (b.gk_games ?? 0) - (a.gk_games ?? 0) || playerStrength(b) - playerStrength(a));
+function chooseKeepers(players: BalancePlayer[], mode: GoalkeeperMode = 'auto') {
+  const keepers = players.filter((p) => isKeeper(p, mode)).sort((a, b) => (b.gk_games ?? 0) - (a.gk_games ?? 0) || playerStrength(b) - playerStrength(a));
   return keepers.length >= 2 ? [keepers[0], keepers[1]] : [];
 }
 
@@ -133,7 +143,7 @@ export function balanceTeams(players: BalancePlayer[], opts: BalanceOptions = {}
   const pairs = new Map<string, number>();
   for (const p of opts.recentPairings ?? []) pairs.set(pairKey(p.user_a, p.user_b), p.times);
 
-  const keepers = chooseKeepers(players);
+  const keepers = chooseKeepers(players, opts.goalkeepers);
   const keeperIds = new Set(keepers.map((k) => k.user_id));
   // shuffle first so equal-cost solutions vary week to week
   const outfield = shuffle(players.filter((p) => !keeperIds.has(p.user_id)), random);
@@ -192,14 +202,14 @@ export function balanceTeams(players: BalancePlayer[], opts: BalanceOptions = {}
     method: 'balanced',
     explanation:
       'Suggested teams based on previous performances and player balance' +
-      (keepers.length === 2 ? ', with a goalkeeper on each side.' : '.'),
+      (keepers.length === 2 ? ', with a goalkeeper on each side.' : opts.goalkeepers === 'rotating' ? '. Goalkeepers rotate, so nobody is fixed in goal.' : '.'),
   };
 }
 
 /** Random allocation (used when there is too little history, or on request). */
-export function randomTeams(players: BalancePlayer[], seedOrRandom?: number | (() => number)): BalanceResult {
+export function randomTeams(players: BalancePlayer[], seedOrRandom?: number | (() => number), goalkeepers: GoalkeeperMode = 'auto'): BalanceResult {
   const random = typeof seedOrRandom === 'number' ? mulberry(seedOrRandom) : seedOrRandom ?? Math.random;
-  const keepers = chooseKeepers(players);
+  const keepers = chooseKeepers(players, goalkeepers);
   const keeperIds = new Set(keepers.map((k) => k.user_id));
   const rest = shuffle(players.filter((p) => !keeperIds.has(p.user_id)), random);
   const sizeA = Math.ceil(players.length / 2) - (keepers[0] ? 1 : 0);
@@ -222,7 +232,7 @@ export function randomTeams(players: BalancePlayer[], seedOrRandom?: number | ((
 /** Suggest teams: balanced when there is enough history, otherwise random. */
 export function suggestTeams(players: BalancePlayer[], opts: BalanceOptions = {}): BalanceResult {
   if (!hasEnoughHistory(players)) {
-    const r = randomTeams(players, opts.random);
+    const r = randomTeams(players, opts.random, opts.goalkeepers);
     return { ...r, explanation: 'Not enough match history yet, so these teams are random. Adjust them as you like.' };
   }
   return balanceTeams(players, opts);

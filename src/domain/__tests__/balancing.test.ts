@@ -39,7 +39,7 @@ describe('balanceTeams', () => {
     const players = make([7, 7, 7, 7, 7, 7, 7, 7, 7, 7]);
     players[0].position = 'GK';
     players[1].gk_games = 5;
-    const r = balanceTeams(players, { random: seeded(3) });
+    const r = balanceTeams(players, { random: seeded(3), goalkeepers: 'fixed' });
     expect([r.goalkeepers.A, r.goalkeepers.B].sort()).toEqual(['p0', 'p1']);
     expect(r.A.includes('p0') !== r.A.includes('p1')).toBe(true);
     expect(r.explanation).toMatch(/goalkeeper/);
@@ -65,6 +65,29 @@ describe('balanceTeams', () => {
     const r = balanceTeams(players, { random: seeded(4), recentPairings: [{ user_a: 'p0', user_b: 'p1', times: 3 }] });
     expect(r.A.includes('p0') && r.A.includes('p1')).toBe(false);
     expect(r.B.includes('p0') && r.B.includes('p1')).toBe(false);
+  });
+});
+
+describe('goalkeeper modes', () => {
+  const players = make([7, 7, 7, 7, 7, 7]);
+  players[0].gk_games = 6; // has kept goal before, but prefers outfield
+  players[1].gk_games = 4;
+  it('auto ignores goal-keeping history and only uses preferred positions', () => {
+    expect(balanceTeams(players, { random: seeded(5) }).goalkeepers).toEqual({ A: undefined, B: undefined });
+    const withGk = players.map((p, i) => (i < 2 ? { ...p, position: 'GK' as const } : p));
+    const r = balanceTeams(withGk, { random: seeded(5) });
+    expect([r.goalkeepers.A, r.goalkeepers.B].sort()).toEqual(['p0', 'p1']);
+  });
+  it('rotating never fixes a goalkeeper, even if players prefer GK', () => {
+    const withGk = players.map((p, i) => (i < 2 ? { ...p, position: 'GK' as const } : p));
+    const r = balanceTeams(withGk, { random: seeded(5), goalkeepers: 'rotating' });
+    expect(r.goalkeepers).toEqual({ A: undefined, B: undefined });
+    expect(r.explanation).toMatch(/rotate/);
+    expect(randomTeams(withGk, 3, 'rotating').goalkeepers).toEqual({ A: undefined, B: undefined });
+  });
+  it('a single keeper is not forced onto one side', () => {
+    const one = players.map((p, i) => (i === 0 ? { ...p, position: 'GK' as const } : p));
+    expect(balanceTeams(one, { random: seeded(5) }).goalkeepers).toEqual({ A: undefined, B: undefined });
   });
 });
 

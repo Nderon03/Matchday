@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button, Card, Chip, ErrorState, Header, Input, Loading, Row, Screen, Segmented, Sheet, Text, useToast } from '@/components/ui';
 import { Pitch, type LineupPlayer } from '@/components/football/Pitch';
 import { lineupOps, type LineupState, type Zone } from '@/domain/lineup';
-import { suggestTeams, randomTeams, balanceTeams, hasEnoughHistory, type BalancePlayer, type BalanceResult } from '@/domain/balancing';
+import { suggestTeams, randomTeams, balanceTeams, hasEnoughHistory, type BalancePlayer, type BalanceResult, type GoalkeeperMode } from '@/domain/balancing';
 import { keys, useSessionDetail, type SessionDetail } from '@/hooks/queries';
 import { useAction } from '@/hooks/useAction';
 import { rpc } from '@/lib/api';
@@ -15,9 +15,9 @@ import { POSITION_LABEL } from '@/domain/format';
 
 type Strengths = { players: BalancePlayer[]; pairings: { user_a: string; user_b: string; times: number }[] };
 
-function buildSuggestion(kind: 'balanced' | 'random', pool: BalancePlayer[], pairings: Strengths['pairings']): BalanceResult {
-  if (kind === 'random') return randomTeams(pool);
-  return hasEnoughHistory(pool) ? balanceTeams(pool, { recentPairings: pairings }) : suggestTeams(pool);
+function buildSuggestion(kind: 'balanced' | 'random', pool: BalancePlayer[], pairings: Strengths['pairings'], goalkeepers: GoalkeeperMode = 'auto'): BalanceResult {
+  if (kind === 'random') return randomTeams(pool, undefined, goalkeepers);
+  return hasEnoughHistory(pool) ? balanceTeams(pool, { recentPairings: pairings, goalkeepers }) : suggestTeams(pool, { goalkeepers });
 }
 
 export default function LineupScreen() {
@@ -91,6 +91,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
   const [names, setNames] = useState({ A: fixture.teams[0]?.name ?? 'Team A', B: fixture.teams[1]?.name ?? 'Team B' });
   const [dirty, setDirty] = useState(!!initialSuggestion);
   const [selected, setSelected] = useState<string | null>(null);
+  const [gkMode, setGkMode] = useState<GoalkeeperMode>('auto');
   const [swapFrom, setSwapFrom] = useState<string | null>(null);
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
@@ -107,7 +108,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
   const apply = (kind: 'balanced' | 'random') => {
     const pool = (strengths?.players ?? []).filter((p) => players[p.user_id]);
     if (pool.length < 2) return toast.show('You need at least two confirmed players.', 'error');
-    const result = buildSuggestion(kind, pool, strengths?.pairings ?? []);
+    const result = buildSuggestion(kind, pool, strengths?.pairings ?? [], gkMode);
     setSuggestion(result);
     update(lineupOps.fromAssignment(result.A, result.B, positions, result.goalkeepers, d.session.format_size));
   };
@@ -154,6 +155,17 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
             <Button title="Randomise" icon="shuffle" size="sm" variant="secondary" onPress={() => apply('random')} />
             <Button title="Clear" size="sm" variant="ghost" onPress={() => { update({ A: [], B: [] }); setSuggestion(null); }} />
           </Row>
+          <Row gap={space.sm} wrap>
+            <Text variant="caption" tone="muted">Goalkeepers:</Text>
+            <Chip label="Auto" selected={gkMode === 'auto'} onPress={() => setGkMode('auto')} />
+            <Chip label="Rotating" selected={gkMode === 'rotating'} onPress={() => setGkMode('rotating')} />
+            <Chip label="Fixed" selected={gkMode === 'fixed'} onPress={() => setGkMode('fixed')} />
+          </Row>
+          <Text variant="caption" tone="faint">
+            {gkMode === 'rotating' ? 'Nobody is fixed in goal — everyone counts as outfield when balancing. You can still mark a placeholder keeper.'
+              : gkMode === 'fixed' ? 'Players who prefer GK or have kept goal before are split one per side.'
+              : 'A keeper goes on each side only if two players chose Goalkeeper as their position.'}
+          </Text>
           {suggestion && (
             <Card variant="alt">
               <Text variant="small">{suggestion.explanation}</Text>
