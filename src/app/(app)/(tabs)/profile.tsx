@@ -18,7 +18,7 @@ export default function ProfileTab() {
           <IconButton icon="settings-outline" label="Settings" onPress={() => router.push('/settings')} />
         </Row>
       </Row>
-      {userId && <PlayerProfileView userId={userId} />}
+      {!!userId && <PlayerProfileView userId={userId} />}
     </Screen>
   );
 }

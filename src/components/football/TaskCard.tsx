@@ -31,7 +31,7 @@ export function TaskCard({ task }: { task: Task }) {
         <View style={{ flex: 1 }}>
           <Text variant="bodyStrong" numberOfLines={1}>{task.subtitle}</Text>
           <Text variant="small" tone="muted" numberOfLines={1}>
-            {task.title}{task.due_at && ['vote', 'goals'].includes(task.kind) ? ` · closes in ${timeUntil(task.due_at)}` : ''}
+            {task.title}{!!task.due_at && ['vote', 'goals'].includes(task.kind) ? ` · closes in ${timeUntil(task.due_at)}` : ''}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />

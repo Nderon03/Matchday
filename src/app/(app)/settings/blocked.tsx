@@ -12,7 +12,7 @@ export default function Blocked() {
   return (
     <Screen edges={['top', 'bottom']} maxWidth={600}>
       <Header title="Blocked players" />
-      {friends.isLoading && <SkeletonList />}
+      {!!friends.isLoading && <SkeletonList />}
       {friends.data?.blocked.length === 0 && <EmptyState icon="ban-outline" title="No one blocked" message="Blocked players can’t see you, message you or invite you." />}
       <View style={{ gap: space.md }}>
         {friends.data?.blocked.map((b) => (

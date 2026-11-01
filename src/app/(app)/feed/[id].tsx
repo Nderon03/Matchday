@@ -69,7 +69,7 @@ export default function ActivityThread() {
     <Screen edges={['top', 'bottom']} maxWidth={640}
       footer={
         <View style={{ gap: space.xs }}>
-          {replyTo && <Text variant="caption" tone="muted">Replying to {replyTo.name} · <Text variant="caption" tone="primary" onPress={() => setReplyTo(null)}>cancel</Text></Text>}
+          {!!replyTo && <Text variant="caption" tone="muted">Replying to {replyTo.name} · <Text variant="caption" tone="primary" onPress={() => setReplyTo(null)}>cancel</Text></Text>}
           <Row gap={space.sm}>
             <View style={{ flex: 1 }}><Input value={body} onChangeText={setBody} placeholder="Add a comment" maxLength={500} onSubmitEditing={send} returnKeyType="send" /></View>
             <Button title="Send" loading={busy} disabled={!body.trim()} onPress={send} />

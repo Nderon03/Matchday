@@ -82,7 +82,7 @@ export default function VoteScreen() {
     <Screen edges={['top', 'bottom']} maxWidth={640}
       footer={!allDone ? <Button title="Submit votes" size="lg" disabled={!ready} loading={busy} onPress={submit} /> : undefined}>
       <Header title="Vote & rate" subtitle={v.closes_at ? `Closes in ${timeUntil(v.closes_at)} · votes are anonymous` : 'Votes are anonymous'} />
-      {allDone && (
+      {!!allDone && (
         <Card variant="highlight">
           <Row gap={space.md}>
             <Ionicons name="checkmark-circle" size={28} color={colors.primary} />
@@ -109,7 +109,7 @@ export default function VoteScreen() {
                     style={{ width: 96, alignItems: 'center', gap: 6, padding: space.sm, borderRadius: radius.md, borderWidth: 2, borderColor: on ? colors.gold : colors.border, backgroundColor: on ? `${colors.gold}1A` : colors.surface }}>
                     <Avatar uri={p.avatar_url} name={p.display_name} size={52} />
                     <Text variant="caption" numberOfLines={1}>{p.display_name}</Text>
-                    {on && <Ionicons name="star" size={16} color={colors.gold} style={{ position: 'absolute', top: 6, right: 6 }} />}
+                    {!!on && <Ionicons name="star" size={16} color={colors.gold} style={{ position: 'absolute', top: 6, right: 6 }} />}
                   </Pressable>
                 );
               })}

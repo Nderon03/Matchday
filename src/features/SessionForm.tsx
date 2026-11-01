@@ -159,7 +159,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
           {days.map((d) => <Chip key={d.toDateString()} label={dayLabel(d)} selected={d.toDateString() === date.toDateString()} onPress={() => setDate(d)} />)}
         </ScrollView>
-        {errors.starts_at && <Text variant="caption" tone="danger">{errors.starts_at}</Text>}
+        {!!errors.starts_at && <Text variant="caption" tone="danger">{errors.starts_at}</Text>}
         <Row gap={space.sm} wrap>
           {['18:00', '19:00', '20:00', '21:00'].map((t) => <Chip key={t} label={t} selected={time === t} onPress={() => setTime(t)} />)}
           <View style={{ width: 110 }}>
@@ -220,7 +220,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
             { value: 'public', label: 'Public' },
           ]}
         />
-        {errors.visibility && <Text variant="caption" tone="danger">{errors.visibility}</Text>}
+        {!!errors.visibility && <Text variant="caption" tone="danger">{errors.visibility}</Text>}
         <Row gap={space.sm} wrap>
           <Text variant="small" tone="muted">Withdrawal deadline:</Text>
           {[null, 2, 12, 24].map((h) => <Chip key={String(h)} label={h == null ? 'None' : `${h}h before`} selected={deadlineHours === h} onPress={() => setDeadlineHours(h)} />)}

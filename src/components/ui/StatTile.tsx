@@ -15,7 +15,7 @@ export function StatTile({ label, value, sub, accent, compact }: { label: string
     >
       <Text variant={compact ? 'statSmall' : 'stat'} tone={accent ? 'primary' : 'default'}>{value}</Text>
       <Text variant="caption" tone="muted" numberOfLines={1}>{label}</Text>
-      {sub && <Text variant="caption" tone="faint" numberOfLines={1}>{sub}</Text>}
+      {!!sub && <Text variant="caption" tone="faint" numberOfLines={1}>{sub}</Text>}
     </View>
   );
 }

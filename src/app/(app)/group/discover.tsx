@@ -23,8 +23,8 @@ export default function Discover() {
     <Screen edges={['top', 'bottom']}>
       <Header title="Discover groups" />
       <Input placeholder="Search by name or area" value={search} onChangeText={setSearch} icon="search" />
-      {groups.isLoading && <SkeletonList />}
-      {groups.error && <ErrorState error={groups.error} onRetry={groups.refetch} />}
+      {!!groups.isLoading && <SkeletonList />}
+      {!!groups.error && <ErrorState error={groups.error} onRetry={groups.refetch} />}
       {groups.data?.length === 0 && <EmptyState icon="compass-outline" title="No public groups found" message="Try another search, or create your own group." />}
       {groups.data?.map((g) => (
         <Card key={g.id} onPress={() => router.push(`/group/${g.id}`)}>

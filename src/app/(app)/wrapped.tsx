@@ -46,9 +46,9 @@ export default function Wrapped() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
         {ps.map((x) => <Chip key={x.key} label={x.label} selected={x.key === key} onPress={() => setKey(x.key)} />)}
       </ScrollView>
-      {w.isLoading && <Loading />}
-      {w.error && <ErrorState error={w.error} onRetry={w.refetch} />}
-      {d && (
+      {!!w.isLoading && <Loading />}
+      {!!w.error && <ErrorState error={w.error} onRetry={w.refetch} />}
+      {!!d && (
         <>
           <View ref={ref} collapsable={false} style={{ borderRadius: radius.xl, overflow: 'hidden', backgroundColor: '#0B1410' }}>
             <Svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
@@ -75,7 +75,7 @@ export default function Wrapped() {
                     <Big value={d.motm} label="MOTM awards" />
                     <Big value={d.best_win_streak} label="Longest win streak" />
                   </View>
-                  {d.best_performance && (
+                  {!!d.best_performance && (
                     <Text color="#C9D6CF">Best performance: {d.best_performance.name}{d.best_performance.rating ? ` (${rating(d.best_performance.rating)})` : ''}{d.best_performance.goals ? ` · ${d.best_performance.goals} goals` : ''}</Text>
                   )}
                   {d.teammates?.length > 0 && <Text color="#C9D6CF">Most games with: {d.teammates.map((t: any) => t.display_name).join(', ')}</Text>}

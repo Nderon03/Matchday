@@ -50,9 +50,9 @@ export default function Compare() {
         {friends.data?.friends.map((f) => <Chip key={f.id} label={f.display_name} selected={b === f.id} onPress={() => setB(f.id)} />)}
       </ScrollView>
       {!b && <Text tone="muted">Pick a friend to compare with.</Text>}
-      {b && h2h.isLoading && <Loading />}
-      {h2h.error && <ErrorState error={h2h.error} onRetry={h2h.refetch} />}
-      {d && (
+      {!!b && h2h.isLoading && <Loading />}
+      {!!h2h.error && <ErrorState error={h2h.error} onRetry={h2h.refetch} />}
+      {!!d && (
         <>
           <Card>
             <Row style={{ justifyContent: 'space-around' }}>
@@ -91,7 +91,7 @@ export default function Compare() {
                   <View style={{ alignItems: 'center' }}><Text variant="stat">{d.rivalry.b_wins}</Text><Text variant="caption" tone="muted">Their wins</Text></View>
                 </Row>
                 <Text variant="small" tone="muted" align="center">Goals in those sessions: {d.rivalry.a_goals} – {d.rivalry.b_goals}</Text>
-                {d.rivalry.last && <Text variant="small" tone="muted" align="center">Last met: {d.rivalry.last.name}, {formatDate(d.rivalry.last.played_at)} ({d.rivalry.last.a_score}–{d.rivalry.last.b_score})</Text>}
+                {!!d.rivalry.last && <Text variant="small" tone="muted" align="center">Last met: {d.rivalry.last.name}, {formatDate(d.rivalry.last.played_at)} ({d.rivalry.last.a_score}–{d.rivalry.last.b_score})</Text>}
               </View>
             )}
           </Card>

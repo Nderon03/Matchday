@@ -41,8 +41,8 @@ export default function Friends() {
         { value: 'requests', label: `Requests${requestCount ? ` · ${requestCount}` : ''}` },
         { value: 'find', label: 'Find' },
       ]} />
-      {friends.isLoading && <SkeletonList />}
-      {friends.error && <ErrorState error={friends.error} onRetry={friends.refetch} />}
+      {!!friends.isLoading && <SkeletonList />}
+      {!!friends.error && <ErrorState error={friends.error} onRetry={friends.refetch} />}
 
       {tab === 'friends' && d && (
         d.friends.length === 0 ? (

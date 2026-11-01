@@ -86,14 +86,14 @@ function GoalsBody({ id }: { id: string }) {
     <Screen edges={['top', 'bottom']} maxWidth={640}>
       <Header title="Goals & assists" subtitle={s.name} />
 
-      {verified && (
-        <Card variant={mine && !canSubmit ? 'default' : 'highlight'}>
+      {!!verified && (
+        <Card variant={!!mine && !canSubmit ? 'default' : 'highlight'}>
           <View style={{ gap: space.lg }}>
             <Row style={{ justifyContent: 'space-between' }}>
               <Text variant="h3">Your tally</Text>
-              {mine && <Badge label={STATUS[mine.status].label} tone={STATUS[mine.status].tone} />}
+              {!!mine && <Badge label={STATUS[mine.status].label} tone={STATUS[mine.status].tone} />}
             </Row>
-            {mine && mine.status !== 'pending' && mine.status !== 'clarification_requested' ? (
+            {!!mine && mine.status !== 'pending' && mine.status !== 'clarification_requested' ? (
               <Text>
                 {mine.approved_goals ?? mine.goals} goal(s){mine.approved_assists ? `, ${mine.approved_assists} assist(s)` : ''}
                 {mine.status === 'corrected' ? ` (you claimed ${mine.goals})` : ''}
@@ -106,7 +106,7 @@ function GoalsBody({ id }: { id: string }) {
                   <Stepper size="lg" value={goals} onChange={setGoals} max={50} label="Goals" />
                 </Row>
                 )}
-                {trackAssists && !split && (
+                {!!trackAssists && !split && (
                   <Row style={{ justifyContent: 'space-between' }}>
                     <Text variant="bodyStrong">Assists</Text>
                     <Stepper value={assists} onChange={setAssists} max={50} label="Assists" />
@@ -118,7 +118,7 @@ function GoalsBody({ id }: { id: string }) {
                       <Text variant="small" tone="muted">Split by game (optional)</Text>
                       <Switch value={breakdownOn} onValueChange={setBreakdownOn} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Split goals by game" />
                     </Row>
-                    {split && myFixtures.map((f) => (
+                    {!!split && myFixtures.map((f) => (
                       <Card key={f.id} variant="alt">
                         <View style={{ gap: space.sm }}>
                           <Text variant="smallStrong">Game {f.number} · {f.teamName} scored {f.teamScore}</Text>
@@ -126,7 +126,7 @@ function GoalsBody({ id }: { id: string }) {
                             <Text variant="small" tone="muted">Goals</Text>
                             <Stepper value={per(f.id).goals} max={f.teamScore} onChange={(v) => setBreakdown((b) => ({ ...b, [f.id]: { ...per(f.id), goals: v } }))} label={`Goals in game ${f.number}`} />
                           </Row>
-                          {trackAssists && (
+                          {!!trackAssists && (
                             <Row style={{ justifyContent: 'space-between' }}>
                               <Text variant="small" tone="muted">Assists</Text>
                               <Stepper value={per(f.id).assists} max={f.teamScore} onChange={(v) => setBreakdown((b) => ({ ...b, [f.id]: { ...per(f.id), assists: v } }))} label={`Assists in game ${f.number}`} />
@@ -135,11 +135,11 @@ function GoalsBody({ id }: { id: string }) {
                         </View>
                       </Card>
                     ))}
-                    {split && <Text variant="small">Total: {totalGoals} goal{totalGoals === 1 ? '' : 's'}{trackAssists ? `, ${totalAssists} assist${totalAssists === 1 ? '' : 's'}` : ''}</Text>}
+                    {!!split && <Text variant="small">Total: {totalGoals} goal{totalGoals === 1 ? '' : 's'}{trackAssists ? `, ${totalAssists} assist${totalAssists === 1 ? '' : 's'}` : ''}</Text>}
                   </View>
                 )}
                 <Input label="Note for the host (optional)" value={note} onChangeText={setNote} placeholder="e.g. Two headers and a penalty" maxLength={280} />
-                {localError && <Text variant="small" tone="danger">{localError}</Text>}
+                {!!localError && <Text variant="small" tone="danger">{localError}</Text>}
                 <Button title={mine ? 'Update submission' : 'Submit'} size="lg" disabled={!canSubmit || !!localError} loading={busy === 'submit'} onPress={submit} />
                 <Text variant="caption" tone="faint">
                   {isHostSelf
@@ -152,7 +152,7 @@ function GoalsBody({ id }: { id: string }) {
         </Card>
       )}
 
-      {d.isManager && (
+      {!!d.isManager && (
         <View style={{ gap: space.sm }}>
           <SectionTitle title={`To approve · ${reviewable.length}`} action={reviewable.filter((x) => x.status === 'pending').length > 1 ? 'Approve all' : undefined}
             onAction={() => run('bulk', () => rpc<number>('bulk_approve_goals', { p_session: id }), (n) => `${n} claim(s) approved`)} />
@@ -170,7 +170,7 @@ function GoalsBody({ id }: { id: string }) {
                         {sub.goals} goal(s){sub.assists ? ` · ${sub.assists} assist(s)` : ''}{sub.is_late ? ' · late claim' : ''}
                         {sub.fixture_breakdown?.length ? ` · ${sub.fixture_breakdown.map((b) => `G${d.fixtures.find((f) => f.id === b.fixture_id)?.number}: ${b.goals}${b.assists ? `+${b.assists}a` : ''}`).join(', ')}` : ''}
                       </Text>
-                      {sub.note && <Text variant="small" tone="muted">“{sub.note}”</Text>}
+                      {!!sub.note && <Text variant="small" tone="muted">“{sub.note}”</Text>}
                     </View>
                   </Row>
                   <Row gap={space.sm} wrap>

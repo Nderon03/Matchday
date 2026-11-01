@@ -37,16 +37,16 @@ export default function Payouts() {
           <Text variant="small" tone="muted">Player payments go directly to your own Stripe account. Stripe verifies your identity and pays out to your bank. MATCHDAY never holds your money or sees card details.</Text>
         </View>
       </Card>
-      {status.isLoading && <Loading />}
-      {status.error && <ErrorState error={status.error} onRetry={status.refetch} />}
-      {s && (
+      {!!status.isLoading && <Loading />}
+      {!!status.error && <ErrorState error={status.error} onRetry={status.refetch} />}
+      {!!s && (
         <Card>
           <View style={{ gap: space.md }}>
             <Row style={{ justifyContent: 'space-between' }}>
               <Text variant="h3">Status</Text>
               {!s.connected ? <Badge label="Not set up" /> : s.charges_enabled && s.payouts_enabled ? <Badge label="Active" tone="success" /> : <Badge label="Action needed" tone="warning" />}
             </Row>
-            {s.connected && (
+            {!!s.connected && (
               <View style={{ gap: 4 }}>
                 <Text variant="small">Accept payments: {s.charges_enabled ? 'Yes' : 'Not yet'}</Text>
                 <Text variant="small">Payouts to bank: {s.payouts_enabled ? 'Yes' : 'Not yet'}</Text>

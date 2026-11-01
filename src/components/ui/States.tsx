@@ -12,7 +12,7 @@ export function Loading({ label }: { label?: string }) {
   return (
     <View style={{ padding: space.xxxl, alignItems: 'center', gap: space.md }} accessibilityLabel={label ?? 'Loading'}>
       <ActivityIndicator color={colors.primary} />
-      {label && <Text tone="muted" variant="small">{label}</Text>}
+      {!!label && <Text tone="muted" variant="small">{label}</Text>}
     </View>
   );
 }
@@ -63,8 +63,8 @@ export function EmptyState({ icon = 'football-outline', title, message, action }
         <Ionicons name={icon} size={26} color={colors.primary} />
       </View>
       <Text variant="h3" align="center">{title}</Text>
-      {message && <Text tone="muted" align="center" style={{ maxWidth: 320 }}>{message}</Text>}
-      {action && <Button title={action.label} onPress={action.onPress} style={{ marginTop: space.md }} />}
+      {!!message && <Text tone="muted" align="center" style={{ maxWidth: 320 }}>{message}</Text>}
+      {!!action && <Button title={action.label} onPress={action.onPress} style={{ marginTop: space.md }} />}
     </View>
   );
 }
@@ -78,7 +78,7 @@ export function ErrorState({ error, onRetry, compact }: { error: unknown; onRetr
       <Ionicons name={icon} size={compact ? 22 : 32} color={colors.danger} />
       <Text variant={compact ? 'smallStrong' : 'h3'} align="center">{e.code === 'network' ? 'You’re offline' : 'Couldn’t load this'}</Text>
       <Text tone="muted" variant="small" align="center" style={{ maxWidth: 320 }}>{errorMessage(error)}</Text>
-      {onRetry && <Button title="Try again" variant="secondary" size="sm" icon="refresh" onPress={onRetry} style={{ marginTop: space.sm }} />}
+      {!!onRetry && <Button title="Try again" variant="secondary" size="sm" icon="refresh" onPress={onRetry} style={{ marginTop: space.sm }} />}
     </View>
   );
 }

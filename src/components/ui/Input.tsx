@@ -20,7 +20,7 @@ export const Input = forwardRef<TextInputInstance, InputProps>(function Input({ 
   const [hidden, setHidden] = useState(!!secure);
   return (
     <View style={{ gap: space.xs }}>
-      {label && <Text variant="smallStrong" tone="muted">{label}</Text>}
+      {!!label && <Text variant="smallStrong" tone="muted">{label}</Text>}
       <View
         style={[
           styles.box,
@@ -32,7 +32,7 @@ export const Input = forwardRef<TextInputInstance, InputProps>(function Input({ 
           },
         ]}
       >
-        {icon && <Ionicons name={icon} size={18} color={colors.textFaint} style={{ marginTop: multiline ? 14 : 0 }} />}
+        {!!icon && <Ionicons name={icon} size={18} color={colors.textFaint} style={{ marginTop: multiline ? 14 : 0 }} />}
         <TextInput
           ref={ref}
           placeholderTextColor={colors.textFaint}
@@ -44,7 +44,7 @@ export const Input = forwardRef<TextInputInstance, InputProps>(function Input({ 
           style={[styles.input, { color: colors.text, fontFamily: fonts.regular, paddingTop: multiline ? 12 : 0, textAlignVertical: multiline ? 'top' : 'center' }, Platform.OS === 'web' && webNoOutline, style]}
           {...rest}
         />
-        {secure && (
+        {!!secure && (
           <Pressable onPress={() => setHidden((h) => !h)} accessibilityLabel={hidden ? 'Show password' : 'Hide password'} hitSlop={8}>
             <Ionicons name={hidden ? 'eye-outline' : 'eye-off-outline'} size={20} color={colors.textMuted} />
           </Pressable>

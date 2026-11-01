@@ -39,8 +39,8 @@ export default function Notifications() {
   return (
     <Screen edges={['top', 'bottom']} onRefresh={n.refetch} refreshing={n.isRefetching}>
       <Header title="Notifications" right={unread ? <Button title="Mark all read" size="sm" variant="ghost" onPress={markAll} /> : undefined} />
-      {n.isLoading && <SkeletonList />}
-      {n.error && <ErrorState error={n.error} onRetry={n.refetch} />}
+      {!!n.isLoading && <SkeletonList />}
+      {!!n.error && <ErrorState error={n.error} onRetry={n.refetch} />}
       {n.data?.length === 0 && <EmptyState icon="notifications-outline" title="You’re all caught up" message="Invites, results, votes and payments will appear here." />}
       <View style={{ gap: 2 }}>
         {n.data?.map((item) => {

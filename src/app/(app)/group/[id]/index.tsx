@@ -66,11 +66,11 @@ export default function GroupScreen() {
     <Screen edges={['top', 'bottom']} onRefresh={() => { group.refetch(); sessions.refetch(); }} refreshing={group.isRefetching}>
       <Header title={g.name} subtitle={`${members.length} members${g.location ? ` · ${g.location}` : ''}`}
         right={<Row>
-          {myRole && <IconButton icon="person-add-outline" label="Add players" onPress={() => setInviteOpen(true)} />}
-          {isAdmin && <IconButton icon="settings-outline" label="Group settings" onPress={() => router.push(`/group/${id}/settings`)} />}
+          {!!myRole && <IconButton icon="person-add-outline" label="Add players" onPress={() => setInviteOpen(true)} />}
+          {!!isAdmin && <IconButton icon="settings-outline" label="Group settings" onPress={() => router.push(`/group/${id}/settings`)} />}
         </Row>} />
 
-      {g.cover_url && <Image source={{ uri: g.cover_url }} style={{ height: 140, borderRadius: radius.lg }} contentFit="cover" />}
+      {!!g.cover_url && <Image source={{ uri: g.cover_url }} style={{ height: 140, borderRadius: radius.lg }} contentFit="cover" />}
 
       {!myRole && (
         <Card variant="highlight">
@@ -92,14 +92,14 @@ export default function GroupScreen() {
 
       {tab === 'overview' && (
         <View style={{ gap: space.lg }}>
-          {g.description && <Text tone="muted">{g.description}</Text>}
+          {!!g.description && <Text tone="muted">{g.description}</Text>}
           <Row gap={space.sm}>
             <StatTile compact label="Sessions" value={records.data?.sessions_played ?? '–'} />
             <StatTile compact label="Goals" value={records.data?.goals_scored ?? '–'} />
             <StatTile compact label="Members" value={members.length} />
           </Row>
-          {myRole && <Button title="Create a session for this group" icon="add" onPress={() => router.push({ pathname: '/session/new', params: { groupId: id } })} />}
-          {isAdmin && joinRequests.length > 0 && (
+          {!!myRole && <Button title="Create a session for this group" icon="add" onPress={() => router.push({ pathname: '/session/new', params: { groupId: id } })} />}
+          {!!isAdmin && joinRequests.length > 0 && (
             <View style={{ gap: space.sm }}>
               <SectionTitle title={`Join requests · ${joinRequests.length}`} />
               {joinRequests.map((r) => (
@@ -108,7 +108,7 @@ export default function GroupScreen() {
                     <Avatar uri={r.profile.avatar_url} name={r.profile.display_name} size={36} />
                     <View style={{ flex: 1 }}>
                       <Text variant="bodyStrong">{r.profile.display_name}</Text>
-                      {r.message && <Text variant="caption" tone="muted">“{r.message}”</Text>}
+                      {!!r.message && <Text variant="caption" tone="muted">“{r.message}”</Text>}
                     </View>
                     <Button title="Accept" size="sm" loading={busy === `acc-${r.id}`} onPress={() => run(`acc-${r.id}`, () => rpc('decide_join_request', { p_request: r.id, p_approve: true }), 'Member added')} />
                     <Button title="Decline" size="sm" variant="ghost" onPress={() => run(`dec-${r.id}`, () => rpc('decide_join_request', { p_request: r.id, p_approve: false }))} />
@@ -119,8 +119,8 @@ export default function GroupScreen() {
           )}
           <SectionTitle title="Next fixture" />
           {upcoming[0] ? <SessionCard session={upcoming[0]} /> : <Text tone="muted" variant="small">Nothing scheduled.</Text>}
-          {results[0] && (<><SectionTitle title="Latest result" /><SessionCard session={results[0]} /></>)}
-          {g.rules && (<><SectionTitle title="Rules" /><Card><Text variant="small">{g.rules}</Text></Card></>)}
+          {!!results[0] && (<><SectionTitle title="Latest result" /><SessionCard session={results[0]} /></>)}
+          {!!g.rules && (<><SectionTitle title="Rules" /><Card><Text variant="small">{g.rules}</Text></Card></>)}
         </View>
       )}
 
@@ -173,7 +173,7 @@ export default function GroupScreen() {
 
       {tab === 'awards' && (
         <View style={{ gap: space.md }}>
-          {awards.isLoading && <Loading />}
+          {!!awards.isLoading && <Loading />}
           {awards.data?.length === 0 && <EmptyState icon="trophy-outline" title="No awards yet" message="Awards are calculated when an admin finalises a season." />}
           {seasons.filter((s) => s.status === 'completed').map((s) => {
             const list = (awards.data ?? []).filter((a) => a.season_id === s.id);
@@ -201,7 +201,7 @@ export default function GroupScreen() {
 
       {tab === 'seasons' && (
         <View style={{ gap: space.md }}>
-          {isAdmin && <Button title="Start a new season" icon="add" variant="secondary" onPress={() => setSeasonOpen(true)} />}
+          {!!isAdmin && <Button title="Start a new season" icon="add" variant="secondary" onPress={() => setSeasonOpen(true)} />}
           {seasons.length === 0 && <EmptyState icon="calendar-number-outline" title="No seasons yet" message="Seasons add separate tables and awards. Career history is never reset." />}
           {seasons.map((s) => (
             <Card key={s.id}>
@@ -211,7 +211,7 @@ export default function GroupScreen() {
                   <Text variant="caption" tone="muted">{formatDate(s.starts_on)} – {formatDate(s.ends_on)}</Text>
                 </View>
                 <Badge label={s.status === 'active' ? 'Active' : 'Completed'} tone={s.status === 'active' ? 'success' : 'neutral'} />
-                {isAdmin && s.status === 'active' && (
+                {!!isAdmin && s.status === 'active' && (
                   <Button title="Finalise" size="sm" variant="ghost" loading={busy === `fs-${s.id}`} onPress={() => run(`fs-${s.id}`, () => rpc('finalise_season', { p_season: s.id }), 'Season finalised — awards calculated')} />
                 )}
               </Row>
@@ -223,16 +223,16 @@ export default function GroupScreen() {
       {tab === 'feed' && (
         <View style={{ gap: space.md }}>
           {feed.data?.pages.flat().map((item) => <FeedItemCard key={item.id} item={item} />)}
-          {feed.data && feed.data.pages[0].length === 0 && <EmptyState icon="newspaper-outline" title="Quiet so far" message="Results, MOTMs and achievements will show up here." />}
-          {feed.hasNextPage && <Button title="Load more" variant="secondary" onPress={() => feed.fetchNextPage()} loading={feed.isFetchingNextPage} />}
+          {!!feed.data && feed.data.pages[0].length === 0 && <EmptyState icon="newspaper-outline" title="Quiet so far" message="Results, MOTMs and achievements will show up here." />}
+          {!!feed.hasNextPage && <Button title="Load more" variant="secondary" onPress={() => feed.fetchNextPage()} loading={feed.isFetchingNextPage} />}
         </View>
       )}
 
       {tab === 'records' && (
         <View style={{ gap: space.sm }}>
-          {records.isLoading && <Loading />}
-          {records.error && <ErrorState error={records.error} onRetry={records.refetch} compact />}
-          {records.data && ([
+          {!!records.isLoading && <Loading />}
+          {!!records.error && <ErrorState error={records.error} onRetry={records.refetch} compact />}
+          {!!records.data && ([
             ['Highest-scoring game', records.data.highest_scoring_fixture, (r: any) => `${r.score} · ${r.name}, ${formatDate(r.date)}`],
             ['Biggest victory', records.data.biggest_victory, (r: any) => `${r.score} · ${r.name}, ${formatDate(r.date)}`],
             ['Most goals in a session', records.data.most_goals_in_session, (r: any) => `${r.user.display_name} · ${r.value} goals`],

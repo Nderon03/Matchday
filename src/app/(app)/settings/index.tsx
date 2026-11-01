@@ -50,7 +50,7 @@ export default function Settings() {
       <Card>
         <View style={{ gap: space.sm }}>
           <Text variant="small" tone="muted">Who can see your statistics, achievements and bio? Group members always see your record within that group.</Text>
-          {prefs.data && (
+          {!!prefs.data && (
             <Segmented value={prefs.data.profile_visibility} onChange={setVisibility} options={[{ value: 'public', label: 'Everyone' }, { value: 'friends', label: 'Friends' }, { value: 'private', label: 'Only me' }]} />
           )}
         </View>

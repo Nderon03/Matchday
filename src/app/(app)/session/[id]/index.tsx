@@ -109,7 +109,7 @@ export default function SessionScreen() {
       <Header
         title={s.name}
         subtitle={d.group?.name ?? `${s.format_size}-a-side`}
-        right={d.isManager && ['scheduled', 'in_progress'].includes(s.status) ? <IconButton icon="person-add-outline" label="Invite players" onPress={() => router.push(`/session/${id}/invite`)} /> : undefined}
+        right={!!d.isManager && ['scheduled', 'in_progress'].includes(s.status) ? <IconButton icon="person-add-outline" label="Invite players" onPress={() => router.push(`/session/${id}/invite`)} /> : undefined}
       />
 
       <Card>
@@ -123,13 +123,13 @@ export default function SessionScreen() {
             {(s.venue || s.location) && <Row gap={8}><Ionicons name="location-outline" size={17} color={colors.textMuted} /><Text style={{ flex: 1 }}>{[s.venue, s.location].filter(Boolean).join(' · ')}</Text></Row>}
             <Row gap={8}><Ionicons name="people-outline" size={17} color={colors.textMuted} /><Text>{groups.confirmed.length + guestsIn.length}/{s.max_attendance} confirmed{guestsIn.length ? ` (incl. ${guestsIn.length} guest${guestsIn.length > 1 ? 's' : ''})` : ''}{groups.waitlisted.length ? ` · ${groups.waitlisted.length} waiting` : ''}</Text></Row>
             {s.payment_mode !== 'free' && <Row gap={8}><Ionicons name="card-outline" size={17} color={colors.textMuted} /><Text>{formatPence(s.price_pence)} per player · {s.payment_mode === 'upfront' ? 'pay upfront' : 'pay after'}</Text></Row>}
-            {d.host && <Row gap={8}><Avatar uri={d.host.avatar_url} name={d.host.display_name} size={20} /><Text tone="muted">Hosted by {d.host.display_name}</Text></Row>}
+            {!!d.host && <Row gap={8}><Avatar uri={d.host.avatar_url} name={d.host.display_name} size={20} /><Text tone="muted">Hosted by {d.host.display_name}</Text></Row>}
           </View>
-          {s.description && <Text tone="muted" variant="small">{s.description}</Text>}
+          {!!s.description && <Text tone="muted" variant="small">{s.description}</Text>}
         </View>
       </Card>
 
-      {blocked && (
+      {!!blocked && (
         <Card style={{ borderColor: colors.danger, backgroundColor: colors.dangerMuted }}>
           <Row gap={space.md} style={{ alignItems: 'flex-start' }}>
             <Ionicons name="person-remove" size={24} color={colors.danger} />
@@ -151,8 +151,8 @@ export default function SessionScreen() {
             </Text>
             {me?.status === 'confirmed' ? (
               <Row gap={space.sm} wrap>
-                {canCheckIn && <Button title="Check in" icon="checkmark-circle-outline" loading={busy === 'checkin'} onPress={() => run('checkin', () => rpc('check_in', { p_session: id }), 'Checked in — see you on the pitch')} />}
-                {me.checked_in_at && <Badge label="Checked in" tone="success" align="center" />}
+                {!!canCheckIn && <Button title="Check in" icon="checkmark-circle-outline" loading={busy === 'checkin'} onPress={() => run('checkin', () => rpc('check_in', { p_session: id }), 'Checked in — see you on the pitch')} />}
+                {!!me.checked_in_at && <Badge label="Checked in" tone="success" align="center" />}
                 <Button title="Withdraw" variant="secondary" loading={busy === 'rsvp-withdrawn'} onPress={async () => {
                   if (await confirm({ title: 'Withdraw from this session?', message: 'Your place goes to the next player on the waiting list.', confirmLabel: 'Withdraw', destructive: true })) respond('withdrawn');
                 }} />
@@ -167,7 +167,7 @@ export default function SessionScreen() {
                 <Button title="Unavailable" variant="ghost" onPress={() => respond('unavailable')} />
               </Row>
             )}
-            {s.rsvp_deadline && <Text variant="caption" tone="muted">Withdrawals close {formatKickoff(s.rsvp_deadline)}</Text>}
+            {!!s.rsvp_deadline && <Text variant="caption" tone="muted">Withdrawals close {formatKickoff(s.rsvp_deadline)}</Text>}
 
             {myGuests.length > 0 && (
               <View style={{ gap: space.xs }}>
@@ -202,7 +202,7 @@ export default function SessionScreen() {
           <Card onPress={() => router.push(`/session/${id}/vote`)} variant="highlight" style={{ flex: 1 }}>
             <Ionicons name="star" size={22} color={colors.gold} />
             <Text variant="bodyStrong" style={{ marginTop: 6 }}>Vote & rate</Text>
-            <Text variant="caption" tone="muted">{votingOpen && s.voting_closes_at ? `Closes in ${timeUntil(s.voting_closes_at)}` : 'Voting closed'}</Text>
+            <Text variant="caption" tone="muted">{!!votingOpen && s.voting_closes_at ? `Closes in ${timeUntil(s.voting_closes_at)}` : 'Voting closed'}</Text>
           </Card>
           <Card onPress={() => router.push(`/session/${id}/goals`)} style={{ flex: 1 }}>
             <Ionicons name="football" size={22} color={colors.primary} />
@@ -215,7 +215,7 @@ export default function SessionScreen() {
       {/* Results */}
       {scores.length > 0 && (
         <View style={{ gap: space.sm }}>
-          <SectionTitle title={s.mode === 'multi' ? `Results · ${totals.A}–${totals.B} on aggregate` : 'Result'} action={d.isManager && s.status !== 'finalised' ? 'Edit' : undefined} onAction={() => router.push(`/session/${id}/results`)} />
+          <SectionTitle title={s.mode === 'multi' ? `Results · ${totals.A}–${totals.B} on aggregate` : 'Result'} action={!!d.isManager && s.status !== 'finalised' ? 'Edit' : undefined} onAction={() => router.push(`/session/${id}/results`)} />
           <Card padded={false}>
             {d.fixtures.map((f, i) => (
               <View key={f.id} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, gap: 4 }}>
@@ -225,11 +225,11 @@ export default function SessionScreen() {
                   <Text variant="statSmall" style={{ width: 72, textAlign: 'center' }}>{f.played ? `${f.teams[0]?.score} – ${f.teams[1]?.score}` : 'vs'}</Text>
                   <Text variant="bodyStrong" style={{ flex: 1 }} numberOfLines={1}>{f.teams[1]?.name}</Text>
                 </Row>
-                {scorersFor(f.id) && <Text variant="caption" tone="muted" style={{ paddingLeft: 64 }}>{scorersFor(f.id)}</Text>}
+                {!!(scorersFor(f.id)) && <Text variant="caption" tone="muted" style={{ paddingLeft: 64 }}>{scorersFor(f.id)}</Text>}
               </View>
             ))}
           </Card>
-          {scorersFor(null) && <Text variant="caption" tone="muted">Across the session: {scorersFor(null)}</Text>}
+          {!!(scorersFor(null)) && <Text variant="caption" tone="muted">Across the session: {scorersFor(null)}</Text>}
         </View>
       )}
 
@@ -269,7 +269,7 @@ export default function SessionScreen() {
                 <Avatar uri={d.attendance.find((a) => a.user_id === st.user_id)?.profile.avatar_url} name={nameOf(st.user_id)} size={32} />
                 <Text variant="bodyStrong" style={{ flex: 1 }} onPress={() => router.push(`/player/${st.user_id}`)}>{nameOf(st.user_id)}</Text>
                 {st.goals > 0 && <Text variant="small" tone="muted">{st.goals} ⚽</Text>}
-                {st.motm && <Ionicons name="star" size={16} color={colors.gold} />}
+                {!!st.motm && <Ionicons name="star" size={16} color={colors.gold} />}
                 <Text variant="statSmall" tone={st.rating_eligible ? 'primary' : 'faint'} style={{ width: 44, textAlign: 'right' }}>{st.rating_eligible ? rating(st.rating_avg) : '–'}</Text>
               </Row>
             ))}
@@ -278,7 +278,7 @@ export default function SessionScreen() {
       )}
 
       {/* Host panel */}
-      {d.isManager && s.status !== 'cancelled' && (
+      {!!d.isManager && s.status !== 'cancelled' && (
         <View style={{ gap: space.sm }}>
           <SectionTitle title="Host controls" />
           <Card>
@@ -313,7 +313,7 @@ export default function SessionScreen() {
                     {votingOpen ? `Voting closes in ${timeUntil(s.voting_closes_at!)}. Results finalise automatically when it closes (if all goal claims are resolved).` : 'Voting has closed. Finalise to publish the results and update statistics.'}
                   </Text>
                   <Row gap={space.sm} wrap>
-                    {votingOpen && <Button title="Close voting now" variant="secondary" size="sm" loading={busy === 'close'} onPress={() => run('close', () => rpc('close_voting', { p_session: id }), 'Voting closed')} />}
+                    {!!votingOpen && <Button title="Close voting now" variant="secondary" size="sm" loading={busy === 'close'} onPress={() => run('close', () => rpc('close_voting', { p_session: id }), 'Voting closed')} />}
                     <Button title="Finalise results" icon="lock-closed" size="sm" disabled={votingOpen} onPress={openFinalise} />
                   </Row>
                 </>
@@ -346,7 +346,7 @@ export default function SessionScreen() {
               {a.verification === 'verified' && <Ionicons name="shield-checkmark" size={16} color={colors.primary} accessibilityLabel="Verified" />}
               {a.verification === 'absent' && <Badge label="Absent" tone="danger" />}
               {s.payment_mode !== 'free' && a.user_id !== s.host_id && <PaymentBadge status={payments.get(a.user_id)} />}
-              {d.isManager && a.user_id !== s.host_id && ['scheduled', 'in_progress'].includes(s.status) && (
+              {!!d.isManager && a.user_id !== s.host_id && ['scheduled', 'in_progress'].includes(s.status) && (
                 <IconButton icon="person-remove-outline" label={`Remove ${a.profile.display_name}`} size={32} tone="danger" onPress={() => removePlayer(a.user_id, a.profile.display_name)} />
               )}
             </Row>
@@ -366,7 +366,7 @@ export default function SessionScreen() {
           ))}
           {!groups.confirmed.length && <Text tone="muted" style={{ padding: space.lg }}>No one has confirmed yet.</Text>}
         </Card>
-        {d.isManager && guestRequests.map((g) => (
+        {!!d.isManager && guestRequests.map((g) => (
           <Card key={g.id} variant="alt">
             <Row gap={space.md}>
               <View style={{ flex: 1 }}>

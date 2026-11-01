@@ -71,7 +71,7 @@ export function FeedItemCard({ item, showComments = true }: { item: FeedRow; sho
               {n > 0 && <Text variant="caption" tone={mine ? 'primary' : 'muted'}>{n}</Text>}
             </Pressable>
           ))}
-          {showComments && (
+          {!!showComments && (
             <Pressable onPress={() => router.push(`/feed/${item.id}`)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, height: 30, marginLeft: 'auto' }}>
               <Ionicons name="chatbubble-outline" size={15} color={colors.textMuted} />
               <Text variant="caption" tone="muted">{item.comments?.[0]?.count ?? 0}</Text>

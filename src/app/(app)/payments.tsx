@@ -15,9 +15,9 @@ export default function MyPayments() {
   return (
     <Screen edges={['top', 'bottom']} onRefresh={payments.refetch} refreshing={payments.isRefetching}>
       <Header title="Payments" />
-      {payments.isLoading && <SkeletonList />}
-      {payments.error && <ErrorState error={payments.error} onRetry={payments.refetch} />}
-      {payments.data && (
+      {!!payments.isLoading && <SkeletonList />}
+      {!!payments.error && <ErrorState error={payments.error} onRetry={payments.refetch} />}
+      {!!payments.data && (
         <Row gap={space.sm}>
           <StatTile compact label="Outstanding" value={formatPence(outstanding.reduce((a, p) => a + p.amount_pence, 0))} />
           <StatTile compact label="Paid (all time)" value={formatPence(paid.reduce((a, p) => a + p.amount_pence, 0))} accent />
@@ -34,7 +34,7 @@ export default function MyPayments() {
               <View style={{ flex: 1 }}>
                 <Text variant="bodyStrong">{p.session?.name}</Text>
                 <Text variant="caption" tone="muted">{p.session ? formatDate(p.session.starts_at) : ''} · {paymentLabel(p.status)}{p.method === 'cash' ? ' (cash)' : ''}</Text>
-                {p.receipt_url && <Text variant="caption" tone="primary" onPress={() => Linking.openURL(p.receipt_url!)}>View receipt</Text>}
+                {!!p.receipt_url && <Text variant="caption" tone="primary" onPress={() => Linking.openURL(p.receipt_url!)}>View receipt</Text>}
               </View>
               <Text variant="statSmall">{formatPence(p.amount_pence)}</Text>
             </Row>

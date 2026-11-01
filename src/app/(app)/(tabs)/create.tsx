@@ -68,7 +68,7 @@ export default function Create() {
     <Screen>
       <Text variant="h1" accessibilityRole="header" style={{ paddingTop: space.sm }}>Create</Text>
       <View style={{ gap: space.md }}>
-        {lastHosted && (
+        {!!lastHosted && (
           <Action
             primary
             icon="repeat"

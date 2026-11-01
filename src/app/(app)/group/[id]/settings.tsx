@@ -62,7 +62,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
       <SectionTitle title="Visibility & joining" />
       <Segmented value={form.visibility} onChange={(v) => setForm({ ...form, visibility: v })} options={[{ value: 'private', label: 'Private' }, { value: 'public', label: 'Public' }]} />
       <Segmented value={form.join_policy} onChange={(v) => setForm({ ...form, join_policy: v })} options={[{ value: 'open', label: 'Open' }, { value: 'request', label: 'Request' }, { value: 'invite_only', label: 'Invite only' }]} />
-      {cfg && (
+      {!!cfg && (
         <>
           <SectionTitle title="Statistics" />
           <Card>
@@ -111,7 +111,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
                 {(isOwner ? (['admin', 'moderator', 'member'] as GroupRole[]) : (['moderator', 'member'] as GroupRole[])).filter((r) => r !== m.role).map((r) => (
                   <Chip key={r} label={`Make ${r}`} onPress={() => run(`role-${m.user_id}`, () => rpc('set_member_role', { p_group: id, p_user: m.user_id, p_role: r }), 'Role updated')} />
                 ))}
-                {isOwner && <Chip label="Transfer ownership" onPress={() => run(`own-${m.user_id}`, () => rpc('transfer_group_ownership', { p_group: id, p_new_owner: m.user_id }), 'Ownership transferred')} />}
+                {!!isOwner && <Chip label="Transfer ownership" onPress={() => run(`own-${m.user_id}`, () => rpc('transfer_group_ownership', { p_group: id, p_new_owner: m.user_id }), 'Ownership transferred')} />}
                 <Chip label="Remove" onPress={() => run(`rm-${m.user_id}`, () => rpc('remove_group_member', { p_group: id, p_user: m.user_id }), 'Member removed')} />
               </Row>
             )}
@@ -137,7 +137,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
 
       <SectionTitle title="Danger zone" />
       {!isOwner && <Button title="Leave group" variant="danger" onPress={() => run('leave', async () => { await rpc('remove_group_member', { p_group: id, p_user: userId }); router.replace('/leagues'); }, 'You left the group')} />}
-      {isOwner && (
+      {!!isOwner && (
         <Button title="Delete group" variant="danger" onPress={() => run('delete', async () => {
           const { error } = await supabase.from('groups').delete().eq('id', id);
           if (error) throw error;

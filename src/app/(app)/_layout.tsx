@@ -35,7 +35,7 @@ export default function AppLayout() {
   return (
     <>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }} />
-      {profile?.onboarded && <KickedNotice />}
+      {!!(profile?.onboarded) && <KickedNotice />}
     </>
   );
 }

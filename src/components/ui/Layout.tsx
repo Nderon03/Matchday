@@ -39,7 +39,7 @@ export function Screen({
       ) : (
         <View style={[styles.flex, inner, contentStyle]}>{children}</View>
       )}
-      {footer && <View style={[inner, { paddingBottom: space.lg, paddingTop: space.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>{footer}</View>}
+      {!!footer && <View style={[inner, { paddingBottom: space.lg, paddingTop: space.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>{footer}</View>}
     </SafeAreaView>
   );
 }
@@ -48,7 +48,7 @@ export function Screen({
 export function Header({ title, subtitle, right, back = true }: { title: string; subtitle?: string; right?: React.ReactNode; back?: boolean }) {
   return (
     <View style={styles.header}>
-      {back && (
+      {!!back && (
         <IconButton
           icon="chevron-back"
           label="Back"
@@ -57,7 +57,7 @@ export function Header({ title, subtitle, right, back = true }: { title: string;
       )}
       <View style={{ flex: 1 }}>
         <Text variant="h2" numberOfLines={1} accessibilityRole="header">{title}</Text>
-        {subtitle && <Text variant="small" tone="muted" numberOfLines={1}>{subtitle}</Text>}
+        {!!subtitle && <Text variant="small" tone="muted" numberOfLines={1}>{subtitle}</Text>}
       </View>
       {right}
     </View>
@@ -68,7 +68,7 @@ export function SectionTitle({ title, action, onAction }: { title: string; actio
   return (
     <View style={styles.section}>
       <Text variant="overline" tone="muted" accessibilityRole="header">{title}</Text>
-      {action && (
+      {!!action && (
         <Text variant="smallStrong" tone="primary" onPress={onAction} accessibilityRole="button" suppressHighlighting>
           {action}
         </Text>
@@ -101,10 +101,10 @@ export function ListItem({ title, subtitle, left, right, onPress, chevron = !!on
       {left}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text variant="bodyStrong" tone={danger ? 'danger' : 'default'} numberOfLines={1}>{title}</Text>
-        {subtitle && <Text variant="small" tone="muted" numberOfLines={2}>{subtitle}</Text>}
+        {!!subtitle && <Text variant="small" tone="muted" numberOfLines={2}>{subtitle}</Text>}
       </View>
       {right}
-      {chevron && <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />}
+      {!!chevron && <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />}
     </View>
   );
   if (!onPress) return content;

@@ -74,24 +74,24 @@ export default function PaymentsScreen() {
               </View>
               <Text variant="h2">{formatPence(p?.amount_pence ?? s.price_pence)}</Text>
             </Row>
-            {p?.failure_reason && p.status === 'failed' && <Text variant="small" tone="danger">{p.failure_reason}</Text>}
+            {!!(p?.failure_reason) && p.status === 'failed' && <Text variant="small" tone="danger">{p.failure_reason}</Text>}
             {(!p || ['unpaid', 'failed', 'pending', 'cancelled'].includes(p.status)) && p?.method !== 'cash' && (
               <Button title={p?.status === 'failed' ? 'Try again' : p?.status === 'pending' ? 'Resume payment' : 'Pay with card'} icon="lock-closed" size="lg" loading={opening || busy === 'pay'} onPress={pay}
                 disabled={s.status === 'cancelled' || (s.payment_mode === 'upfront' && d.me?.status !== 'confirmed')} />
             )}
             {s.payment_mode === 'upfront' && d.me?.status !== 'confirmed' && !p && <Text variant="caption" tone="muted">Confirm your place to pay.</Text>}
-            {p?.receipt_url && <Button title="View receipt" variant="ghost" icon="receipt-outline" onPress={() => Linking.openURL(p.receipt_url!)} />}
+            {!!(p?.receipt_url) && <Button title="View receipt" variant="ghost" icon="receipt-outline" onPress={() => Linking.openURL(p.receipt_url!)} />}
             <Text variant="caption" tone="faint">Payments are processed by Stripe. MATCHDAY never sees or stores your card details. A status only changes once Stripe confirms it.</Text>
           </View>
         </Card>
       )}
 
-      {d.isManager && (
+      {!!d.isManager && (
         <View style={{ gap: space.sm }}>
           <SectionTitle title="Host dashboard" />
-          {summary.isLoading && <Loading />}
-          {summary.error && <ErrorState error={summary.error} onRetry={summary.refetch} compact />}
-          {summary.data && (
+          {!!summary.isLoading && <Loading />}
+          {!!summary.error && <ErrorState error={summary.error} onRetry={summary.refetch} compact />}
+          {!!summary.data && (
             <>
               <Row gap={space.sm} wrap>
                 <StatTile compact label="Collected" value={formatPence(summary.data.collected_pence)} accent />
@@ -109,7 +109,7 @@ export default function PaymentsScreen() {
                   </View>
                 </Card>
               )}
-              {s.host_confirmed_at && <Text variant="caption" tone="primary">You confirmed this session on {formatKickoff(s.host_confirmed_at)}.</Text>}
+              {!!s.host_confirmed_at && <Text variant="caption" tone="primary">You confirmed this session on {formatKickoff(s.host_confirmed_at)}.</Text>}
               <Card padded={false}>
                 {summary.data.players.map((pl: any, i: number) => (
                   <Row key={pl.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>

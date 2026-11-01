@@ -30,7 +30,7 @@ export default function ResetPassword() {
       <View style={{ gap: space.lg }}>
         <Input label="New password" value={password} onChangeText={setPassword} secure autoComplete="new-password" />
         <Input label="Confirm password" value={confirm} onChangeText={setConfirm} secure autoComplete="new-password" />
-        {error && <Text tone="danger" variant="small">{error}</Text>}
+        {!!error && <Text tone="danger" variant="small">{error}</Text>}
         <Button title="Update password" loading={busy} onPress={submit} />
       </View>
     </Screen>

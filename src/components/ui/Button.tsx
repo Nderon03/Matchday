@@ -66,11 +66,11 @@ export function Button({ title, variant = 'primary', size = 'md', icon, iconRigh
         <ActivityIndicator color={fg[variant]} />
       ) : (
         <View style={styles.row}>
-          {icon && <Ionicons name={icon} size={size === 'sm' ? 16 : 18} color={fg[variant]} />}
+          {!!icon && <Ionicons name={icon} size={size === 'sm' ? 16 : 18} color={fg[variant]} />}
           <Text variant={size === 'sm' ? 'smallStrong' : 'bodyStrong'} color={fg[variant]} numberOfLines={1}>
             {title}
           </Text>
-          {iconRight && <Ionicons name={iconRight} size={18} color={fg[variant]} />}
+          {!!iconRight && <Ionicons name={iconRight} size={18} color={fg[variant]} />}
         </View>
       )}
     </Pressable>

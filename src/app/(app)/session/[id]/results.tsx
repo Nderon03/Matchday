@@ -41,7 +41,7 @@ export default function ResultsScreen() {
   return (
     <Screen edges={['top', 'bottom']} maxWidth={640}>
       <Header title={correcting ? 'Correct a result' : 'Scores'} subtitle={s.name} />
-      {correcting && (
+      {!!correcting && (
         <Card variant="alt">
           <Text variant="small">Corrections after finalisation are recorded in the audit log and statistics are recalculated for everyone.</Text>
           <View style={{ marginTop: space.md }}><Input label="Reason (required)" value={reason} onChangeText={setReason} placeholder="e.g. Late goal was missed" /></View>
@@ -84,7 +84,7 @@ export default function ResultsScreen() {
                     <Button
                       title={correcting ? 'Apply correction' : f.played ? 'Update score' : 'Save score'}
                       loading={busy === `score-${f.id}`}
-                      disabled={correcting && reason.trim().length < 3}
+                      disabled={!!correcting && reason.trim().length < 3}
                       onPress={() => run(`score-${f.id}`, () => correcting
                         ? rpc('correct_session', { p_session: id, p_kind: 'score', p_data: { fixture_id: f.id, score_a: sc.a, score_b: sc.b }, p_reason: reason })
                         : rpc('record_fixture_score', { p_fixture: f.id, p_score_a: sc.a, p_score_b: sc.b }), correcting ? 'Correction applied' : 'Score saved')}

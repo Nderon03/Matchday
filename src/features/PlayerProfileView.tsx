@@ -66,13 +66,13 @@ export function PlayerProfileView({ userId }: { userId: string }) {
             ) : (
               <Button title="Add friend" icon="person-add-outline" size="sm" loading={busy === 'add'} onPress={() => run('add', () => rpc('send_friend_request', { p_target: userId }), 'Friend request sent')} />
             )}
-            {d.can_view_stats && <Button title="Compare" icon="git-compare-outline" size="sm" variant="secondary" onPress={() => router.push({ pathname: '/compare', params: { b: userId } })} />}
+            {!!d.can_view_stats && <Button title="Compare" icon="git-compare-outline" size="sm" variant="secondary" onPress={() => router.push({ pathname: '/compare', params: { b: userId } })} />}
             <Button title="Share card" icon="share-social-outline" size="sm" variant="ghost" onPress={share} />
           </>
         )}
       </Row>
 
-      {p.bio && <Text tone="muted">{p.bio}</Text>}
+      {!!p.bio && <Text tone="muted">{p.bio}</Text>}
       <Text variant="caption" tone="faint">{POSITION_LABEL[p.position]} · Joined {formatDate(p.created_at)} · {d.friends_count} friends</Text>
 
       {d.groups.length > 0 && d.can_view_stats && (
@@ -117,7 +117,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
                       <Text variant="bodyStrong" numberOfLines={1} onPress={() => router.push(`/session/${r.session_id}`)}>{r.name}</Text>
                       <Text variant="caption" tone="muted">{formatKickoff(r.played_at)} · {r.wins}W {r.draws}D {r.losses}L{r.goals ? ` · ${r.goals}⚽` : ''}</Text>
                     </View>
-                    {r.motm && <Ionicons name="star" size={16} color={colors.gold} />}
+                    {!!r.motm && <Ionicons name="star" size={16} color={colors.gold} />}
                     <Text variant="statSmall" tone={r.rating_eligible ? 'primary' : 'faint'}>{r.rating_eligible ? rating(r.rating_avg) : '–'}</Text>
                   </Row>
                 ))}
@@ -142,7 +142,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
         </>
       )}
 
-      {d.can_view_stats && (
+      {!!d.can_view_stats && (
         <>
           <SectionTitle title={`Achievements · ${unlocked.size}/${ACHIEVEMENTS.length}`} />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
@@ -156,7 +156,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
                     <Ionicons name={(on ? a.icon : 'lock-closed') as any} size={22} color={on ? colors.gold : colors.textFaint} />
                     <View style={{ flex: 1 }}>
                       <Text variant="smallStrong">{a.name}</Text>
-                      <Text variant="caption" tone="muted" numberOfLines={2}>{on && when ? formatDate(when) : a.description}</Text>
+                      <Text variant="caption" tone="muted" numberOfLines={2}>{!!on && when ? formatDate(when) : a.description}</Text>
                     </View>
                   </Row>
                 </Card>
@@ -168,7 +168,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
 
       {!d.is_self && (
         <Row gap={space.sm} wrap style={{ marginTop: space.lg }}>
-          {d.is_friend && <Button title="Remove friend" size="sm" variant="ghost" onPress={() => run('remove', () => rpc('remove_friend', { p_user: userId }), 'Friend removed')} />}
+          {!!d.is_friend && <Button title="Remove friend" size="sm" variant="ghost" onPress={() => run('remove', () => rpc('remove_friend', { p_user: userId }), 'Friend removed')} />}
           <Button title="Block" size="sm" variant="ghost" onPress={() => run('block', async () => { await rpc('block_user', { p_user: userId }); qc.invalidateQueries(); router.back(); }, 'User blocked')} />
           <Button title="Report" size="sm" variant="ghost" onPress={() => setReportOpen(true)} />
         </Row>

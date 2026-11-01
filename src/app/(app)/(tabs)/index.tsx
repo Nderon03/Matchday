@@ -43,8 +43,8 @@ export default function Home() {
         </Row>
       </Row>
 
-      {home.error && !d ? <ErrorState error={home.error} onRetry={home.refetch} /> : null}
-      {home.isLoading && (
+      {!!home.error && !d ? <ErrorState error={home.error} onRetry={home.refetch} /> : null}
+      {!!home.isLoading && (
         <View style={{ gap: space.md }}>
           <Skeleton height={150} />
           <Skeleton height={64} />
@@ -52,7 +52,7 @@ export default function Home() {
         </View>
       )}
 
-      {d && (
+      {!!d && (
         <>
           {d.tasks.length > 0 && (
             <View style={{ gap: space.sm }}>
@@ -78,7 +78,7 @@ export default function Home() {
                   </View>
                   <Row gap={space.sm}>
                     <Button title={next.lineup_ready ? 'View teams' : 'Squad'} size="sm" variant="secondary" icon="shirt-outline" onPress={() => router.push(`/session/${next.id}/lineup`)} />
-                    {next.is_host && <Button title="Manage" size="sm" variant="ghost" onPress={() => router.push(`/session/${next.id}`)} />}
+                    {!!next.is_host && <Button title="Manage" size="sm" variant="ghost" onPress={() => router.push(`/session/${next.id}`)} />}
                   </Row>
                 </View>
               </Card>
@@ -128,7 +128,7 @@ export default function Home() {
                       <Text variant="bodyStrong" numberOfLines={1}>{r.name}</Text>
                       <Text variant="small" tone="muted">{formatKickoff(r.played_at)} · {r.wins}W {r.draws}D {r.losses}L{r.goals ? ` · ${r.goals} ⚽` : ''}</Text>
                     </View>
-                    {r.motm && <Ionicons name="star" size={18} color={colors.gold} accessibilityLabel="Man of the Match" />}
+                    {!!r.motm && <Ionicons name="star" size={18} color={colors.gold} accessibilityLabel="Man of the Match" />}
                     <Text variant="statSmall" tone={r.rating_eligible ? 'primary' : 'faint'}>{r.rating_eligible ? rating(r.rating_avg) : '–'}</Text>
                   </Row>
                 </Card>
@@ -155,7 +155,7 @@ export default function Home() {
           <View style={{ gap: space.sm }}>
             <SectionTitle title="Activity" />
             {feed.data?.pages[0]?.slice(0, 5).map((item) => <FeedItemCard key={item.id} item={item} />)}
-            {feed.data && feed.data.pages[0].length === 0 && <Text tone="muted" variant="small">Activity from your friends and groups will appear here.</Text>}
+            {!!feed.data && feed.data.pages[0].length === 0 && <Text tone="muted" variant="small">Activity from your friends and groups will appear here.</Text>}
           </View>
         </>
       )}

@@ -91,7 +91,7 @@ function Sidebar() {
         </Pressable>
       ))}
       <View style={{ flex: 1 }} />
-      {profile && (
+      {!!profile && (
         <Pressable onPress={() => router.navigate('/profile')} style={[styles.navItem, { backgroundColor: colors.surfaceAlt }]}>
           <Avatar uri={profile.avatar_url} name={profile.display_name} size={32} />
           <View style={{ flex: 1 }}>

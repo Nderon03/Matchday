@@ -39,16 +39,16 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
       {(category === 'rating' || category === 'form') && <Text variant="caption" tone="muted">Minimum 3 rated sessions. Every session counts equally.</Text>}
       {category === 'improved' && <Text variant="caption" tone="muted">Recent-half average minus early-half average (min. 6 rated sessions).</Text>}
 
-      {lb.isLoading && <SkeletonList rows={6} />}
-      {lb.error && <ErrorState error={lb.error} onRetry={lb.refetch} compact />}
-      {lb.data && all.length === 0 && <EmptyState icon="podium-outline" title="No results yet" message="Play some games — the table fills up as results are finalised." />}
-      {lb.data && rows.length === 0 && pending.length > 0 && (
+      {!!lb.isLoading && <SkeletonList rows={6} />}
+      {!!lb.error && <ErrorState error={lb.error} onRetry={lb.refetch} compact />}
+      {!!lb.data && all.length === 0 && <EmptyState icon="podium-outline" title="No results yet" message="Play some games — the table fills up as results are finalised." />}
+      {!!lb.data && rows.length === 0 && pending.length > 0 && (
         <Card variant="alt"><Text variant="small">Nobody has reached {pending[0].needed} {unit} yet, so there’s no official ranking. Here’s how everyone is getting on:</Text></Card>
       )}
       {rows.length > 0 && (
         <>
           <Podium rows={rows.slice(0, 3)} format={fmt} onPress={(r) => router.push(`/player/${r.user_id}`)} />
-          {me && me.rank != null && me.rank > 3 && (
+          {!!me && me.rank != null && me.rank > 3 && (
             <Card variant="highlight" padded={false}>
               <Row gap={space.md} style={{ padding: space.md }}>
                 <Text variant="statSmall" tone="primary" style={{ width: 36 }}>#{me.rank}</Text>
@@ -95,7 +95,7 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
           </Card>
         </View>
       )}
-      {lb.hasNextPage && <Button title="Load more" variant="secondary" loading={lb.isFetchingNextPage} onPress={() => lb.fetchNextPage()} />}
+      {!!lb.hasNextPage && <Button title="Load more" variant="secondary" loading={lb.isFetchingNextPage} onPress={() => lb.fetchNextPage()} />}
     </View>
   );
 }

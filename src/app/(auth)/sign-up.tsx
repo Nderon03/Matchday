@@ -50,7 +50,7 @@ export default function SignUp() {
               const { error } = await supabase.auth.resend({ type: 'signup', email: sentTo, options: { emailRedirectTo: authRedirectUrl() } });
               setErrors(error ? { _: friendlyAuthError(error) } : { _: 'Sent again.' });
             }} />
-            {errors._ && <Text variant="small" tone="muted">{errors._}</Text>}
+            {!!errors._ && <Text variant="small" tone="muted">{errors._}</Text>}
           </View>
         </Card>
         <Button title="Back to sign in" variant="ghost" onPress={() => router.replace('/sign-in')} />
@@ -76,7 +76,7 @@ export default function SignUp() {
         />
         <Input label="Email" value={form.email} onChangeText={set('email')} autoCapitalize="none" keyboardType="email-address" autoComplete="email" icon="mail-outline" error={errors.email} />
         <Input label="Password" value={form.password} onChangeText={set('password')} secure autoComplete="new-password" textContentType="newPassword" icon="lock-closed-outline" error={errors.password} hint="At least 8 characters with a letter and a number" />
-        {errors._ && <Text tone="danger" variant="small" accessibilityRole="alert">{errors._}</Text>}
+        {!!errors._ && <Text tone="danger" variant="small" accessibilityRole="alert">{errors._}</Text>}
         <Button title="Create account" size="lg" loading={busy} onPress={submit} disabled={check.state === 'checking'} />
         <Text variant="caption" tone="faint" align="center">By continuing you agree to play fair and keep the stats honest.</Text>
       </View>

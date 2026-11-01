@@ -51,9 +51,9 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     <Ctx.Provider value={confirm}>
       {children}
       <Sheet visible={!!opts} onClose={() => close(false)} title={opts?.title ?? ''}>
-        {opts?.message && <Text tone="muted">{opts.message}</Text>}
-        {opts?.reasonLabel && <Input label={opts.reasonLabel} value={reason} onChangeText={setReason} maxLength={200} />}
-        {opts?.checkboxLabel && (
+        {!!(opts?.message) && <Text tone="muted">{opts.message}</Text>}
+        {!!(opts?.reasonLabel) && <Input label={opts.reasonLabel} value={reason} onChangeText={setReason} maxLength={200} />}
+        {!!(opts?.checkboxLabel) && (
           <Pressable onPress={() => setChecked((c) => !c)} accessibilityRole="checkbox" accessibilityState={{ checked }}
             style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs }}>
             <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={22} color={checked ? colors.primary : colors.textMuted} />

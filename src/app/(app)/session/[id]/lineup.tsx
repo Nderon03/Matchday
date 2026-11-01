@@ -28,7 +28,7 @@ export default function LineupScreen() {
   const [fixtureId, setFixtureId] = useState<string | null>(fixtureParam ?? null);
   const strengths = useQuery({
     queryKey: ['strengths', id],
-    enabled: !!d?.isManager,
+    enabled: !!d, // everyone viewing the line-up sees positions and ratings
     queryFn: async (): Promise<Strengths> => {
       const [s, p] = await Promise.all([
         rpc<BalancePlayer[]>('get_player_strengths', { p_session: id }),
@@ -106,6 +106,14 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
   const editable = d.isManager && d.session.status !== 'finalised' && !(fixture.played && d.session.status === 'completed');
+  const ratings = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    for (const p of strengths?.players ?? []) {
+      const r = p.group_rating ?? p.career_rating;
+      map[p.user_id] = r == null ? null : Number(r);
+    }
+    return map;
+  }, [strengths]);
   const assigned = new Set([...lineup.A, ...lineup.B].map((s) => s.user_id));
   const bench = Object.keys(players).filter((uid) => !assigned.has(uid));
   const payments = Object.fromEntries(d.payments.map((p) => [p.user_id, p.status]));
@@ -152,7 +160,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
       footer={editable ? (
         <Row gap={space.sm}>
           <Button title="Save draft" variant="secondary" style={{ flex: 1 }} disabled={!dirty} loading={busy === 'save'} onPress={() => save(false)} />
-          <Button title={fixture.lineup_confirmed_at && !dirty ? 'Confirmed ✓' : 'Confirm teams'} style={{ flex: 1.4 }} disabled={!dirty && !!fixture.lineup_confirmed_at} loading={busy === 'save'} onPress={() => save(true)} />
+          <Button title={!!fixture.lineup_confirmed_at && !dirty ? 'Confirmed ✓' : 'Confirm teams'} style={{ flex: 1.4 }} disabled={!dirty && !!fixture.lineup_confirmed_at} loading={busy === 'save'} onPress={() => save(true)} />
         </Row>
       ) : undefined}
     >
@@ -162,7 +170,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
         <Segmented scroll value={fixture.id} onChange={onSelectFixture} options={d.fixtures.map((f) => ({ value: f.id, label: `Game ${f.number}${f.played ? ' ✓' : ''}` }))} />
       )}
 
-      {editable && (
+      {!!editable && (
         <View style={{ gap: space.sm }}>
           <Row gap={space.sm} wrap>
             <Button title="Balance teams" icon="analytics-outline" size="sm" loading={strengthsLoading} onPress={() => apply('balanced')} />
@@ -180,7 +188,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
               : gkMode === 'fixed' ? 'Players who prefer GK or have kept goal before are split one per side.'
               : 'A keeper goes on each side only if two players chose Goalkeeper as their position.'}
           </Text>
-          {suggestion && (
+          {!!suggestion && (
             <Card variant="alt">
               <Text variant="small">{suggestion.explanation}</Text>
               {suggestion.method === 'balanced' && (
@@ -188,7 +196,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
               )}
             </Card>
           )}
-          {swapFrom && <Text variant="smallStrong" tone="warning">Tap another player to swap with {players[swapFrom]?.display_name}.</Text>}
+          {!!swapFrom && <Text variant="smallStrong" tone="warning">Tap another player to swap with {players[swapFrom]?.display_name}.</Text>}
           <Text variant="caption" tone="faint">Drag players between teams and the bench, or tap a player for more options.</Text>
         </View>
       )}
@@ -203,13 +211,14 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
         payments={payments}
         showPayments={d.session.payment_mode !== 'free'}
         exemptFromPayment={d.session.host_id}
+        ratings={ratings}
         selected={swapFrom ?? selected}
         onTapPlayer={onTap}
         onMove={(uid, to) => update(lineupOps.move(lineup, uid, to, d.session.format_size))}
         onDragState={(dragging) => setScrollEnabled(!dragging)}
       />
 
-      {editable && (
+      {!!editable && (
         <Row gap={space.sm}>
           <View style={{ flex: 1 }}><Input label="Team A name" value={names.A} onChangeText={(v) => { setNames((n) => ({ ...n, A: v })); setDirty(true); }} maxLength={24} /></View>
           <View style={{ flex: 1 }}><Input label="Team B name" value={names.B} onChangeText={(v) => { setNames((n) => ({ ...n, B: v })); setDirty(true); }} maxLength={24} /></View>
@@ -240,7 +249,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
             ))}
           </Row>
           <Button title="Swap with another player" variant="secondary" icon="swap-horizontal" onPress={() => { setSwapFrom(selected); setSelected(null); }} />
-          {selected && selected !== d.session.host_id && ['scheduled', 'in_progress'].includes(d.session.status) && (
+          {!!selected && selected !== d.session.host_id && ['scheduled', 'in_progress'].includes(d.session.status) && (
             <Button
               title={sel?.isGuest ? 'Remove guest from session' : 'Remove from session'}
               variant="danger"

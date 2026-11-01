@@ -36,8 +36,8 @@ export function Podium({ rows, format, onPress }: { rows: LeaderboardRow[]; form
           )}
           <View style={{ width: '100%', height: heights[i], borderTopLeftRadius: radius.md, borderTopRightRadius: radius.md, backgroundColor: `${medal[i]}22`, borderTopWidth: 3, borderColor: medal[i], alignItems: 'center', paddingTop: space.sm, gap: 2 }}>
             <Text variant="h2" color={medal[i]}>{r ? r.rank : i === 1 ? 1 : i === 0 ? 2 : 3}</Text>
-            {r && <Text variant="statSmall">{format(r.value)}</Text>}
-            {r && <Text variant="caption" tone="faint">{r.appearances} apps</Text>}
+            {!!r && <Text variant="statSmall">{format(r.value)}</Text>}
+            {!!r && <Text variant="caption" tone="faint">{r.appearances} apps</Text>}
           </View>
         </Pressable>
       ))}

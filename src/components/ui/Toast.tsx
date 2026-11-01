@@ -38,7 +38,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <Ctx.Provider value={value}>
       {children}
-      {toast && (
+      {!!toast && (
         <Animated.View pointerEvents="none" style={[styles.wrap, { opacity, bottom: insets.bottom + 90 }]}>
           <View accessibilityLiveRegion="polite" accessibilityRole="alert" style={[styles.toast, { backgroundColor: colors.elevated, borderColor: colors.borderStrong }]}>
             <Ionicons name={icon} size={20} color={tint} />

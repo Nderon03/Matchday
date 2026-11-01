@@ -24,8 +24,8 @@ export default function Leagues() {
 
       {tab === 'groups' && (
         <View style={{ gap: space.md }}>
-          {groups.isLoading && <SkeletonList />}
-          {groups.error && <ErrorState error={groups.error} onRetry={groups.refetch} />}
+          {!!groups.isLoading && <SkeletonList />}
+          {!!groups.error && <ErrorState error={groups.error} onRetry={groups.refetch} />}
           {groups.data?.length === 0 && (
             <EmptyState icon="people-outline" title="No groups yet" message="Groups keep your regular squad’s fixtures, tables, seasons and awards in one place."
               action={{ label: 'Create a group', onPress: () => router.push('/group/new') }} />

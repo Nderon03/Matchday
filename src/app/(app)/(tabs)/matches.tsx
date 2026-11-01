@@ -23,9 +23,9 @@ export default function Matches() {
     <Screen onRefresh={sessions.refetch} refreshing={sessions.isRefetching}>
       <Text variant="h1" accessibilityRole="header" style={{ paddingTop: space.sm }}>Matches</Text>
       <Segmented value={tab} onChange={setTab} options={[{ value: 'upcoming', label: `Upcoming${upcoming.length ? ` · ${upcoming.length}` : ''}` }, { value: 'past', label: 'History' }]} />
-      {sessions.isLoading && <SkeletonList rows={5} />}
-      {sessions.error && <ErrorState error={sessions.error} onRetry={sessions.refetch} />}
-      {sessions.data && list.length === 0 && (
+      {!!sessions.isLoading && <SkeletonList rows={5} />}
+      {!!sessions.error && <ErrorState error={sessions.error} onRetry={sessions.refetch} />}
+      {!!sessions.data && list.length === 0 && (
         <EmptyState
           icon={tab === 'upcoming' ? 'calendar-outline' : 'time-outline'}
           title={tab === 'upcoming' ? 'Nothing scheduled' : 'No match history yet'}

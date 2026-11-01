@@ -61,7 +61,7 @@ export default function EditProfile() {
               refreshProfile();
             } catch (e) { toast.error(e); }
           }} />
-          {avatar && <Button title="Remove" size="sm" variant="ghost" onPress={async () => {
+          {!!avatar && <Button title="Remove" size="sm" variant="ghost" onPress={async () => {
             await supabase.from('profiles').update({ avatar_url: null }).eq('id', userId!);
             setAvatar(null);
             refreshProfile();
