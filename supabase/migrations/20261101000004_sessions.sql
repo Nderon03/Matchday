@@ -388,18 +388,19 @@ end $$;
 
 create or replace function public.delete_fixture(p_fixture uuid)
 returns void language plpgsql security definer set search_path = public as $$
-declare v_session uuid := public.session_of_fixture(p_fixture); v public.sessions;
+declare v_session uuid := public.session_of_fixture(p_fixture); v public.sessions; v_number int; v_f record;
 begin
   v := public.require_session_manager(v_session);
   if v.status in ('completed', 'finalised', 'cancelled') then perform public.raise_app_error('locked', 'Fixtures are locked.'); end if;
   if (select count(*) from public.fixtures where session_id = v_session) <= 1 then
     perform public.raise_app_error('invalid', 'A session needs at least one fixture.');
   end if;
+  select number into v_number from public.fixtures where id = p_fixture;
   delete from public.fixtures where id = p_fixture;
-  -- renumber
-  with o as (select id, row_number() over (order by number) rn from public.fixtures where session_id = v_session)
-  update public.fixtures f set number = o.rn + 100 from o where f.id = o.id;
-  update public.fixtures set number = number - 100 where session_id = v_session;
+  -- close the gap one fixture at a time (ascending) so (session_id, number) stays unique
+  for v_f in select id from public.fixtures where session_id = v_session and number > v_number order by number loop
+    update public.fixtures set number = number - 1 where id = v_f.id;
+  end loop;
   if (select count(*) from public.fixtures where session_id = v_session) = 1 then
     update public.sessions set mode = 'single' where id = v_session;
   end if;

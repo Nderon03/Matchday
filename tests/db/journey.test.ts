@@ -158,7 +158,9 @@ describe('single-match journey (5-a-side)', () => {
 
     // 18: group leaderboard
     const lb = await db.as(host, `select * from public.get_leaderboard('goals', 'group', $1)`, [groupId]);
-    expect(lb[0]).toMatchObject({ user_id: scorer, rank: 1 });
+    // scorer (3) and the corrected claim (3) tie: both share rank 1
+    expect(lb.find((r) => r.user_id === scorer)).toMatchObject({ rank: 1 });
+    expect(lb.filter((r) => r.rank === 1)).toHaveLength(2);
     expect(Number(lb[0].value)).toBe(3);
     // win% requires the minimum number of appearances — nobody qualifies after one game
     const pct = await db.as(host, `select * from public.get_leaderboard('win_pct', 'group', $1)`, [groupId]);

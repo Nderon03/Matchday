@@ -1,0 +1,181 @@
+/**
+ * Exercises every remaining RPC at least once so that PL/pgSQL runtime errors
+ * (which are not caught at migration time) surface in CI.
+ */
+import { Db, uniq, expectAppError } from './helpers';
+
+const db = new Db();
+beforeAll(() => db.connect());
+afterAll(() => db.end());
+
+async function squad(n = 6) {
+  const host = await db.createUser(uniq('h'));
+  const others: string[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    const u = await db.createUser(uniq('p'));
+    await db.befriend(host, u);
+    others.push(u);
+  }
+  const g = await db.rpc<string>(host, 'create_group', { p_name: 'Coverage FC', p_visibility: 'public', p_join_policy: 'open' });
+  for (const u of others) await db.rpc(u, 'join_group', { p_group: g });
+  return { host, others, all: [host, ...others], g };
+}
+
+describe('session administration RPCs', () => {
+  it('update, check-in, replacement, fixtures, payments summary, cash, cancel', async () => {
+    const { host, others, all, g } = await squad(6);
+    const sid = await db.rpc<string>(host, 'create_session', {
+      p: { name: 'Admin FC', group_id: g, starts_at: new Date(Date.now() + 3600_000).toISOString(), format_size: 5, max_attendance: 10, payment_mode: 'after', price_pence: 500, invitee_ids: others },
+    });
+    for (const u of others.slice(0, 4)) await db.rpc(u, 'respond_to_session', { p_session: sid, p_response: 'confirmed' });
+    await db.rpc(others[4], 'respond_to_session', { p_session: sid, p_response: 'unavailable' });
+
+    await db.rpc(host, 'update_session', { p_session: sid, p: { venue: 'New Venue', starts_at: new Date(Date.now() + 7200_000).toISOString() } });
+    const notes = await db.admin(`select count(*)::int n from notifications where type = 'session_updated' and data->>'session_id' = $1`, [sid]);
+    expect(notes[0].n).toBeGreaterThanOrEqual(4);
+    await expectAppError(db.rpc(host, 'update_session', { p_session: sid, p: { max_attendance: 2 } }), 'invalid');
+
+    await db.rpc(others[0], 'check_in', { p_session: sid });
+    await expectAppError(db.rpc(others[4], 'check_in', { p_session: sid }), 'invalid');
+
+    const voting = await db.rpc<any>(others[0], 'get_voting_state', { p_session: sid });
+    expect(voting.open).toBe(false);
+
+    // replacement: others[4] replaces others[3]
+    const [f1] = await db.admin(`select id from fixtures where session_id = $1`, [sid]);
+    await db.rpc(host, 'save_lineup', {
+      p_fixture: f1.id,
+      p_teams: { A: { name: 'Reds', players: [{ user_id: host }, { user_id: others[0] }, { user_id: others[1] }] }, B: { players: [{ user_id: others[2] }, { user_id: others[3] }] } },
+      p_confirm: false,
+    });
+    await db.rpc(host, 'add_session_player', { p_session: sid, p_user: others[4], p_replacement_for: others[3] });
+    const teamB = await db.admin(`select user_id from team_players tp join fixture_teams ft on ft.id = tp.fixture_team_id where tp.fixture_id = $1 and ft.side = 'B' order by user_id`, [f1.id]);
+    expect(teamB.map((r) => r.user_id).sort()).toEqual([others[2], others[4]].sort());
+    const [rep] = await db.admin(`select verification from session_attendance where session_id = $1 and user_id = $2`, [sid, others[3]]);
+    expect(rep.verification).toBe('absent');
+
+    await db.rpc(host, 'start_session', { p_session: sid });
+    const f2 = await db.rpc<string>(host, 'add_fixture', { p_session: sid, p_copy_from: f1.id });
+    const f3 = await db.rpc<string>(host, 'add_fixture', { p_session: sid });
+    await db.rpc(host, 'delete_fixture', { p_fixture: f2 });
+    const nums = await db.admin(`select id, number from fixtures where session_id = $1 order by number`, [sid]);
+    expect(nums.map((x) => [x.id, x.number])).toEqual([[f1.id, 1], [f3, 2]]);
+    await db.rpc(host, 'delete_fixture', { p_fixture: f3 });
+    await expectAppError(db.rpc(host, 'delete_fixture', { p_fixture: f1.id }), 'invalid');
+
+    const strengths = await db.as(host, `select * from public.get_player_strengths($1)`, [sid]);
+    expect(strengths.length).toBe(5);
+    await db.as(host, `select * from public.get_recent_pairings($1)`, [sid]);
+
+    await db.rpc(host, 'record_fixture_score', { p_fixture: f1.id, p_score_a: 2, p_score_b: 2 });
+    await db.rpc(host, 'complete_session', { p_session: sid });
+    const pays = await db.admin(`select payer_id, status from payments where session_id = $1`, [sid]);
+    expect(pays).toHaveLength(4); // verified non-host players
+    await db.rpc(host, 'record_cash_payment', { p_session: sid, p_user: others[0] });
+    const summary = await db.rpc<any>(host, 'get_payment_summary', { p_session: sid });
+    expect(summary.paid_count).toBe(1);
+    expect(summary.collected_pence).toBe(500);
+    expect(summary.outstanding_pence).toBe(1500);
+    await db.rpc(host, 'mark_host_confirmed', { p_session: sid });
+    await db.rpc(host, 'reconcile_session', { p_session: sid });
+
+    const tasks = await db.as(others[1], `select kind from public.get_pending_tasks()`);
+    expect(tasks.map((t) => t.kind)).toEqual(expect.arrayContaining(['vote', 'goals', 'payment']));
+
+    // cancellation of another session notifies attendees
+    const sid2 = await db.rpc<string>(host, 'create_session', { p: { name: 'Cancel FC', starts_at: new Date(Date.now() + 86400_000).toISOString(), format_size: 5, invitee_ids: [others[0]] } });
+    await db.rpc(others[0], 'respond_to_session', { p_session: sid2, p_response: 'confirmed' });
+    await db.rpc(host, 'cancel_session', { p_session: sid2, p_reason: 'Pitch flooded' });
+    const [c] = await db.admin(`select status from sessions where id = $1`, [sid2]);
+    expect(c.status).toBe('cancelled');
+    expect(all.length).toBe(6);
+  });
+});
+
+describe('leaderboards across scopes and categories', () => {
+  it('runs every category for group, friends and global scopes', async () => {
+    const { host, others, all, g } = await squad(4);
+    for (let i = 0; i < 2; i++) {
+      const sid = await db.rpc<string>(host, 'create_session', { p: { name: 'LB FC', group_id: g, starts_at: new Date(Date.now() - (i + 1) * 3600_000).toISOString(), format_size: 5, invitee_ids: others } });
+      for (const u of others) await db.rpc(u, 'respond_to_session', { p_session: sid, p_response: 'confirmed' });
+      const [f] = await db.admin(`select id from fixtures where session_id = $1`, [sid]);
+      await db.rpc(host, 'save_lineup', { p_fixture: f.id, p_teams: { A: { players: all.slice(0, 2).map((user_id) => ({ user_id })) }, B: { players: all.slice(2).map((user_id) => ({ user_id })) } } });
+      await db.rpc(host, 'record_fixture_score', { p_fixture: f.id, p_score_a: 3, p_score_b: 1 });
+      await db.rpc(host, 'complete_session', { p_session: sid });
+      await db.rpc(host, 'host_record_goals', { p_session: sid, p_user: others[0], p_goals: 2, p_assists: 1 });
+      for (const r of all) await db.rpc(r, 'submit_ratings', { p_session: sid, p_ratings: all.filter((x) => x !== r).map((x) => ({ user_id: x, score: 7 })) });
+      await db.rpc(host, 'finalise_session', { p_session: sid });
+    }
+    const categories = ['goals', 'motm', 'rating', 'form', 'appearances', 'wins', 'win_pct', 'assists', 'improved', 'streak'];
+    for (const scope of ['group', 'friends', 'global']) {
+      for (const cat of categories) {
+        for (const period of ['all', 'month', 'year']) {
+          const rows = await db.as(host, `select * from public.get_leaderboard($1, $2, $3, null, $4)`, [cat, scope, scope === 'group' ? g : null, period]);
+          expect(Array.isArray(rows)).toBe(true);
+        }
+      }
+    }
+    const goals = await db.as(host, `select * from public.get_leaderboard('goals', 'friends', null)`);
+    expect(goals[0].user_id).toBe(others[0]);
+    expect(Number(goals[0].value)).toBe(4);
+    const assists = await db.as(host, `select * from public.get_leaderboard('assists', 'group', $1)`, [g]);
+    expect(Number(assists[0].value)).toBe(2);
+    const profile = await db.rpc<any>(host, 'get_player_profile', { p_user: others[0], p_group: g });
+    expect(profile.stats.goals).toBe(4);
+    expect(profile.teammates.length).toBeGreaterThan(0);
+    const wrapped = await db.rpc<any>(others[0], 'get_wrapped', { p_from: new Date(Date.now() - 86400_000 * 2).toISOString(), p_to: new Date(Date.now() + 3600_000).toISOString() });
+    expect(wrapped.goals).toBe(4);
+  });
+});
+
+describe('identity, social and moderation RPCs', () => {
+  it('onboarding, search, push tokens, notifications, invites, reports, comments', async () => {
+    const a = await db.createUser(uniq('ona'));
+    const b = await db.createUser(uniq('onb'));
+    const name = uniq('striker');
+    const [prof] = await db.as(a, `select * from public.complete_onboarding($1, $2, 'FWD')`, [name, 'Super Striker']);
+    expect(prof).toMatchObject({ username: name, onboarded: true, position: 'FWD' });
+    await expectAppError(db.rpc(b, 'complete_onboarding', { p_username: name, p_display_name: 'Copycat', p_position: 'ANY' }), 'username_taken');
+
+    const found = await db.as(b, `select * from public.search_users($1)`, [name.slice(0, 6)]);
+    expect(found.some((r) => r.id === a)).toBe(true);
+
+    await db.rpc(a, 'register_push_token', { p_token: 'ExponentPushToken[abcdefghijkl]', p_platform: 'ios' });
+    await db.rpc(b, 'send_friend_request', { p_target: a });
+    const [n] = await db.admin(`select push_status from notifications where user_id = $1 and type = 'friend_request'`, [a]);
+    expect(n.push_status).toBe('queued');
+    await db.rpc(a, 'mark_notifications_read', { p_ids: null });
+    const unread = await db.admin(`select count(*)::int n from notifications where user_id = $1 and read_at is null`, [a]);
+    expect(unread[0].n).toBe(0);
+    // preference opt-out suppresses the notification entirely
+    await db.as(a, `update user_preferences set notification_prefs = '{"friend_accepted": false}' where user_id = $1`, [a]);
+    const [req] = await db.admin(`select id from friend_requests where sender_id = $1 and receiver_id = $2`, [b, a]);
+    await db.rpc(a, 'respond_friend_request', { p_request: req.id, p_accept: true });
+
+    const code = await db.rpc<string>(a, 'create_invite_link', { p_kind: 'friend' });
+    const preview = await db.rpc<any>(b, 'get_invite', { p_code: code });
+    expect(preview).toMatchObject({ valid: true, kind: 'friend' });
+
+    // group moderation flow
+    const g = await db.rpc<string>(a, 'create_group', { p_name: 'Mod FC', p_visibility: 'public', p_join_policy: 'open' });
+    await db.rpc(b, 'join_group', { p_group: g });
+    const [act] = await db.admin(`select id from activity_feed where group_id = $1 limit 1`, [g]);
+    await db.as(b, `insert into comments (activity_id, author_id, body) values ($1, $2, 'rubbish group')`, [act.id, b]);
+    const [cm] = await db.admin(`select id from comments where activity_id = $1`, [act.id]);
+    const reportId = await db.rpc<string>(a, 'report_content', { p_type: 'comment', p_target: cm.id, p_reason: 'Rude', p_group: g });
+    await expectAppError(db.rpc(b, 'resolve_report', { p_report: reportId, p_action: 'delete_comment' }), 'forbidden');
+    await db.rpc(a, 'resolve_report', { p_report: reportId, p_action: 'delete_comment' });
+    const [deleted] = await db.admin(`select deleted_at is not null d from comments where id = $1`, [cm.id]);
+    expect(deleted.d).toBe(true);
+    const mods = await db.as(a, `select action from moderation_actions where group_id = $1`, [g]);
+    expect(mods.length).toBeGreaterThan(0);
+
+    await db.rpc(a, 'transfer_group_ownership', { p_group: g, p_new_owner: b });
+    expect((await db.admin(`select public.group_role_of($1, $2) r`, [g, b]))[0].r).toBe('owner');
+
+    // account deletion prep hands ownership to the next member (service role only)
+    await db.admin(`select public.prepare_account_deletion($1)`, [b]);
+    expect((await db.admin(`select public.group_role_of($1, $2) r`, [g, a]))[0].r).toBe('owner');
+    await expect(db.as(a, `select public.prepare_account_deletion($1)`, [a])).rejects.toThrow(/permission denied/);
+  });
+});
