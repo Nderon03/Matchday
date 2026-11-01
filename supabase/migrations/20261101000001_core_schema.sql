@@ -3,8 +3,10 @@
 -- the integrity rules that the application relies upon (no self votes, one vote
 -- per voter, one rating per rater/ratee pair, etc.).
 
-create extension if not exists citext;
-create extension if not exists pgcrypto;
+-- citext is pinned to public so unqualified `citext` resolves inside functions
+-- that use `set search_path = public`. No pgcrypto dependency: on hosted Supabase
+-- it lives in the `extensions` schema; gen_random_uuid() is built in (PG13+).
+create extension if not exists citext with schema public;
 
 -- ---------------------------------------------------------------------------
 -- Enumerated types
@@ -105,7 +107,7 @@ create index user_blocks_blocked_idx on public.user_blocks (blocked_id);
 
 -- Shareable invite links (friend, group or session), usable as QR codes.
 create table public.invite_links (
-  code text primary key default encode(gen_random_bytes(9), 'hex'),
+  code text primary key default left(replace(gen_random_uuid()::text, '-', ''), 20),
   kind text not null check (kind in ('friend', 'group', 'session')),
   target_id uuid not null,
   created_by uuid not null references public.profiles (id) on delete cascade,
