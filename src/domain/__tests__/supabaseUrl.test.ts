@@ -1,4 +1,4 @@
-import { normaliseSupabaseUrl } from '../../lib/env';
+import { normaliseSupabaseUrl } from '../supabaseUrl';
 
 describe('normaliseSupabaseUrl', () => {
   it.each([
