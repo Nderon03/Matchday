@@ -119,6 +119,8 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     }
     const text = await page.locator('body').innerText();
     if (!text.toLowerCase().includes(expected.toLowerCase())) failures.push(`${vpName} ${path}: expected "${expected}"`);
+    const nested = await page.evaluate(() => document.querySelectorAll('button button, a button, button a').length);
+    if (nested) failures.push(`${vpName} ${path}: ${nested} interactive element(s) nested inside a button (invalid HTML)`);
     const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
     if (scrollW > vp.width + 1) failures.push(`${vpName} ${path}: horizontal overflow (${scrollW}px)`);
     await page.screenshot({ path: join(OUT, `auth-${vpName}-${name}.png`), fullPage: vpName === 'phone' });

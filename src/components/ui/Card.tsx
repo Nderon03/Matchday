@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, View, type ViewProps, type ViewStyle } from 'react-native';
+import { Platform, Pressable, View, type ViewProps, type ViewStyle } from 'react-native';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 
@@ -24,7 +24,9 @@ export function Card({ onPress, padded = true, variant = 'default', style, child
   if (onPress) {
     return (
       <Pressable
-        accessibilityRole="button"
+        // On web a role of "button" renders a <button>, and cards often contain their own buttons
+        // (a button inside a button is invalid HTML). Cards stay clickable and focusable either way.
+        accessibilityRole={Platform.OS === 'web' ? undefined : 'button'}
         accessibilityLabel={accessibilityLabel}
         onPress={onPress}
         style={({ pressed }) => [base, { opacity: pressed ? 0.85 : 1 }, style as ViewStyle]}
