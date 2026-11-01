@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -11,7 +11,9 @@ import { SessionCard } from '@/components/football/SessionCard';
 import { Leaderboard } from '@/components/football/Leaderboard';
 import { FeedItemCard } from '@/components/football/FeedItem';
 import { InviteQr } from '@/components/football/InviteQr';
-import { keys, useFeed, useGroup, useGroupSessions } from '@/hooks/queries';
+import { keys, useFeed, useFriends, useGroup, useGroupSessions } from '@/hooks/queries';
+import { PeoplePicker } from '@/components/football/PeoplePicker';
+import { toggleIn } from '@/domain/sets';
 import { useAction } from '@/hooks/useAction';
 import { rpc } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
@@ -33,6 +35,8 @@ export default function GroupScreen() {
   const sessions = useGroupSessions(id);
   const [tab, setTab] = useState<Tab>('overview');
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const friends = useFriends();
   const [seasonOpen, setSeasonOpen] = useState(false);
   const [season, setSeason] = useState({ name: '', starts: new Date().toISOString().slice(0, 10), ends: `${new Date().getFullYear()}-12-31` });
   const { run, busy } = useAction([keys.group(id), keys.groups]);
@@ -52,6 +56,9 @@ export default function GroupScreen() {
   if (!group.data) return <Screen><Header title="Group" /><ErrorState error={group.error} onRetry={group.refetch} /></Screen>;
   const { group: g, members, seasons, myRole, joinRequests, settings } = group.data;
   const isAdmin = myRole === 'owner' || myRole === 'admin';
+  const canAdd = !!myRole && (isAdmin || g.join_policy !== 'invite_only');
+  const memberIds = new Set(members.map((m) => m.user_id));
+  const addableFriends = (friends.data?.friends ?? []).filter((f) => !memberIds.has(f.id));
   const upcoming = (sessions.data ?? []).filter((s) => ['scheduled', 'in_progress'].includes(s.status)).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const results = (sessions.data ?? []).filter((s) => ['completed', 'finalised'].includes(s.status));
 
@@ -59,7 +66,7 @@ export default function GroupScreen() {
     <Screen edges={['top', 'bottom']} onRefresh={() => { group.refetch(); sessions.refetch(); }} refreshing={group.isRefetching}>
       <Header title={g.name} subtitle={`${members.length} members${g.location ? ` · ${g.location}` : ''}`}
         right={<Row>
-          {myRole && <IconButton icon="person-add-outline" label="Invite" onPress={() => setInviteOpen(true)} />}
+          {myRole && <IconButton icon="person-add-outline" label="Add players" onPress={() => setInviteOpen(true)} />}
           {isAdmin && <IconButton icon="settings-outline" label="Group settings" onPress={() => router.push(`/group/${id}/settings`)} />}
         </Row>} />
 
@@ -249,8 +256,30 @@ export default function GroupScreen() {
         </View>
       )}
 
-      <Sheet visible={inviteOpen} onClose={() => setInviteOpen(false)} title={`Invite to ${g.name}`}>
-        <InviteQr kind="group" targetId={id} message={`Join ${g.name} on MATCHDAY`} />
+      <Sheet visible={inviteOpen} onClose={() => { setInviteOpen(false); setPicked(new Set()); }} title={`Add players to ${g.name}`}>
+        <ScrollView contentContainerStyle={{ gap: space.md }}>
+          {canAdd ? (
+            <>
+              <Text variant="smallStrong" tone="muted">Your friends</Text>
+              <PeoplePicker
+                people={addableFriends}
+                selected={picked}
+                onToggle={(uid) => setPicked((p) => toggleIn(p, uid))}
+                emptyText={friends.data?.friends.length ? 'All your friends are already in this group.' : 'No friends yet — add some from the Friends screen, or share the link below.'}
+              />
+              <Button title={picked.size ? `Add ${picked.size} to group` : 'Add to group'} icon="person-add" disabled={!picked.size} loading={busy === 'add-members'}
+                onPress={async () => {
+                  const n = await run('add-members', () => rpc<number>('add_group_members', { p_group: id, p_users: [...picked] }), (count) => `${count} player${count === 1 ? '' : 's'} added`);
+                  if (n !== undefined) { setPicked(new Set()); setInviteOpen(false); }
+                }} />
+            </>
+          ) : (
+            <Text variant="small" tone="muted">Only admins can add people to this invite-only group.</Text>
+          )}
+          <Text variant="smallStrong" tone="muted">Not friends yet or not on MATCHDAY?</Text>
+          <Text variant="caption" tone="faint">Share this link or let them scan the QR code. It expires in 7 days.</Text>
+          <InviteQr kind="group" targetId={id} message={`Join ${g.name} on MATCHDAY`} />
+        </ScrollView>
       </Sheet>
       <Sheet visible={seasonOpen} onClose={() => setSeasonOpen(false)} title="New season">
         <Input label="Name" value={season.name} onChangeText={(v) => setSeason((s) => ({ ...s, name: v }))} placeholder={`Season ${seasons.length + 1} — ${new Date().getFullYear()}`} />

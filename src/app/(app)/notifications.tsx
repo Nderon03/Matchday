@@ -12,7 +12,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 
 const ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
-  friend_request: 'person-add', friend_accepted: 'people', session_invite: 'mail', session_reminder: 'alarm', attendance_confirmed: 'checkmark-circle',
+  friend_request: 'person-add', friend_accepted: 'people', group_added: 'people-circle', group_join_approved: 'people-circle', session_invite: 'mail', session_reminder: 'alarm', attendance_confirmed: 'checkmark-circle',
   waitlist_promoted: 'arrow-up-circle', lineup_announced: 'shirt', payment_required: 'card', payment_confirmed: 'card', payment_failed: 'alert-circle',
   session_finalised: 'flag', goals_awaiting_approval: 'football', goals_reviewed: 'football', goals_submit: 'football', voting_open: 'star',
   voting_reminder: 'star', achievement_unlocked: 'ribbon', season_started: 'calendar', season_award: 'trophy', session_cancelled: 'close-circle',

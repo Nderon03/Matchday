@@ -128,6 +128,29 @@ describe('leaderboards across scopes and categories', () => {
   });
 });
 
+describe('adding friends to a group directly', () => {
+  it('adds only friends, notifies them, and respects invite-only groups', async () => {
+    const owner = await db.createUser(uniq('own'));
+    const friend = await db.createUser(uniq('fr'));
+    const stranger = await db.createUser(uniq('st'));
+    await db.befriend(owner, friend);
+    const g = await db.rpc<string>(owner, 'create_group', { p_name: 'Direct FC', p_visibility: 'private', p_join_policy: 'request' });
+    expect(await db.rpc<number>(owner, 'add_group_members', { p_group: g, p_users: [friend, stranger] })).toBe(1);
+    expect((await db.admin(`select public.is_group_member($1, $2) m`, [g, stranger]))[0].m).toBe(false);
+    const [n] = await db.admin(`select count(*)::int n from notifications where user_id = $1 and type = 'group_added'`, [friend]);
+    expect(n.n).toBe(1);
+    // adding again is a no-op
+    expect(await db.rpc<number>(owner, 'add_group_members', { p_group: g, p_users: [friend] })).toBe(0);
+    // non-members cannot add; members cannot add to invite-only groups
+    await expectAppError(db.rpc(stranger, 'add_group_members', { p_group: g, p_users: [owner] }), 'not_found');
+    const other = await db.createUser(uniq('ot'));
+    await db.befriend(friend, other);
+    const g2 = await db.rpc<string>(owner, 'create_group', { p_name: 'Closed FC', p_visibility: 'private', p_join_policy: 'invite_only' });
+    await db.rpc(owner, 'add_group_members', { p_group: g2, p_users: [friend] });
+    await expectAppError(db.rpc(friend, 'add_group_members', { p_group: g2, p_users: [other] }), 'forbidden');
+  });
+});
+
 describe('identity, social and moderation RPCs', () => {
   it('onboarding, search, push tokens, notifications, invites, reports, comments', async () => {
     const a = await db.createUser(uniq('ona'));
