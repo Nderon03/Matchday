@@ -144,20 +144,28 @@ describe('removing players and guests', () => {
   it('removed players cannot rejoin until re-invited', async () => {
     const { host, a, b, sid } = await setup();
     await expectAppError(db.rpc(a, 'remove_session_player', { p_session: sid, p_user: b }), 'forbidden');
-    await db.rpc(host, 'remove_session_player', { p_session: sid, p_user: b, p_reason: 'No-show last week' });
-    expect((await db.admin(`select status from session_attendance where session_id = $1 and user_id = $2`, [sid, b]))[0].status).toBe('removed');
+    const guest = await db.rpc<any>(b, 'add_session_guest', { p_session: sid, p_name: 'Bs mate' });
+    await db.rpc(host, 'remove_session_player', { p_session: sid, p_user: b, p_reason: 'No-show last week', p_remove_guests: true });
+    expect((await db.admin(`select status, removed_reason from session_attendance where session_id = $1 and user_id = $2`, [sid, b]))[0])
+      .toEqual({ status: 'removed', removed_reason: 'No-show last week' });
+    expect((await db.admin(`select status from session_guests where id = $1`, [guest.id]))[0].status).toBe('removed');
+    const [note] = await db.admin(`select body, data from notifications where user_id = $1 and type = 'session_removed'`, [b]);
+    expect(note.body).toMatch(/Reason: No-show last week/);
+    expect(note.body).toMatch(/guest was removed too/);
+    expect(note.data.reason).toBe('No-show last week');
     // group visibility would normally let a member join — not after removal
     await expectAppError(db.rpc(b, 'respond_to_session', { p_session: sid, p_response: 'confirmed' }), 'removed');
     const code = await db.rpc<string>(host, 'create_invite_link', { p_kind: 'session', p_target: sid });
     await expectAppError(db.rpc(b, 'accept_invite', { p_code: code }), 'removed');
     await expectAppError(db.rpc(b, 'respond_to_session', { p_session: sid, p_response: 'removed' }), 'invalid');
-    const [n] = await db.admin(`select count(*)::int n from notifications where user_id = $1 and type = 'session_removed'`, [b]);
-    expect(n.n).toBe(1);
     // the host invites them again → they can rejoin
     await db.rpc(host, 'invite_to_session', { p_session: sid, p_users: [b] });
     expect(await db.rpc(b, 'respond_to_session', { p_session: sid, p_response: 'confirmed' })).toBe('confirmed');
     await expectAppError(db.rpc(host, 'remove_session_player', { p_session: sid, p_user: host }), 'invalid');
-    expect(a).toBeTruthy();
+    // removing without p_remove_guests keeps their guest
+    const ga = await db.rpc<any>(a, 'add_session_guest', { p_session: sid, p_name: 'As mate' });
+    await db.rpc(host, 'remove_session_player', { p_session: sid, p_user: a });
+    expect((await db.admin(`select status from session_guests where id = $1`, [ga.id]))[0].status).toBe('confirmed');
   });
 
   it('guests take squad spots, play in line-ups, and need approval after a host removal', async () => {

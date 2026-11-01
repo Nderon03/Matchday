@@ -49,7 +49,8 @@ const table = {
   session_guests: [{ id: 'g1111111-1111-4111-8111-111111111111', session_id: SID, name: 'Dave', added_by: people[1].id, status: 'confirmed', created_at: kickoff },
                    { id: 'g2222222-2222-4222-8222-222222222222', session_id: SID, name: 'Marco', added_by: people[2].id, status: 'pending', created_at: kickoff }],
   sessions: [session], session_attendance: attendance, session_invitations: [], fixtures, session_hosts: [], goal_submissions: [], player_goals: [],
-  motm_awards: [], session_player_statistics: [], groups: [{ id: GID, name: 'Wednesday Football', logo_url: null }], notifications: [], activity_feed: [],
+  motm_awards: [], session_player_statistics: [], groups: [{ id: GID, name: 'Wednesday Football', logo_url: null }],
+  notifications: [{ id: 'n1', type: 'session_removed', title: 'Removed from Sunday Kickabout', body: '', data: { session_id: SID, session_name: 'Sunday Kickabout', reason: 'Too many no-shows' }, read_at: null, created_at: kickoff }], activity_feed: [],
   group_members: [{ role: 'owner', group: { id: GID, name: 'Wednesday Football', logo_url: null, location: 'Hackney', group_members: [{ count: 14 }] } }],
   achievements: [], friendships: [], friend_requests: [], user_blocks: [], session_templates: [], user_preferences: [{ user_id: ME, profile_visibility: 'public', show_stats: true, push_enabled: true, email_enabled: true, notification_prefs: {}, theme: 'dark' }],
 };
@@ -70,6 +71,7 @@ const browser = await chromium.launch();
 const failures = [];
 for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, desktop: { width: 1366, height: 900 } })) {
   const page = await browser.newPage({ viewport: vp });
+  table.notifications.forEach((n) => { n.read_at = null; });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.addInitScript(([uid]) => {
@@ -83,6 +85,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     const single = (route.request().headers()['accept'] ?? '').includes('vnd.pgrst.object');
     let body = [];
     const m = url.pathname.match(/\/rest\/v1\/(rpc\/)?([a-z_]+)/);
+    if (m && m[1] && m[2] === 'mark_notifications_read') table.notifications.forEach((n) => { n.read_at = new Date().toISOString(); });
     if (m && m[1]) body = rpcs[m[2]] ?? null;
     else if (m) body = table[m[2]] ?? [];
     if (single && Array.isArray(body)) body = body[0] ?? null;
@@ -94,6 +97,14 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   ]) {
     await page.goto(base + path, { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
+    if (name === 'home') {
+      const t = await page.locator('body').innerText();
+      if (!t.includes('The host removed you from Sunday Kickabout') || !t.includes('Too many no-shows')) failures.push(`${vpName}: removal notice not shown`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-kicked-notice.png`) });
+      await page.getByRole('button', { name: 'OK' }).last().click();
+      await page.waitForTimeout(300);
+      if ((await page.locator('body').innerText()).includes('The host removed you from')) failures.push(`${vpName}: removal notice did not dismiss`);
+    }
     if (name === 'leagues') { await page.getByText('Leaderboards').first().click(); await page.waitForTimeout(500); }
     if (name === 'session') {
       const text0 = await page.locator('body').innerText();

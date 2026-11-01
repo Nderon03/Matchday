@@ -12,6 +12,7 @@ import { rpc } from '@/lib/api';
 import { space } from '@/theme/tokens';
 import type { PlayerPosition } from '@/types/db';
 import { POSITION_LABEL } from '@/domain/format';
+import { removeSessionPlayer } from '@/features/removePlayer';
 
 type Strengths = { players: BalancePlayer[]; pairings: { user_a: string; user_b: string; times: number }[] };
 
@@ -248,13 +249,12 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
                 const target = selected;
                 const name = sel?.display_name ?? 'player';
                 setSelected(null);
-                const r = await confirm(sel?.isGuest
-                  ? { title: `Remove ${name}?`, message: 'The player who added them will need to request another guest.', confirmLabel: 'Remove', destructive: true }
-                  : { title: `Remove ${name}?`, message: 'They’ll be taken out of the squad and line-ups, and can only rejoin if you invite them again.', confirmLabel: 'Remove', destructive: true, reasonLabel: 'Reason (optional, sent to them)' });
-                if (!r) return;
-                await run('remove', () => target.startsWith('guest:')
-                  ? rpc('remove_session_guest', { p_guest: target.slice(6) })
-                  : rpc('remove_session_player', { p_session: id, p_user: target, p_reason: typeof r === 'object' ? r.reason || null : null }), `${name} removed`);
+                if (target.startsWith('guest:')) {
+                  const ok = await confirm({ title: `Remove ${name}?`, message: 'The player who added them will need to request another guest.', confirmLabel: 'Remove', destructive: true });
+                  if (ok) await run('remove', () => rpc('remove_session_guest', { p_guest: target.slice(6) }), `${name} removed`);
+                } else {
+                  await removeSessionPlayer({ confirm, run, sessionId: id, userId: target, name, guests: d.guests });
+                }
               }}
             />
           )}

@@ -8,6 +8,7 @@ import { Loading } from '@/components/ui';
 import { isConfigured } from '@/lib/env';
 import { SetupRequired } from '@/features/SetupRequired';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
+import { KickedNotice } from '@/features/KickedNotice';
 
 export default function AppLayout() {
   const { session, initialising, profile, profileLoading } = useAuth();
@@ -31,5 +32,10 @@ export default function AppLayout() {
   }
   if (!session) return <Redirect href="/welcome" />;
   if (profile && !profile.onboarded && pathname !== '/onboarding') return <Redirect href="/onboarding" />;
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }} />;
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }} />
+      {profile?.onboarded && <KickedNotice />}
+    </>
+  );
 }

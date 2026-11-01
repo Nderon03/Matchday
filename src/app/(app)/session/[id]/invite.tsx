@@ -10,11 +10,13 @@ import { useAction } from '@/hooks/useAction';
 import { q, rpc } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { space } from '@/theme/tokens';
+import { useAuth } from '@/providers/AuthProvider';
 import { toggleIn } from '@/domain/sets';
 
 export default function InviteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const detail = useSessionDetail(id);
+  const { userId } = useAuth();
   const friends = useFriends();
   const { run, busy } = useAction([keys.session(id)]);
   const [pick, setPick] = useState<Set<string>>(new Set());
@@ -24,14 +26,20 @@ export default function InviteScreen() {
     enabled: !!d?.session.group_id,
     queryFn: () => q<any[]>(supabase.from('group_members').select('profile:profiles(id, username, display_name, avatar_url, position)').eq('group_id', d!.session.group_id!)),
   });
-  const already = useMemo(() => new Set([...(d?.invited ?? []).map((p) => p.id), ...(d?.attendance ?? []).map((a) => a.user_id)]), [d]);
+  // removed players are not "already invited": the host can invite them back
+  const already = useMemo(() => new Set([
+    ...(d?.invited ?? []).map((p) => p.id),
+    ...(d?.attendance ?? []).filter((a) => a.status !== 'removed').map((a) => a.user_id),
+  ]), [d]);
+  const removedIds = useMemo(() => new Set((d?.attendance ?? []).filter((a) => a.status === 'removed').map((a) => a.user_id)), [d]);
   const people = useMemo(() => {
     const map = new Map<string, PublicProfile>();
     for (const f of friends.data?.friends ?? []) map.set(f.id, f);
     for (const m of members.data ?? []) if (m.profile) map.set(m.profile.id, m.profile);
     if (d?.session.host_id) map.delete(d.session.host_id);
+    if (userId) map.delete(userId);
     return [...map.values()].sort((a, b) => Number(already.has(a.id)) - Number(already.has(b.id)) || a.display_name.localeCompare(b.display_name));
-  }, [friends.data, members.data, d, already]);
+  }, [friends.data, members.data, d, already, userId]);
 
   if (detail.isLoading) return <Screen><Header title="Invite" /><Loading /></Screen>;
   if (!d) return <Screen><Header title="Invite" /><ErrorState error={detail.error} onRetry={detail.refetch} /></Screen>;
@@ -52,6 +60,7 @@ export default function InviteScreen() {
         </View>
       </Card>
       <SectionTitle title="Friends & group members" />
+      {removedIds.size > 0 && <Text variant="caption" tone="muted">Players you removed can be invited back — they’ll be able to rejoin.</Text>}
       <PeoplePicker people={people} selected={pick} disabledIds={already} onToggle={(uid) => setPick((p) => toggleIn(p, uid))} />
     </Screen>
   );

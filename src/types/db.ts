@@ -105,6 +105,8 @@ export interface Attendance {
   verification: VerificationStatus;
   late_arrival: boolean;
   replacement_for: string | null;
+  removed_reason?: string | null;
+  removed_at?: string | null;
 }
 
 export interface Fixture {

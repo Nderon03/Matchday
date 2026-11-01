@@ -17,6 +17,7 @@ import { combine, dayLabel, isValidTime, nextDays } from '@/features/sessionDate
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { toggleIn } from '@/domain/sets';
+import { useAuth } from '@/providers/AuthProvider';
 import type { PaymentMode, Recurrence, Session, SessionVisibility } from '@/types/db';
 
 export interface SessionFormInitial {
@@ -43,6 +44,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
   const qc = useQueryClient();
   const groups = useMyGroups();
   const friends = useFriends();
+  const { userId } = useAuth();
 
   const startDefault = initial?.starts_at ? new Date(initial.starts_at) : null;
   const [name, setName] = useState(initial?.name ?? '');
@@ -78,8 +80,9 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
     const map = new Map<string, PublicProfile>();
     for (const f of friends.data?.friends ?? []) map.set(f.id, f);
     for (const m of groupMembers.data ?? []) if (m.profile) map.set(m.profile.id, m.profile);
+    if (userId) map.delete(userId); // the host is in the squad automatically
     return [...map.values()].sort((a, b) => a.display_name.localeCompare(b.display_name));
-  }, [friends.data, groupMembers.data]);
+  }, [friends.data, groupMembers.data, userId]);
 
   const selectGroup = (id: string | null) => {
     setGroupId(id);
@@ -227,6 +230,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
       <View style={{ gap: space.sm }}>
         <SectionTitle title={`Invite players${invitees.size ? ` · ${invitees.size}` : ''}`} action={people.length ? (invitees.size === people.length ? 'Clear' : 'Select all') : undefined}
           onAction={() => setInvitees(invitees.size === people.length ? new Set() : new Set(people.map((p) => p.id)))} />
+        {!editing && <Text variant="caption" tone="muted">You’re in the squad automatically as host.</Text>}
         <PeoplePicker
           people={people}
           selected={invitees}

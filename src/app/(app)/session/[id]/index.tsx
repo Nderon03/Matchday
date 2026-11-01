@@ -18,6 +18,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { formatKickoff, formatPence, rating, timeUntil } from '@/domain/format';
 import { sameWeekdayNextWeek } from '@/features/sessionDates';
+import { removeSessionPlayer } from '@/features/removePlayer';
 import type { RsvpStatus } from '@/types/db';
 
 export default function SessionScreen() {
@@ -89,13 +90,7 @@ export default function SessionScreen() {
   const guestsIn = d.guests.filter((g) => g.status === 'confirmed');
   const guestRequests = d.guests.filter((g) => g.status === 'pending');
   const myGuests = d.guests.filter((g) => g.added_by === userId && (g.status === 'confirmed' || g.status === 'pending'));
-  const removePlayer = async (uid: string, name: string) => {
-    const r = await confirm({
-      title: `Remove ${name}?`, message: 'They’ll be taken out of the squad and line-ups, and can only rejoin if you invite them again.',
-      confirmLabel: 'Remove', destructive: true, reasonLabel: 'Reason (optional, sent to them)',
-    });
-    if (r) run(`rm-${uid}`, () => rpc('remove_session_player', { p_session: id, p_user: uid, p_reason: typeof r === 'object' ? r.reason || null : null }), `${name} removed`);
-  };
+  const removePlayer = (uid: string, name: string) => removeSessionPlayer({ confirm, run, sessionId: id, userId: uid, name, guests: d.guests });
   const removeGuest = async (gid: string, name: string, mine: boolean) => {
     const ok = await confirm({
       title: `Remove ${name}?`,
@@ -131,6 +126,19 @@ export default function SessionScreen() {
         </View>
       </Card>
 
+      {me?.status === 'removed' && (
+        <Card style={{ borderColor: colors.danger, backgroundColor: colors.dangerMuted }}>
+          <Row gap={space.md} style={{ alignItems: 'flex-start' }}>
+            <Ionicons name="person-remove" size={24} color={colors.danger} />
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text variant="h3" color={colors.danger}>You’ve been removed from this session</Text>
+              {me.removed_reason ? <Text>Reason: {me.removed_reason}</Text> : null}
+              <Text variant="small" tone="muted">You can only rejoin if the host invites you again.</Text>
+            </View>
+          </Row>
+        </Card>
+      )}
+
       {/* Player actions */}
       {s.status === 'scheduled' && (
         <Card variant={me?.status === 'confirmed' ? 'highlight' : 'default'}>
@@ -157,7 +165,7 @@ export default function SessionScreen() {
               </Row>
             )}
             {s.rsvp_deadline && <Text variant="caption" tone="muted">Withdrawals close {formatKickoff(s.rsvp_deadline)}</Text>}
-            {me?.status === 'removed' && <Text variant="small" tone="muted">The host removed you from this session. You can rejoin if they invite you again.</Text>}
+
             {myGuests.length > 0 && (
               <View style={{ gap: space.xs }}>
                 {myGuests.map((g) => (
