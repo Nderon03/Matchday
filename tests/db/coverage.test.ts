@@ -128,6 +128,27 @@ describe('leaderboards across scopes and categories', () => {
   });
 });
 
+describe('waiting list and capacity', () => {
+  it('promotes waiting players in order when the host raises capacity', async () => {
+    const host = await db.createUser(uniq('h'));
+    const a = await db.createUser(uniq('a'));
+    const b = await db.createUser(uniq('b'));
+    const c = await db.createUser(uniq('c'));
+    for (const u of [a, b, c]) await db.befriend(host, u);
+    const sid = await db.rpc<string>(host, 'create_session', { p: { name: 'Cap FC', starts_at: new Date(Date.now() + 86400_000).toISOString(), format_size: 5, max_attendance: 2, invitee_ids: [a, b, c] } });
+    expect(await db.rpc(a, 'respond_to_session', { p_session: sid, p_response: 'confirmed' })).toBe('confirmed');
+    expect(await db.rpc(b, 'respond_to_session', { p_session: sid, p_response: 'confirmed' })).toBe('waitlisted');
+    expect(await db.rpc(c, 'respond_to_session', { p_session: sid, p_response: 'confirmed' })).toBe('waitlisted');
+    await db.rpc(host, 'update_session', { p_session: sid, p: { max_attendance: 3 } });
+    const rows = await db.admin(`select user_id, status from session_attendance where session_id = $1`, [sid]);
+    const status = Object.fromEntries(rows.map((r) => [r.user_id, r.status]));
+    expect(status[b]).toBe('confirmed'); // first in the queue
+    expect(status[c]).toBe('waitlisted');
+    const [n] = await db.admin(`select count(*)::int n from notifications where user_id = $1 and type = 'waitlist_promoted'`, [b]);
+    expect(n.n).toBe(1);
+  });
+});
+
 describe('adding friends to a group directly', () => {
   it('adds only friends, notifies them, and respects invite-only groups', async () => {
     const owner = await db.createUser(uniq('own'));
