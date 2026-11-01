@@ -10,3 +10,4 @@ export * from './StatTile';
 export * from './Stepper';
 export * from './Toast';
 export * from './Sheet';
+export * from './Confirm';

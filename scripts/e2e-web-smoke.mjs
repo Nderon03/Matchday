@@ -53,6 +53,13 @@ for (const [vpName, vp] of Object.entries(viewports)) {
     if (scrollW > vp.width + 1) failures.push(`${vpName} ${path}: horizontal overflow (${scrollW}px)`);
     await page.screenshot({ path: join(OUT, `${vpName}-${name}.png`), fullPage: true });
   }
+  // focused text field (thin green border, no browser outline)
+  await page.goto(base + '/sign-in', { waitUntil: 'networkidle' });
+  await page.getByLabel('Email').first().click();
+  await page.keyboard.type('sam@example.com');
+  const outline = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle);
+  if (outline !== 'none') failures.push(`${vpName}: focused input still shows a browser outline (${outline})`);
+  await page.screenshot({ path: join(OUT, `${vpName}-input-focus.png`) });
   // client-side validation on sign-up
   await page.goto(base + '/sign-up', { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'Create account' }).click();

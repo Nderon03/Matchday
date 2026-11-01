@@ -31,6 +31,7 @@ const session = { id: SID, group_id: GID, host_id: ME, name: 'Wednesday Football
 const team = (side, ids) => ({ id: `t${side}`, fixture_id: FID, side, name: side === 'A' ? 'Bibs' : 'Non-bibs', colour: side === 'A' ? '#22C55E' : '#F5F5F5', score: null,
   players: ids.map((uid, i) => ({ fixture_team_id: `t${side}`, fixture_id: FID, user_id: uid, position: ['GK', 'DEF', 'DEF', 'MID', 'FWD'][i] ?? 'ANY', is_goalkeeper: i === 0, is_substitute: false, sort_order: i })) });
 const fixtures = [{ id: FID, session_id: SID, number: 1, played: false, lineup_confirmed_at: kickoff, teams: [team('A', people.slice(0, 5).map((p) => p.id)), team('B', people.slice(5, 9).map((p) => p.id))] }];
+fixtures[0].teams[1].players.push({ fixture_team_id: 'tB', fixture_id: FID, user_id: null, guest_id: 'g1111111-1111-4111-8111-111111111111', position: 'ANY', is_goalkeeper: false, is_substitute: false, sort_order: 9 });
 const attendance = people.map((p, i) => ({ session_id: SID, user_id: p.id, status: 'confirmed', waitlisted_at: null, checked_in_at: i < 3 ? kickoff : null, verification: 'unverified', late_arrival: false, replacement_for: null, profile: p }));
 const lb = people.slice(0, 8).map((p, i) => ({ rank: i + 1, user_id: p.id, username: p.username, display_name: p.display_name, avatar_url: null, value: 24 - i * 3, appearances: 12 - i, is_me: p.id === ME, total: 8 }));
 const home = {
@@ -45,6 +46,8 @@ const home = {
 };
 const table = {
   profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z' }],
+  session_guests: [{ id: 'g1111111-1111-4111-8111-111111111111', session_id: SID, name: 'Dave', added_by: people[1].id, status: 'confirmed', created_at: kickoff },
+                   { id: 'g2222222-2222-4222-8222-222222222222', session_id: SID, name: 'Marco', added_by: people[2].id, status: 'pending', created_at: kickoff }],
   sessions: [session], session_attendance: attendance, session_invitations: [], fixtures, session_hosts: [], goal_submissions: [], player_goals: [],
   motm_awards: [], session_player_statistics: [], groups: [{ id: GID, name: 'Wednesday Football', logo_url: null }], notifications: [], activity_feed: [],
   group_members: [{ role: 'owner', group: { id: GID, name: 'Wednesday Football', logo_url: null, location: 'Hackney', group_members: [{ count: 14 }] } }],
@@ -92,6 +95,17 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     await page.goto(base + path, { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
     if (name === 'leagues') { await page.getByText('Leaderboards').first().click(); await page.waitForTimeout(500); }
+    if (name === 'session') {
+      const text0 = await page.locator('body').innerText();
+      if (!/Guest request: Marco/i.test(text0)) failures.push(`${vpName}: guest request not shown`);
+      if (!/Dave/.test(text0)) failures.push(`${vpName}: guest not in squad`);
+      await page.getByRole('button', { name: 'Withdraw' }).first().click();
+      await page.waitForTimeout(400);
+      if (!(await page.locator('body').innerText()).includes('Withdraw from this session?')) failures.push(`${vpName}: in-app confirm sheet did not open`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-confirm-sheet.png`) });
+      await page.getByRole('button', { name: 'Cancel' }).last().click();
+      await page.waitForTimeout(300);
+    }
     const text = await page.locator('body').innerText();
     if (!text.toLowerCase().includes(expected.toLowerCase())) failures.push(`${vpName} ${path}: expected "${expected}"`);
     const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);

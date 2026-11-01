@@ -1,9 +1,9 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Alert, Platform, View, type HostInstance } from 'react-native';
+import { View, type HostInstance } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  Avatar, Badge, Button, Card, Chip, Divider, ErrorState, Header, IconButton, Loading, Row, Screen, SectionTitle, Sheet, Text,
+  Avatar, Badge, Button, Card, Chip, Divider, ErrorState, Header, IconButton, Input, Loading, Row, Screen, SectionTitle, Sheet, Text, useConfirm,
 } from '@/components/ui';
 import { PaymentBadge } from '@/components/football/PaymentBadge';
 import { ResultCard } from '@/components/football/ResultCard';
@@ -20,16 +20,6 @@ import { formatKickoff, formatPence, rating, timeUntil } from '@/domain/format';
 import { sameWeekdayNextWeek } from '@/features/sessionDates';
 import type { RsvpStatus } from '@/types/db';
 
-function confirmAsync(title: string, message: string, destructive = false): Promise<boolean> {
-  if (Platform.OS === 'web') return Promise.resolve(window.confirm(`${title}\n\n${message}`));
-  return new Promise((resolve) =>
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
-      { text: 'Confirm', style: destructive ? 'destructive' : 'default', onPress: () => resolve(true) },
-    ]),
-  );
-}
-
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
@@ -41,6 +31,9 @@ export default function SessionScreen() {
   const [tally, setTally] = useState<{ user_id: string; votes: number }[] | null>(null);
   const [tiebreak, setTiebreak] = useState<string | null>(null);
   const resultRef = useRef<HostInstance>(null);
+  const confirm = useConfirm();
+  const [guestOpen, setGuestOpen] = useState(false);
+  const [guestName, setGuestName] = useState('');
 
   const d = detail.data;
   const groups = useMemo(() => {
@@ -50,7 +43,7 @@ export default function SessionScreen() {
     return {
       confirmed: by('confirmed'),
       waitlisted: by('waitlisted').sort((a, b) => (a.waitlisted_at ?? '').localeCompare(b.waitlisted_at ?? '')),
-      out: d.attendance.filter((a) => ['declined', 'unavailable', 'withdrawn'].includes(a.status)),
+      out: d.attendance.filter((a) => ['declined', 'unavailable', 'withdrawn', 'removed'].includes(a.status)),
       pending: d.invited.filter((p) => !responded.has(p.id)),
     };
   }, [d]);
@@ -85,6 +78,32 @@ export default function SessionScreen() {
   const tied = tally?.filter((t) => t.votes === top) ?? [];
 
   const scores = d.fixtures.filter((f) => f.played);
+  // who scored / assisted in each game (null = totals not broken down by game)
+  const scorersFor = (fixtureId: string | null) => {
+    const rows = d.goalsByFixture.filter((g) => g.fixture_id === fixtureId && (g.goals > 0 || g.assists > 0));
+    if (!rows.length) return '';
+    return rows.sort((a, b) => b.goals - a.goals)
+      .map((g) => `${nameOf(g.user_id)}${g.goals ? ` ⚽${g.goals > 1 ? `×${g.goals}` : ''}` : ''}${g.assists ? ` 🅰️${g.assists > 1 ? `×${g.assists}` : ''}` : ''}`)
+      .join('  ·  ');
+  };
+  const guestsIn = d.guests.filter((g) => g.status === 'confirmed');
+  const guestRequests = d.guests.filter((g) => g.status === 'pending');
+  const myGuests = d.guests.filter((g) => g.added_by === userId && (g.status === 'confirmed' || g.status === 'pending'));
+  const removePlayer = async (uid: string, name: string) => {
+    const r = await confirm({
+      title: `Remove ${name}?`, message: 'They’ll be taken out of the squad and line-ups, and can only rejoin if you invite them again.',
+      confirmLabel: 'Remove', destructive: true, reasonLabel: 'Reason (optional, sent to them)',
+    });
+    if (r) run(`rm-${uid}`, () => rpc('remove_session_player', { p_session: id, p_user: uid, p_reason: typeof r === 'object' ? r.reason || null : null }), `${name} removed`);
+  };
+  const removeGuest = async (gid: string, name: string, mine: boolean) => {
+    const ok = await confirm({
+      title: `Remove ${name}?`,
+      message: mine ? 'Your guest will be taken out of the squad.' : 'The player who added them will need to send a request to bring another guest.',
+      confirmLabel: 'Remove', destructive: true,
+    });
+    if (ok) run(`rmg-${gid}`, () => rpc('remove_session_guest', { p_guest: gid }), `${name} removed`);
+  };
   const totals = scores.reduce((acc, f) => ({ A: acc.A + (f.teams[0]?.score ?? 0), B: acc.B + (f.teams[1]?.score ?? 0) }), { A: 0, B: 0 });
 
   return (
@@ -104,7 +123,7 @@ export default function SessionScreen() {
           <View style={{ gap: 6 }}>
             <Row gap={8}><Ionicons name="time-outline" size={17} color={colors.textMuted} /><Text>{formatKickoff(s.starts_at)} · {s.duration_minutes} min</Text></Row>
             {(s.venue || s.location) && <Row gap={8}><Ionicons name="location-outline" size={17} color={colors.textMuted} /><Text style={{ flex: 1 }}>{[s.venue, s.location].filter(Boolean).join(' · ')}</Text></Row>}
-            <Row gap={8}><Ionicons name="people-outline" size={17} color={colors.textMuted} /><Text>{groups.confirmed.length}/{s.max_attendance} confirmed{groups.waitlisted.length ? ` · ${groups.waitlisted.length} waiting` : ''}</Text></Row>
+            <Row gap={8}><Ionicons name="people-outline" size={17} color={colors.textMuted} /><Text>{groups.confirmed.length + guestsIn.length}/{s.max_attendance} confirmed{guestsIn.length ? ` (incl. ${guestsIn.length} guest${guestsIn.length > 1 ? 's' : ''})` : ''}{groups.waitlisted.length ? ` · ${groups.waitlisted.length} waiting` : ''}</Text></Row>
             {s.payment_mode !== 'free' && <Row gap={8}><Ionicons name="card-outline" size={17} color={colors.textMuted} /><Text>{formatPence(s.price_pence)} per player · {s.payment_mode === 'upfront' ? 'pay upfront' : 'pay after'}</Text></Row>}
             {d.host && <Row gap={8}><Avatar uri={d.host.avatar_url} name={d.host.display_name} size={20} /><Text tone="muted">Hosted by {d.host.display_name}</Text></Row>}
           </View>
@@ -117,24 +136,39 @@ export default function SessionScreen() {
         <Card variant={me?.status === 'confirmed' ? 'highlight' : 'default'}>
           <View style={{ gap: space.md }}>
             <Text variant="h3">
-              {me?.status === 'confirmed' ? 'You’re playing' : me?.status === 'waitlisted' ? `Waiting list · position ${waitPos}` : me && ['declined', 'unavailable', 'withdrawn'].includes(me.status) ? 'You’re not playing' : 'Are you in?'}
+              {me?.status === 'confirmed' ? 'You’re playing' : me?.status === 'waitlisted' ? `Waiting list · position ${waitPos}` : me?.status === 'removed' ? 'Removed by the host' : me && ['declined', 'unavailable', 'withdrawn'].includes(me.status) ? 'You’re not playing' : 'Are you in?'}
             </Text>
             {me?.status === 'confirmed' ? (
               <Row gap={space.sm} wrap>
                 {canCheckIn && <Button title="Check in" icon="checkmark-circle-outline" loading={busy === 'checkin'} onPress={() => run('checkin', () => rpc('check_in', { p_session: id }), 'Checked in — see you on the pitch')} />}
                 {me.checked_in_at && <Badge label="Checked in" tone="success" align="center" />}
-                <Button title="Withdraw" variant="secondary" loading={busy === 'rsvp-withdrawn'} onPress={async () => (await confirmAsync('Withdraw?', 'Your place goes to the next player on the waiting list.', true)) && respond('withdrawn')} />
+                <Button title="Withdraw" variant="secondary" loading={busy === 'rsvp-withdrawn'} onPress={async () => {
+                  if (await confirm({ title: 'Withdraw from this session?', message: 'Your place goes to the next player on the waiting list.', confirmLabel: 'Withdraw', destructive: true })) respond('withdrawn');
+                }} />
+                <Button title="Add a guest" icon="person-add-outline" variant="ghost" onPress={() => { setGuestName(''); setGuestOpen(true); }} />
               </Row>
             ) : me?.status === 'waitlisted' ? (
               <Button title="Leave waiting list" variant="secondary" onPress={() => respond('withdrawn')} />
-            ) : (
+            ) : me?.status === 'removed' ? null : (
               <Row gap={space.sm} wrap>
-                <Button title={groups.confirmed.length >= s.max_attendance ? 'Join waiting list' : 'I’m in'} icon="checkmark" loading={busy === 'rsvp-confirmed'} onPress={() => respond('confirmed')} />
+                <Button title={groups.confirmed.length + guestsIn.length >= s.max_attendance ? 'Join waiting list' : 'I’m in'} icon="checkmark" loading={busy === 'rsvp-confirmed'} onPress={() => respond('confirmed')} />
                 <Button title="Can’t make it" variant="secondary" loading={busy === 'rsvp-declined'} onPress={() => respond('declined')} />
                 <Button title="Unavailable" variant="ghost" onPress={() => respond('unavailable')} />
               </Row>
             )}
             {s.rsvp_deadline && <Text variant="caption" tone="muted">Withdrawals close {formatKickoff(s.rsvp_deadline)}</Text>}
+            {me?.status === 'removed' && <Text variant="small" tone="muted">The host removed you from this session. You can rejoin if they invite you again.</Text>}
+            {myGuests.length > 0 && (
+              <View style={{ gap: space.xs }}>
+                {myGuests.map((g) => (
+                  <Row key={g.id} gap={space.sm}>
+                    <Ionicons name="person-outline" size={15} color={colors.textMuted} />
+                    <Text variant="small" style={{ flex: 1 }}>{g.name} · {g.status === 'pending' ? 'waiting for host approval' : 'your guest'}</Text>
+                    <Text variant="smallStrong" tone="danger" accessibilityRole="button" onPress={() => removeGuest(g.id, g.name, true)}>Remove</Text>
+                  </Row>
+                ))}
+              </View>
+            )}
           </View>
         </Card>
       )}
@@ -173,14 +207,18 @@ export default function SessionScreen() {
           <SectionTitle title={s.mode === 'multi' ? `Results · ${totals.A}–${totals.B} on aggregate` : 'Result'} action={d.isManager && s.status !== 'finalised' ? 'Edit' : undefined} onAction={() => router.push(`/session/${id}/results`)} />
           <Card padded={false}>
             {d.fixtures.map((f, i) => (
-              <Row key={f.id} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, justifyContent: 'space-between' }}>
-                <Text variant="small" tone="muted" style={{ width: 64 }}>{s.mode === 'multi' ? `Game ${f.number}` : 'FT'}</Text>
-                <Text variant="bodyStrong" style={{ flex: 1, textAlign: 'right' }} numberOfLines={1}>{f.teams[0]?.name}</Text>
-                <Text variant="statSmall" style={{ width: 72, textAlign: 'center' }}>{f.played ? `${f.teams[0]?.score} – ${f.teams[1]?.score}` : 'vs'}</Text>
-                <Text variant="bodyStrong" style={{ flex: 1 }} numberOfLines={1}>{f.teams[1]?.name}</Text>
-              </Row>
+              <View key={f.id} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, gap: 4 }}>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <Text variant="small" tone="muted" style={{ width: 64 }}>{s.mode === 'multi' ? `Game ${f.number}` : 'FT'}</Text>
+                  <Text variant="bodyStrong" style={{ flex: 1, textAlign: 'right' }} numberOfLines={1}>{f.teams[0]?.name}</Text>
+                  <Text variant="statSmall" style={{ width: 72, textAlign: 'center' }}>{f.played ? `${f.teams[0]?.score} – ${f.teams[1]?.score}` : 'vs'}</Text>
+                  <Text variant="bodyStrong" style={{ flex: 1 }} numberOfLines={1}>{f.teams[1]?.name}</Text>
+                </Row>
+                {scorersFor(f.id) && <Text variant="caption" tone="muted" style={{ paddingLeft: 64 }}>{scorersFor(f.id)}</Text>}
+              </View>
             ))}
           </Card>
+          {scorersFor(null) && <Text variant="caption" tone="muted">Across the session: {scorersFor(null)}</Text>}
         </View>
       )}
 
@@ -274,9 +312,8 @@ export default function SessionScreen() {
               )}
               {['scheduled', 'in_progress'].includes(s.status) && (
                 <Button title="Cancel session" variant="danger" size="sm" onPress={async () => {
-                  if (await confirmAsync('Cancel this session?', 'Everyone will be notified and any payments refunded or released.', true)) {
-                    run('cancel', () => rpc('cancel_session', { p_session: id }), 'Session cancelled');
-                  }
+                  const r = await confirm({ title: 'Cancel this session?', message: 'Everyone will be notified and any payments refunded or released.', confirmLabel: 'Cancel session', cancelLabel: 'Keep it', destructive: true, reasonLabel: 'Reason (optional, shown to players)' });
+                  if (r) run('cancel', () => rpc('cancel_session', { p_session: id, p_reason: typeof r === 'object' && r.reason ? r.reason : null }), 'Session cancelled');
                 }} />
               )}
             </View>
@@ -298,14 +335,52 @@ export default function SessionScreen() {
               {a.verification === 'verified' && <Ionicons name="shield-checkmark" size={16} color={colors.primary} accessibilityLabel="Verified" />}
               {a.verification === 'absent' && <Badge label="Absent" tone="danger" />}
               {s.payment_mode !== 'free' && a.user_id !== s.host_id && <PaymentBadge status={payments.get(a.user_id)} />}
+              {d.isManager && a.user_id !== s.host_id && ['scheduled', 'in_progress'].includes(s.status) && (
+                <IconButton icon="person-remove-outline" label={`Remove ${a.profile.display_name}`} size={32} tone="danger" onPress={() => removePlayer(a.user_id, a.profile.display_name)} />
+              )}
+            </Row>
+          ))}
+          {guestsIn.map((g) => (
+            <Row key={g.id} gap={space.md} style={{ padding: space.md, borderTopWidth: 1, borderTopColor: colors.border }}>
+              <Avatar name={g.name} size={36} />
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong">{g.name}</Text>
+                <Text variant="caption" tone="muted">Guest of {nameOf(g.added_by ?? '')} · no account</Text>
+              </View>
+              <Badge label="Guest" align="center" />
+              {(d.isManager || g.added_by === userId) && ['scheduled', 'in_progress'].includes(s.status) && (
+                <IconButton icon="person-remove-outline" label={`Remove ${g.name}`} size={32} tone="danger" onPress={() => removeGuest(g.id, g.name, g.added_by === userId)} />
+              )}
             </Row>
           ))}
           {!groups.confirmed.length && <Text tone="muted" style={{ padding: space.lg }}>No one has confirmed yet.</Text>}
         </Card>
+        {d.isManager && guestRequests.map((g) => (
+          <Card key={g.id} variant="alt">
+            <Row gap={space.md}>
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong">Guest request: {g.name}</Text>
+                <Text variant="caption" tone="muted">From {nameOf(g.added_by ?? '')}</Text>
+              </View>
+              <Button title="Approve" size="sm" loading={busy === `ga-${g.id}`} onPress={() => run(`ga-${g.id}`, () => rpc('decide_guest_request', { p_guest: g.id, p_approve: true }), `${g.name} added`)} />
+              <Button title="Decline" size="sm" variant="ghost" onPress={() => run(`gd-${g.id}`, () => rpc('decide_guest_request', { p_guest: g.id, p_approve: false }))} />
+            </Row>
+          </Card>
+        ))}
         {groups.waitlisted.length > 0 && <Text variant="small" tone="muted">Waiting list: {groups.waitlisted.map((w, i) => `${i + 1}. ${w.profile.display_name}`).join(', ')}</Text>}
         {groups.pending.length > 0 && <Text variant="small" tone="muted">Awaiting reply: {groups.pending.map((p) => p.display_name).join(', ')}</Text>}
         {groups.out.length > 0 && <Text variant="small" tone="faint">Not playing: {groups.out.map((p) => p.profile.display_name).join(', ')}</Text>}
       </View>
+
+      <Sheet visible={guestOpen} onClose={() => setGuestOpen(false)} title="Bring a guest">
+        <Text tone="muted">For someone without a MATCHDAY account. They take a squad spot and can be picked in line-ups, but don’t get stats or votes.</Text>
+        <Input label="Guest’s name" value={guestName} onChangeText={setGuestName} placeholder="e.g. Dave (Sam’s brother)" maxLength={40} autoFocus />
+        <Button title="Add guest" icon="person-add" disabled={!guestName.trim()} loading={busy === 'guest'} onPress={async () => {
+          const r = await run('guest', () => rpc<{ status: string }>('add_session_guest', { p_session: id, p_name: guestName }),
+            (x) => (x.status === 'pending' ? 'Request sent to the host' : `${guestName.trim()} added`));
+          if (r) setGuestOpen(false);
+        }} />
+      </Sheet>
 
       <Sheet visible={finaliseOpen} onClose={() => setFinaliseOpen(false)} title="Finalise results">
         <Text tone="muted">This publishes the results, awards MOTM and updates everyone’s statistics. Later changes need an audited correction.</Text>

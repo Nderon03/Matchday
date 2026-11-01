@@ -161,16 +161,38 @@ describe('results, goals and statistics permissions', () => {
     expect(await db.admin(`select * from session_player_statistics where session_id = $1 and user_id = $2`, [sid, absent])).toHaveLength(0);
   });
 
-  it('a co-host can approve the host’s own goals; correction requires a reason', async () => {
-    const { host, p1, sid } = await playedSession();
-    await db.admin(`insert into session_hosts (session_id, user_id) values ($1, $2)`, [sid, p1]);
+  it('host goals are auto-approved but capped; correction requires a reason; trail is append-only', async () => {
+    const { host, p1, p2, sid } = await playedSession();
+    // host's team (A) scored 2
+    await expectAppError(db.rpc(host, 'submit_goals', { p_session: sid, p_goals: 3 }), 'impossible_goals');
     const sub = await db.rpc<string>(host, 'submit_goals', { p_session: sid, p_goals: 1 });
-    await expectAppError(db.rpc(p1, 'review_goal_submission', { p_submission: sub, p_action: 'corrected', p_goals: 0 }), 'reason_required');
-    await db.rpc(p1, 'review_goal_submission', { p_submission: sub, p_action: 'approved' });
-    const reviews = await db.admin(`select action from goal_reviews where submission_id = $1`, [sub]);
-    expect(reviews).toEqual([{ action: 'approved' }]);
-    // review trail is append-only
+    const [row] = await db.admin(`select status, approved_goals from goal_submissions where id = $1`, [sub]);
+    expect(row).toEqual({ status: 'approved', approved_goals: 1 });
+    const reviews = await db.admin(`select action, reason from goal_reviews where submission_id = $1`, [sub]);
+    expect(reviews).toEqual([{ action: 'approved', reason: 'Auto-approved: submitted by the host' }]);
+    const audit = await db.admin(`select 1 from audit_logs where action = 'goals.host_self_approved' and entity_id = $1`, [sub]);
+    expect(audit).toHaveLength(1);
+    // a regular player still needs approval, and a correction needs a reason
+    const p2sub = await db.rpc<string>(p2, 'submit_goals', { p_session: sid, p_goals: 1 });
+    expect((await db.admin(`select status from goal_submissions where id = $1`, [p2sub]))[0].status).toBe('pending');
+    await expectAppError(db.rpc(host, 'review_goal_submission', { p_submission: p2sub, p_action: 'corrected', p_goals: 0 }), 'reason_required');
+    expect(p1).toBeTruthy();
     await expect(db.admin(`update goal_reviews set action = 'rejected' where submission_id = $1`, [sub])).rejects.toThrow(/append-only/);
+  });
+
+  it('goals plus assists cannot exceed team goals, per game and in total', async () => {
+    const { host, p1, p2, p3, sid } = await playedSession(); // A (host, p1) 2 – 1 B (p2, p3)
+    await expectAppError(db.rpc(p1, 'submit_goals', { p_session: sid, p_goals: 2, p_assists: 1 }), 'impossible_assists');
+    await expectAppError(db.rpc(p1, 'submit_goals', { p_session: sid, p_goals: 0, p_assists: 3 }), 'impossible_assists');
+    const [f] = await db.admin(`select id from fixtures where session_id = $1`, [sid]);
+    await expectAppError(db.rpc(p2, 'submit_goals', { p_session: sid, p_goals: 1, p_assists: 1, p_breakdown: [{ fixture_id: f.id, goals: 1, assists: 1 }] }), 'impossible_assists');
+    const ok = await db.rpc<string>(p1, 'submit_goals', { p_session: sid, p_goals: 1, p_assists: 1, p_breakdown: [{ fixture_id: f.id, goals: 1, assists: 1 }] });
+    await db.rpc(host, 'review_goal_submission', { p_submission: ok, p_action: 'approved' });
+    const pg = await db.admin(`select goals, assists from player_goals where submission_id = $1`, [ok]);
+    expect(pg).toEqual([{ goals: 1, assists: 1 }]);
+    // B scored 1: p3's assist + p2's goal is fine
+    const a = await db.rpc<string>(p3, 'submit_goals', { p_session: sid, p_goals: 0, p_assists: 1 });
+    await db.rpc(host, 'review_goal_submission', { p_submission: a, p_action: 'approved' });
   });
 
   it('audit log is append-only and hidden from clients', async () => {

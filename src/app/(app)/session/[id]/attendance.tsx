@@ -90,7 +90,7 @@ export default function AttendanceScreen() {
             <Row key={a.user_id} gap={space.md}>
               <Avatar uri={a.profile.avatar_url} name={a.profile.display_name} size={32} />
               <Text style={{ flex: 1 }}>{a.profile.display_name}</Text>
-              <Badge label={a.status} tone={a.status === 'waitlisted' ? 'warning' : 'neutral'} />
+              <Badge label={a.status === 'removed' ? 'removed by host' : a.status} tone={a.status === 'waitlisted' ? 'warning' : a.status === 'removed' ? 'danger' : 'neutral'} align="center" />
               {!locked && <Button title="Add" size="sm" variant="ghost" loading={busy === `add-${a.user_id}`} onPress={() => run(`add-${a.user_id}`, () => rpc('add_session_player', { p_session: id, p_user: a.user_id }), 'Added to the squad')} />}
             </Row>
           ))}

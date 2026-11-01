@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Chip, ErrorState, Header, Input, Loading, Row, Screen, Segmented, Sheet, Text, useToast } from '@/components/ui';
+import { Button, Card, Chip, ErrorState, Header, Input, Loading, Row, Screen, Segmented, Sheet, Text, useConfirm, useToast } from '@/components/ui';
 import { Pitch, type LineupPlayer } from '@/components/football/Pitch';
 import { lineupOps, type LineupState, type Zone } from '@/domain/lineup';
 import { suggestTeams, randomTeams, balanceTeams, hasEnoughHistory, type BalancePlayer, type BalanceResult, type GoalkeeperMode } from '@/domain/balancing';
@@ -40,7 +40,7 @@ export default function LineupScreen() {
   const fixture = d?.fixtures.find((f) => f.id === fixtureId) ?? d?.fixtures.find((f) => !f.played) ?? d?.fixtures[d.fixtures.length - 1];
   if (!d || !fixture) return <Screen><Header title="Line-ups" /><ErrorState error={detail.error} onRetry={detail.refetch} /></Screen>;
   // the editor remounts when switching game or when someone else saves a new line-up
-  const savedSig = fixture.teams.map((t) => `${t.name}:${t.players.map((p) => `${p.user_id}${p.is_goalkeeper ? 'g' : ''}${p.is_substitute ? 's' : ''}`).join(',')}`).join('|');
+  const savedSig = fixture.teams.map((t) => `${t.name}:${t.players.map((p) => `${p.user_id ?? p.guest_id}${p.is_goalkeeper ? 'g' : ''}${p.is_substitute ? 's' : ''}`).join(',')}`).join('|');
   return (
     <LineupEditor
       key={`${fixture.id}-${savedSig}`}
@@ -65,24 +65,33 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
   onSelectFixture: (id: string) => void;
 }) {
   const toast = useToast();
+  const confirm = useConfirm();
   const { run, busy } = useAction([keys.session(id)]);
   const players = useMemo(() => {
     const map: Record<string, LineupPlayer> = {};
     for (const a of d.attendance) {
       if (a.status === 'confirmed' && a.verification !== 'absent') map[a.user_id] = { user_id: a.user_id, ...a.profile };
     }
+    for (const g of d.guests) {
+      if (g.status === 'confirmed') map[`guest:${g.id}`] = { user_id: `guest:${g.id}`, display_name: g.name, username: g.name, avatar_url: null, position: 'ANY', isGuest: true };
+    }
     return map;
   }, [d]);
+  // guests have no history, so the balancer treats them as an average (6.0) player
+  const withGuests = (pool: BalancePlayer[]): BalancePlayer[] => [
+    ...pool,
+    ...Object.values(players).filter((p) => p.isGuest).map((p) => ({ user_id: p.user_id, position: 'ANY' as PlayerPosition })),
+  ];
   const positions = Object.fromEntries(Object.values(players).map((p) => [p.user_id, p.position])) as Record<string, PlayerPosition>;
   const savedLineup = (): LineupState => {
     const toSlots = (side: 0 | 1) =>
-      [...(fixture.teams[side]?.players ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((p) => ({ user_id: p.user_id, position: p.position, is_goalkeeper: p.is_goalkeeper, is_substitute: p.is_substitute }));
+      [...(fixture.teams[side]?.players ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((p) => ({ user_id: p.user_id ?? `guest:${p.guest_id}`, position: p.position, is_goalkeeper: p.is_goalkeeper, is_substitute: p.is_substitute }));
     return { A: toSlots(0), B: toSlots(1) };
   };
   const initialSuggestion = (() => {
     const saved = savedLineup();
     if (!auto || !strengths || saved.A.length || saved.B.length) return null;
-    const pool = strengths.players.filter((p) => players[p.user_id]);
+    const pool = withGuests(strengths.players.filter((p) => players[p.user_id]));
     return pool.length >= 2 ? buildSuggestion(auto, pool, strengths.pairings) : null;
   })();
   const [suggestion, setSuggestion] = useState<BalanceResult | null>(initialSuggestion);
@@ -106,7 +115,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
   };
 
   const apply = (kind: 'balanced' | 'random') => {
-    const pool = (strengths?.players ?? []).filter((p) => players[p.user_id]);
+    const pool = withGuests((strengths?.players ?? []).filter((p) => players[p.user_id]));
     if (pool.length < 2) return toast.show('You need at least two confirmed players.', 'error');
     const result = buildSuggestion(kind, pool, strengths?.pairings ?? [], gkMode);
     setSuggestion(result);
@@ -115,7 +124,11 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
 
   const save = (confirm: boolean) =>
     run('save', async () => {
-      const toJson = (side: 'A' | 'B') => ({ name: names[side], players: lineup[side] });
+      // guests are stored by guest_id; registered players by user_id
+      const toJson = (side: 'A' | 'B') => ({
+        name: names[side],
+        players: lineup[side].map((s) => (s.user_id.startsWith('guest:') ? { ...s, user_id: null, guest_id: s.user_id.slice(6) } : s)),
+      });
       await rpc('save_lineup', { p_fixture: fixture.id, p_teams: { A: toJson('A'), B: toJson('B') }, p_confirm: confirm });
       setDirty(false);
     }, confirm ? 'Line-ups confirmed — players notified' : 'Saved');
@@ -226,6 +239,25 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
             ))}
           </Row>
           <Button title="Swap with another player" variant="secondary" icon="swap-horizontal" onPress={() => { setSwapFrom(selected); setSelected(null); }} />
+          {selected && selected !== d.session.host_id && ['scheduled', 'in_progress'].includes(d.session.status) && (
+            <Button
+              title={sel?.isGuest ? 'Remove guest from session' : 'Remove from session'}
+              variant="danger"
+              icon="person-remove-outline"
+              onPress={async () => {
+                const target = selected;
+                const name = sel?.display_name ?? 'player';
+                setSelected(null);
+                const r = await confirm(sel?.isGuest
+                  ? { title: `Remove ${name}?`, message: 'The player who added them will need to request another guest.', confirmLabel: 'Remove', destructive: true }
+                  : { title: `Remove ${name}?`, message: 'They’ll be taken out of the squad and line-ups, and can only rejoin if you invite them again.', confirmLabel: 'Remove', destructive: true, reasonLabel: 'Reason (optional, sent to them)' });
+                if (!r) return;
+                await run('remove', () => target.startsWith('guest:')
+                  ? rpc('remove_session_guest', { p_guest: target.slice(6) })
+                  : rpc('remove_session_player', { p_session: id, p_user: target, p_reason: typeof r === 'object' ? r.reason || null : null }), `${name} removed`);
+              }}
+            />
+          )}
         </ScrollView>
       </Sheet>
     </Screen>

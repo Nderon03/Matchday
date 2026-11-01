@@ -128,6 +128,94 @@ describe('leaderboards across scopes and categories', () => {
   });
 });
 
+describe('removing players and guests', () => {
+  async function setup() {
+    const host = await db.createUser(uniq('h'));
+    const a = await db.createUser(uniq('a'));
+    const b = await db.createUser(uniq('b'));
+    for (const u of [a, b]) await db.befriend(host, u);
+    const g = await db.rpc<string>(host, 'create_group', { p_name: 'Guest FC', p_visibility: 'private', p_join_policy: 'request' });
+    await db.rpc(host, 'add_group_members', { p_group: g, p_users: [a, b] });
+    const sid = await db.rpc<string>(host, 'create_session', { p: { name: 'Guest FC', group_id: g, visibility: 'group', starts_at: new Date(Date.now() + 3600_000).toISOString(), format_size: 5, max_attendance: 4, invitee_ids: [a, b] } });
+    for (const u of [a, b]) await db.rpc(u, 'respond_to_session', { p_session: sid, p_response: 'confirmed' });
+    return { host, a, b, sid };
+  }
+
+  it('removed players cannot rejoin until re-invited', async () => {
+    const { host, a, b, sid } = await setup();
+    await expectAppError(db.rpc(a, 'remove_session_player', { p_session: sid, p_user: b }), 'forbidden');
+    await db.rpc(host, 'remove_session_player', { p_session: sid, p_user: b, p_reason: 'No-show last week' });
+    expect((await db.admin(`select status from session_attendance where session_id = $1 and user_id = $2`, [sid, b]))[0].status).toBe('removed');
+    // group visibility would normally let a member join — not after removal
+    await expectAppError(db.rpc(b, 'respond_to_session', { p_session: sid, p_response: 'confirmed' }), 'removed');
+    const code = await db.rpc<string>(host, 'create_invite_link', { p_kind: 'session', p_target: sid });
+    await expectAppError(db.rpc(b, 'accept_invite', { p_code: code }), 'removed');
+    await expectAppError(db.rpc(b, 'respond_to_session', { p_session: sid, p_response: 'removed' }), 'invalid');
+    const [n] = await db.admin(`select count(*)::int n from notifications where user_id = $1 and type = 'session_removed'`, [b]);
+    expect(n.n).toBe(1);
+    // the host invites them again → they can rejoin
+    await db.rpc(host, 'invite_to_session', { p_session: sid, p_users: [b] });
+    expect(await db.rpc(b, 'respond_to_session', { p_session: sid, p_response: 'confirmed' })).toBe('confirmed');
+    await expectAppError(db.rpc(host, 'remove_session_player', { p_session: sid, p_user: host }), 'invalid');
+    expect(a).toBeTruthy();
+  });
+
+  it('guests take squad spots, play in line-ups, and need approval after a host removal', async () => {
+    const { host, a, b, sid } = await setup();
+    const g1 = await db.rpc<any>(a, 'add_session_guest', { p_session: sid, p_name: 'Dave (guest)' });
+    expect(g1.status).toBe('confirmed');
+    expect((await db.admin(`select public.confirmed_count($1) n`, [sid]))[0].n).toBe(4); // host, a, b, guest
+    // squad is full: another guest is refused, a new player is waitlisted
+    await expectAppError(db.rpc(b, 'add_session_guest', { p_session: sid, p_name: 'Extra' }), 'session_full');
+
+    // guest in a line-up alongside players
+    const [f] = await db.admin(`select id from fixtures where session_id = $1`, [sid]);
+    await db.rpc(host, 'save_lineup', {
+      p_fixture: f.id,
+      p_teams: { A: { players: [{ user_id: host }, { guest_id: g1.id }] }, B: { players: [{ user_id: a }, { user_id: b }] } },
+    });
+    const guestRows = await db.admin(`select guest_id from team_players where fixture_id = $1 and guest_id is not null`, [f.id]);
+    expect(guestRows).toHaveLength(1);
+    const copy = await db.rpc<string>(host, 'add_fixture', { p_session: sid, p_copy_from: f.id });
+    expect((await db.admin(`select count(*)::int n from team_players where fixture_id = $1`, [copy]))[0].n).toBe(4);
+    await db.rpc(host, 'delete_fixture', { p_fixture: copy });
+
+    // host removes the guest → a's next guest is a request; only one request at a time
+    await db.rpc(host, 'remove_session_guest', { p_guest: g1.id });
+    expect((await db.admin(`select count(*)::int n from team_players where guest_id = $1`, [g1.id]))[0].n).toBe(0);
+    const req = await db.rpc<any>(a, 'add_session_guest', { p_session: sid, p_name: 'Dave again' });
+    expect(req.status).toBe('pending');
+    await expectAppError(db.rpc(a, 'add_session_guest', { p_session: sid, p_name: 'Someone else' }), 'request_pending');
+    await expectAppError(db.rpc(a, 'decide_guest_request', { p_guest: req.id, p_approve: true }), 'forbidden');
+    await db.rpc(host, 'decide_guest_request', { p_guest: req.id, p_approve: true });
+    expect((await db.admin(`select status from session_guests where id = $1`, [req.id]))[0].status).toBe('confirmed');
+
+    // b's guests are unaffected by a's removal; b can withdraw their own guest freely
+    await db.rpc(host, 'update_session', { p_session: sid, p: { max_attendance: 6 } });
+    const gb = await db.rpc<any>(b, 'add_session_guest', { p_session: sid, p_name: 'Bob' });
+    expect(gb.status).toBe('confirmed');
+    await db.rpc(b, 'remove_session_guest', { p_guest: gb.id });
+    expect((await db.rpc<any>(b, 'add_session_guest', { p_session: sid, p_name: 'Bob 2' })).status).toBe('confirmed');
+
+    // guests never receive statistics; the match still finalises
+    await db.rpc(host, 'save_lineup', {
+      p_fixture: f.id,
+      p_teams: { A: { players: [{ user_id: host }, { guest_id: req.id }] }, B: { players: [{ user_id: a }, { user_id: b }] } },
+    });
+    await db.rpc(host, 'record_fixture_score', { p_fixture: f.id, p_score_a: 2, p_score_b: 1 });
+    await db.rpc(host, 'complete_session', { p_session: sid });
+    await db.rpc(host, 'close_voting', { p_session: sid });
+    await db.rpc(host, 'finalise_session', { p_session: sid });
+    const stats = await db.admin(`select user_id, wins from session_player_statistics where session_id = $1 order by wins desc`, [sid]);
+    expect(stats).toHaveLength(3);
+    expect(stats.find((r) => r.user_id === host).wins).toBe(1);
+    // non-members cannot see guests
+    const outsider = await db.createUser(uniq('o'));
+    expect(await db.as(outsider, `select * from session_guests where session_id = $1`, [sid])).toHaveLength(0);
+    await expect(db.as(a, `insert into session_guests (session_id, name, added_by) values ($1, 'x', $2)`, [sid, a])).rejects.toThrow(/permission denied|row-level security/);
+  });
+});
+
 describe('waiting list and capacity', () => {
   it('promotes waiting players in order when the host raises capacity', async () => {
     const host = await db.createUser(uniq('h'));

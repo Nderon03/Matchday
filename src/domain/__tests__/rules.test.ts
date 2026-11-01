@@ -67,6 +67,11 @@ describe('validation', () => {
     expect(validateGoalClaim(2, [2, 1], [{ goals: 2, teamScore: 1 }])).toMatch(/in a game/);
     expect(validateGoalClaim(2, [2, 1], [{ goals: 1, teamScore: 2 }])).toMatch(/add up/);
     expect(validateGoalClaim(2, [2, 1], [{ goals: 1, teamScore: 2 }, { goals: 1, teamScore: 1 }])).toBeNull();
+    // goals + assists are capped by the team's goals
+    expect(validateGoalClaim(2, [3], undefined, 2)).toMatch(/plus assists/);
+    expect(validateGoalClaim(1, [3], undefined, 2)).toBeNull();
+    expect(validateGoalClaim(1, [1, 2], [{ goals: 1, assists: 1, teamScore: 1 }, { goals: 0, assists: 0, teamScore: 2 }], 1)).toMatch(/in a game/);
+    expect(validateGoalClaim(1, [1, 2], [{ goals: 1, teamScore: 1 }, { goals: 0, assists: 1, teamScore: 2 }], 2)).toMatch(/assists must add up/);
   });
   it('session schema enforces paid minimum and group visibility', () => {
     const base = {

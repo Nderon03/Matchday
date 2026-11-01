@@ -1,5 +1,5 @@
 import React, { forwardRef, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
+import { Platform, Pressable, StyleSheet, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radius, space } from '@/theme/tokens';
@@ -41,7 +41,7 @@ export const Input = forwardRef<TextInputInstance, InputProps>(function Input({ 
           accessibilityLabel={label ?? rest.placeholder}
           onFocus={(e) => { setFocused(true); rest.onFocus?.(e); }}
           onBlur={(e) => { setFocused(false); rest.onBlur?.(e); }}
-          style={[styles.input, { color: colors.text, fontFamily: fonts.regular, paddingTop: multiline ? 12 : 0, textAlignVertical: multiline ? 'top' : 'center' }, style]}
+          style={[styles.input, { color: colors.text, fontFamily: fonts.regular, paddingTop: multiline ? 12 : 0, textAlignVertical: multiline ? 'top' : 'center' }, Platform.OS === 'web' && webNoOutline, style]}
           {...rest}
         />
         {secure && (
@@ -55,6 +55,9 @@ export const Input = forwardRef<TextInputInstance, InputProps>(function Input({ 
     </View>
   );
 });
+
+// the browser's own focus ring sits inside the field and covers the text; the box border shows focus instead
+const webNoOutline = { outlineStyle: 'none', outlineWidth: 0 } as object;
 
 const styles = StyleSheet.create({
   box: { flexDirection: 'row', gap: space.sm, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space.md },

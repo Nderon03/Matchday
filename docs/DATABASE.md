@@ -12,6 +12,9 @@ filename order. Never edit the schema from the dashboard.
 | `…05_statistics.sql` | Finalisation, MOTM, derived stats, achievements, leaderboards, records, H2H, Wrapped, seasons, deadline processor |
 | `…06_payments_storage_realtime.sql` | Payment helpers and status-change trigger, storage buckets/policies, realtime publication, function grants |
 | `…07_scheduler.sql` | Schedules `process_session_deadlines()` every 15 min with pg_cron when available |
+| `…08_add_group_members.sql` | Add friends to a group directly |
+| `…09_promote_waitlist_on_capacity.sql` | Raising a session's capacity promotes the waiting list |
+| `…10_rsvp_removed.sql` / `…11_guests_removal_assists.sql` | Host removal of players (rejoin only when re-invited), session guests and guest requests, goals + assists cap, host goal self-approval |
 
 ## Entity overview
 
@@ -63,8 +66,13 @@ Adjustments relative to the original brief:
   session equally** (mean of session means).
 * **MOTM:** highest valid vote total; ties are shared unless the host explicitly picks one of the tied
   players (audited). No votes → no award.
-* **Goal claims are validated** against recorded scores (per fixture and per session), and approvals
-  are rejected if they would credit more goals than were scored.
+* **Goal claims are validated** against recorded scores (per fixture and per session): a player's
+  goals + assists can never exceed their team's goals, and approvals are rejected if they would credit
+  more goals or assists than were scored. Hosts' own claims are approved automatically (still capped,
+  logged in `goal_reviews` and `audit_logs`).
+* **Guests** (`session_guests`) take squad spots and can be picked in line-ups (`team_players.guest_id`)
+  but never receive statistics or votes. If the host removes a member's guest, that member's further
+  guests become requests (one pending at a time) that the host approves.
 * **Corrections after finalisation** go through `correct_session` (score / attendance) or late goal
   approval; both recompute statistics and write an audit entry with before/after.
 

@@ -60,11 +60,23 @@ export interface SessionDetail {
   coHostIds: string[];
   submissions: GoalSubmission[];
   approvedGoals: { user_id: string; goals: number; assists: number }[];
+  /** Approved goals/assists per fixture (null fixture = not broken down by game). */
+  goalsByFixture: { fixture_id: string | null; user_id: string; goals: number; assists: number }[];
+  guests: SessionGuest[];
   payments: { user_id: string; status: PaymentStatus; method: string }[];
   motm: { user_id: string; fixture_id: string | null; votes: number; shared: boolean }[];
   stats: { user_id: string; rating_avg: number | null; rating_eligible: boolean; goals: number; motm: boolean }[];
   isManager: boolean;
   me: (Attendance & { profile: PublicProfile }) | undefined;
+}
+
+export interface SessionGuest {
+  id: string;
+  session_id: string;
+  name: string;
+  added_by: string | null;
+  status: 'confirmed' | 'pending' | 'removed' | 'declined' | 'withdrawn';
+  created_at: string;
 }
 
 export function useSessionDetail(id: string) {
@@ -76,6 +88,7 @@ export function useSessionDetail(id: string) {
       { table: 'fixtures', filter: `session_id=eq.${id}` },
       { table: 'sessions', filter: `id=eq.${id}` },
       { table: 'goal_submissions', filter: `session_id=eq.${id}` },
+      { table: 'session_guests', filter: `session_id=eq.${id}` },
       { table: 'payments', filter: `session_id=eq.${id}` },
       { table: 'team_players' },
       { table: 'fixture_teams' },
@@ -88,19 +101,20 @@ export function useSessionDetail(id: string) {
     enabled: !!id && !!userId,
     queryFn: async (): Promise<SessionDetail> => {
       const session = await q<Session>(supabase.from('sessions').select('*').eq('id', id).single());
-      const [attendance, invites, fixtures, hosts, submissions, goals, payments, motm, stats, isManager, group, host] = await Promise.all([
+      const [attendance, invites, fixtures, hosts, submissions, goals, payments, motm, stats, isManager, group, host, guests] = await Promise.all([
         q<any[]>(supabase.from('session_attendance').select(`*, profile:profiles!session_attendance_user_id_fkey(${PROFILE_COLS})`).eq('session_id', id)),
         q<any[]>(supabase.from('session_invitations').select(`profile:profiles!session_invitations_user_id_fkey(${PROFILE_COLS})`).eq('session_id', id)),
         q<any[]>(supabase.from('fixtures').select('*, teams:fixture_teams(*, players:team_players(*))').eq('session_id', id).order('number')),
         q<any[]>(supabase.from('session_hosts').select('user_id').eq('session_id', id)),
         q<GoalSubmission[]>(supabase.from('goal_submissions').select('*').eq('session_id', id)),
-        q<any[]>(supabase.from('player_goals').select('user_id, goals, assists').eq('session_id', id)),
+        q<any[]>(supabase.from('player_goals').select('user_id, fixture_id, goals, assists').eq('session_id', id)),
         rpc<any[]>('get_session_payment_statuses', { p_session: id }).catch(() => []),
         q<any[]>(supabase.from('motm_awards').select('user_id, fixture_id, votes, shared').eq('session_id', id)),
         q<any[]>(supabase.from('session_player_statistics').select('user_id, rating_avg, rating_eligible, goals, motm').eq('session_id', id)),
         rpc<boolean>('is_session_manager', { p_session: id }),
         session.group_id ? q<any>(supabase.from('groups').select('id, name, logo_url').eq('id', session.group_id).maybeSingle()) : Promise.resolve(null),
         session.host_id ? q<any>(supabase.from('profiles').select(PROFILE_COLS).eq('id', session.host_id).maybeSingle()) : Promise.resolve(null),
+        q<SessionGuest[]>(supabase.from('session_guests').select('*').eq('session_id', id).order('created_at')),
       ]);
       const approved = new Map<string, { user_id: string; goals: number; assists: number }>();
       for (const g of goals) {
@@ -120,6 +134,8 @@ export function useSessionDetail(id: string) {
         coHostIds: hosts.map((h) => h.user_id),
         submissions,
         approvedGoals: [...approved.values()],
+        goalsByFixture: goals.map((g: any) => ({ fixture_id: g.fixture_id, user_id: g.user_id, goals: g.goals, assists: g.assists })),
+        guests,
         payments: payments.map((p: any) => ({ user_id: p.user_id, status: p.status, method: p.method })),
         motm,
         stats,

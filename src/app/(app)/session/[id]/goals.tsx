@@ -40,7 +40,7 @@ function GoalsBody({ id }: { id: string }) {
   const [goals, setGoals] = useState(mine?.goals ?? 0);
   const [assists, setAssists] = useState(mine?.assists ?? 0);
   const [breakdownOn, setBreakdownOn] = useState(false);
-  const [breakdown, setBreakdown] = useState<Record<string, number>>({});
+  const [breakdown, setBreakdown] = useState<Record<string, { goals: number; assists: number }>>({});
   const [note, setNote] = useState(mine?.note ?? '');
   const [review, setReview] = useState<{ sub: GoalSubmission; action: SubmissionStatus } | null>(null);
   const [reviewGoals, setReviewGoals] = useState(0);
@@ -68,12 +68,19 @@ function GoalsBody({ id }: { id: string }) {
   const reviewable = pending.filter((x) => x.user_id !== userId);
   const submittedIds = new Set(d.submissions.map((x) => x.user_id));
   const missing = d.attendance.filter((a) => a.verification === 'verified' && !submittedIds.has(a.user_id) && a.user_id !== userId);
-  const localError = validateGoalClaim(goals, myFixtures.map((f) => f.teamScore), breakdownOn ? myFixtures.map((f) => ({ goals: breakdown[f.id] ?? 0, teamScore: f.teamScore })) : undefined);
+  const split = breakdownOn && myFixtures.length > 1;
+  const per = (fid: string) => breakdown[fid] ?? { goals: 0, assists: 0 };
+  // with a game-by-game split, the totals are simply the sum of the games
+  const totalGoals = split ? myFixtures.reduce((a, f) => a + per(f.id).goals, 0) : goals;
+  const totalAssists = split ? myFixtures.reduce((a, f) => a + per(f.id).assists, 0) : assists;
+  const localError = validateGoalClaim(totalGoals, myFixtures.map((f) => f.teamScore),
+    split ? myFixtures.map((f) => ({ goals: per(f.id).goals, assists: per(f.id).assists, teamScore: f.teamScore })) : undefined, totalAssists);
+  const isHostSelf = d.isManager;
 
   const submit = () => run('submit', () => rpc('submit_goals', {
-    p_session: id, p_goals: goals, p_assists: assists, p_note: note || null,
-    p_breakdown: breakdownOn && myFixtures.length > 1 ? myFixtures.map((f) => ({ fixture_id: f.id, goals: breakdown[f.id] ?? 0 })) : null,
-  }), goals === 0 ? 'Recorded — no goals this time' : 'Submitted for host approval');
+    p_session: id, p_goals: totalGoals, p_assists: totalAssists, p_note: note || null,
+    p_breakdown: split ? myFixtures.map((f) => ({ fixture_id: f.id, goals: per(f.id).goals, assists: per(f.id).assists })) : null,
+  }), isHostSelf ? 'Saved — your stats are updated' : totalGoals + totalAssists === 0 ? 'Recorded — none this time' : 'Submitted for host approval');
 
   return (
     <Screen edges={['top', 'bottom']} maxWidth={640}>
@@ -93,11 +100,13 @@ function GoalsBody({ id }: { id: string }) {
               </Text>
             ) : (
               <>
+                {!split && (
                 <Row style={{ justifyContent: 'space-between' }}>
                   <Text variant="bodyStrong">Goals</Text>
                   <Stepper size="lg" value={goals} onChange={setGoals} max={50} label="Goals" />
                 </Row>
-                {trackAssists && (
+                )}
+                {trackAssists && !split && (
                   <Row style={{ justifyContent: 'space-between' }}>
                     <Text variant="bodyStrong">Assists</Text>
                     <Stepper value={assists} onChange={setAssists} max={50} label="Assists" />
@@ -109,18 +118,34 @@ function GoalsBody({ id }: { id: string }) {
                       <Text variant="small" tone="muted">Split by game (optional)</Text>
                       <Switch value={breakdownOn} onValueChange={setBreakdownOn} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Split goals by game" />
                     </Row>
-                    {breakdownOn && myFixtures.map((f) => (
-                      <Row key={f.id} style={{ justifyContent: 'space-between' }}>
-                        <Text variant="small">Game {f.number} · {f.teamName} scored {f.teamScore}</Text>
-                        <Stepper value={breakdown[f.id] ?? 0} max={f.teamScore} onChange={(v) => setBreakdown((b) => ({ ...b, [f.id]: v }))} label={`Goals in game ${f.number}`} />
-                      </Row>
+                    {split && myFixtures.map((f) => (
+                      <Card key={f.id} variant="alt">
+                        <View style={{ gap: space.sm }}>
+                          <Text variant="smallStrong">Game {f.number} · {f.teamName} scored {f.teamScore}</Text>
+                          <Row style={{ justifyContent: 'space-between' }}>
+                            <Text variant="small" tone="muted">Goals</Text>
+                            <Stepper value={per(f.id).goals} max={f.teamScore} onChange={(v) => setBreakdown((b) => ({ ...b, [f.id]: { ...per(f.id), goals: v } }))} label={`Goals in game ${f.number}`} />
+                          </Row>
+                          {trackAssists && (
+                            <Row style={{ justifyContent: 'space-between' }}>
+                              <Text variant="small" tone="muted">Assists</Text>
+                              <Stepper value={per(f.id).assists} max={f.teamScore} onChange={(v) => setBreakdown((b) => ({ ...b, [f.id]: { ...per(f.id), assists: v } }))} label={`Assists in game ${f.number}`} />
+                            </Row>
+                          )}
+                        </View>
+                      </Card>
                     ))}
+                    {split && <Text variant="small">Total: {totalGoals} goal{totalGoals === 1 ? '' : 's'}{trackAssists ? `, ${totalAssists} assist${totalAssists === 1 ? '' : 's'}` : ''}</Text>}
                   </View>
                 )}
                 <Input label="Note for the host (optional)" value={note} onChangeText={setNote} placeholder="e.g. Two headers and a penalty" maxLength={280} />
                 {localError && <Text variant="small" tone="danger">{localError}</Text>}
                 <Button title={mine ? 'Update submission' : 'Submit'} size="lg" disabled={!canSubmit || !!localError} loading={busy === 'submit'} onPress={submit} />
-                <Text variant="caption" tone="faint">Goals count once the host approves them. You can also do this later from your To-do list.</Text>
+                <Text variant="caption" tone="faint">
+                  {isHostSelf
+                    ? 'As host, your own goals are approved automatically. They’re still capped by the score and recorded in the session history.'
+                    : 'Goals count once the host approves them. You can also do this later from your To-do list.'}
+                </Text>
               </>
             )}
           </View>
@@ -143,7 +168,7 @@ function GoalsBody({ id }: { id: string }) {
                       <Text variant="bodyStrong">{p?.display_name}</Text>
                       <Text variant="small" tone="muted">
                         {sub.goals} goal(s){sub.assists ? ` · ${sub.assists} assist(s)` : ''}{sub.is_late ? ' · late claim' : ''}
-                        {sub.fixture_breakdown?.length ? ` · ${sub.fixture_breakdown.map((b) => `G${d.fixtures.find((f) => f.id === b.fixture_id)?.number}: ${b.goals}`).join(', ')}` : ''}
+                        {sub.fixture_breakdown?.length ? ` · ${sub.fixture_breakdown.map((b) => `G${d.fixtures.find((f) => f.id === b.fixture_id)?.number}: ${b.goals}${b.assists ? `+${b.assists}a` : ''}`).join(', ')}` : ''}
                       </Text>
                       {sub.note && <Text variant="small" tone="muted">“{sub.note}”</Text>}
                     </View>

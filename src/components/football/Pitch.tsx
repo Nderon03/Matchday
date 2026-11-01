@@ -24,6 +24,8 @@ export interface LineupPlayer {
   username: string;
   avatar_url: string | null;
   position: PlayerPosition;
+  /** Guest without an account (id is `guest:<uuid>`). */
+  isGuest?: boolean;
 }
 
 
@@ -117,7 +119,7 @@ function Token({ player, slot, colour, payment, showPayment, selected, editable,
       </View>
       <View style={{ marginTop: 3, paddingHorizontal: 5, borderRadius: 6, backgroundColor: 'rgba(0,0,0,0.55)', maxWidth: size + 28 }}>
         <Text variant="caption" color="#fff" numberOfLines={1} style={{ fontSize: 11 }}>
-          {slot?.is_substitute ? '↺ ' : ''}{player.username}
+          {slot?.is_substitute ? '↺ ' : ''}{player.username}{player.isGuest ? ' (guest)' : ''}
         </Text>
       </View>
     </Animated.View>
@@ -191,7 +193,7 @@ export function Pitch({ players, lineup, bench, editable, teamNames, teamColours
           row.length ? (
             <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
               {row.map((s) => players[s.user_id] && (
-                <Token key={s.user_id} player={players[s.user_id]} slot={s} colour={colour} payment={payments?.[s.user_id]} showPayment={showPayments && s.user_id !== exemptFromPayment}
+                <Token key={s.user_id} player={players[s.user_id]} slot={s} colour={colour} payment={payments?.[s.user_id]} showPayment={showPayments && s.user_id !== exemptFromPayment && !players[s.user_id]?.isGuest}
                   selected={selected === s.user_id} editable={editable} onTap={() => onTapPlayer?.(s.user_id)} onDrop={dropAt(s.user_id)} onDragState={handleDragState} />
               ))}
             </View>
@@ -200,7 +202,7 @@ export function Pitch({ players, lineup, bench, editable, teamNames, teamColours
         {subs.length > 0 && (
           <View style={{ flexDirection: 'row', justifyContent: 'center', gap: space.sm, opacity: 0.85 }}>
             {subs.map((s) => players[s.user_id] && (
-              <Token key={s.user_id} size={34} player={players[s.user_id]} slot={s} colour={colour} payment={payments?.[s.user_id]} showPayment={showPayments && s.user_id !== exemptFromPayment}
+              <Token key={s.user_id} size={34} player={players[s.user_id]} slot={s} colour={colour} payment={payments?.[s.user_id]} showPayment={showPayments && s.user_id !== exemptFromPayment && !players[s.user_id]?.isGuest}
                 selected={selected === s.user_id} editable={editable} onTap={() => onTapPlayer?.(s.user_id)} onDrop={dropAt(s.user_id)} onDragState={handleDragState} />
             ))}
           </View>
@@ -244,7 +246,7 @@ export function Pitch({ players, lineup, bench, editable, teamNames, teamColours
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
             {bench.map((id) => players[id] && (
-              <Token key={id} size={38} player={players[id]} colour={colors.borderStrong} payment={payments?.[id]} showPayment={showPayments && id !== exemptFromPayment}
+              <Token key={id} size={38} player={players[id]} colour={colors.borderStrong} payment={payments?.[id]} showPayment={showPayments && id !== exemptFromPayment && !players[id]?.isGuest}
                 selected={selected === id} editable={editable} onTap={() => onTapPlayer?.(id)} onDrop={dropAt(id)} onDragState={handleDragState} />
             ))}
             {bench.length === 0 && <Text variant="small" tone="faint">Everyone has been picked.</Text>}

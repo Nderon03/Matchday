@@ -11,7 +11,7 @@ import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { queryClient } from '@/lib/queryClient';
 import { routeForNotification } from '@/lib/notifications';
-import { Button, Text, ToastProvider } from '@/components/ui';
+import { Button, ConfirmProvider, Text, ToastProvider } from '@/components/ui';
 import { space } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -45,9 +45,11 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <ToastProvider>
-            <AuthProvider>
-              <ThemedStack />
-            </AuthProvider>
+            <ConfirmProvider>
+              <AuthProvider>
+                <ThemedStack />
+              </AuthProvider>
+            </ConfirmProvider>
           </ToastProvider>
         </ThemeProvider>
       </QueryClientProvider>

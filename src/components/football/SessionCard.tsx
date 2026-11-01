@@ -15,6 +15,7 @@ export function statusBadge(s: Pick<Session, 'status'>, myStatus?: string) {
   if (s.status === 'in_progress') return <Badge label="Live" tone="success" />;
   if (myStatus === 'confirmed') return <Badge label="You're in" tone="success" />;
   if (myStatus === 'waitlisted') return <Badge label="Waiting list" tone="warning" />;
+  if (myStatus === 'removed') return <Badge label="Removed" tone="danger" />;
   if (myStatus === 'declined' || myStatus === 'unavailable' || myStatus === 'withdrawn') return <Badge label="Not playing" />;
   return <Badge label="Invited" tone="warning" />;
 }

@@ -86,13 +86,18 @@ export function fieldErrors(error: z.ZodError): Record<string, string> {
 export function validateGoalClaim(
   goals: number,
   teamScoresPlayed: number[],
-  breakdown?: { goals: number; teamScore: number }[],
+  breakdown?: { goals: number; assists?: number; teamScore: number }[],
+  assists = 0,
 ): string | null {
   const max = teamScoresPlayed.reduce((a, b) => a + b, 0);
   if (goals > max) return `You claimed more goals than your teams scored (${max}).`;
+  if (goals + assists > max) return `Goals plus assists can’t be more than your teams scored (${max}).`;
   if (breakdown && breakdown.length) {
     if (breakdown.some((b) => b.goals > b.teamScore)) return 'You claimed more goals in a game than your team scored.';
+    if (breakdown.some((b) => b.goals + (b.assists ?? 0) > b.teamScore)) return 'Goals plus assists in a game can’t be more than your team scored.';
     if (breakdown.reduce((a, b) => a + b.goals, 0) !== goals) return 'Your game-by-game goals must add up to your total.';
+    const splitAssists = breakdown.reduce((a, b) => a + (b.assists ?? 0), 0);
+    if (splitAssists > 0 && splitAssists !== assists) return 'Your game-by-game assists must add up to your total.';
   }
   return null;
 }

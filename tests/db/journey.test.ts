@@ -112,10 +112,10 @@ describe('single-match journey (5-a-side)', () => {
     await db.rpc<string>(teamB[1], 'submit_goals', { p_session: sessionId, p_goals: 2 });
     const sub3 = await db.rpc<string>(teamB[2], 'submit_goals', { p_session: sessionId, p_goals: 4 });
     await db.rpc(host, 'review_goal_submission', { p_submission: sub3, p_action: 'corrected', p_goals: 3, p_reason: 'One was an own goal' });
-    // host's own claim must be approved by someone else (here: peer confirmation, as no co-host exists)
+    // the host's own claim is approved automatically (capped by the score and audited)
     const hostSub = await db.rpc<string>(host, 'submit_goals', { p_session: sessionId, p_goals: 2 });
+    expect((await db.admin(`select status from goal_submissions where id = $1`, [hostSub]))[0].status).toBe('approved');
     await expectAppError(db.rpc(host, 'review_goal_submission', { p_submission: hostSub, p_action: 'approved' }), 'forbidden');
-    await db.rpc(teamA[2], 'review_goal_submission', { p_submission: hostSub, p_action: 'approved' });
     // finalisation is blocked while claims are pending
     await expectAppError(db.rpc(host, 'finalise_session', { p_session: sessionId }), 'pending_claims');
     expect(await db.rpc<number>(host, 'bulk_approve_goals', { p_session: sessionId })).toBe(2);

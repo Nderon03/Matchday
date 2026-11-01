@@ -8,7 +8,7 @@ export type SessionVisibility = 'public' | 'group' | 'private';
 export type SessionStatus = 'scheduled' | 'in_progress' | 'completed' | 'finalised' | 'cancelled';
 export type SessionMode = 'single' | 'multi';
 export type MotmMode = 'session' | 'fixture';
-export type RsvpStatus = 'confirmed' | 'waitlisted' | 'declined' | 'unavailable' | 'withdrawn';
+export type RsvpStatus = 'confirmed' | 'waitlisted' | 'declined' | 'unavailable' | 'withdrawn' | 'removed';
 export type VerificationStatus = 'unverified' | 'verified' | 'absent';
 export type PaymentMode = 'free' | 'upfront' | 'after';
 export type PaymentStatus = 'unpaid' | 'pending' | 'authorised' | 'paid' | 'failed' | 'cancelled' | 'refunded' | 'partially_refunded' | 'disputed';
@@ -127,7 +127,9 @@ export interface FixtureTeam {
 export interface TeamPlayer {
   fixture_team_id: string;
   fixture_id: string;
-  user_id: string;
+  /** Registered player, or null for a guest (see guest_id). */
+  user_id: string | null;
+  guest_id: string | null;
   position: PlayerPosition;
   is_goalkeeper: boolean;
   is_substitute: boolean;
