@@ -109,7 +109,7 @@ describe('single-match journey (5-a-side)', () => {
     const subId = await db.rpc<string>(scorer, 'submit_goals', { p_session: sessionId, p_goals: 3, p_assists: 1 });
     await expectAppError(db.rpc(scorer, 'review_goal_submission', { p_submission: subId, p_action: 'approved' }), 'forbidden');
     await expectAppError(db.rpc(teamB[0], 'review_goal_submission', { p_submission: subId, p_action: 'approved' }), 'forbidden');
-    const sub2 = await db.rpc<string>(teamB[1], 'submit_goals', { p_session: sessionId, p_goals: 2 });
+    await db.rpc<string>(teamB[1], 'submit_goals', { p_session: sessionId, p_goals: 2 });
     const sub3 = await db.rpc<string>(teamB[2], 'submit_goals', { p_session: sessionId, p_goals: 4 });
     await db.rpc(host, 'review_goal_submission', { p_submission: sub3, p_action: 'corrected', p_goals: 3, p_reason: 'One was an own goal' });
     // host's own claim must be approved by someone else (here: peer confirmation, as no co-host exists)

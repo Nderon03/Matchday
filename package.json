@@ -1,8 +1,9 @@
 {
   "name": "matchday",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "dependencies": {
+    "@expo-google-fonts/inter": "^0.4.2",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.118.0",
@@ -12,7 +13,6 @@
     "expo-clipboard": "~58.0.4",
     "expo-constants": "~58.0.14",
     "expo-device": "~58.0.5",
-    "expo-file-system": "~58.0.13",
     "expo-font": "~58.0.11",
     "expo-haptics": "~58.0.7",
     "expo-image": "~58.0.18",
@@ -20,7 +20,6 @@
     "expo-linking": "~58.0.15",
     "expo-notifications": "~58.1.7",
     "expo-router": "~58.0.29",
-    "expo-secure-store": "~58.0.2",
     "expo-sharing": "~58.0.21",
     "expo-splash-screen": "~58.0.12",
     "expo-status-bar": "~58.0.4",
@@ -35,6 +34,7 @@
     "react-native-safe-area-context": "~5.10.1",
     "react-native-screens": "~4.30.1",
     "react-native-svg": "15.16.0",
+    "react-native-url-polyfill": "^4.0.0",
     "react-native-view-shot": "6.1.1",
     "react-native-web": "~0.21.4",
     "react-native-worklets": "0.13.0",
@@ -58,7 +58,17 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:web": "expo export --platform web",
+    "typecheck": "tsc --noEmit",
+    "lint": "expo lint",
+    "test": "jest --runInBand",
+    "test:unit": "jest --selectProjects unit",
+    "test:db": "jest --selectProjects db --runInBand",
+    "db:reset:local": "./scripts/db-reset-local.sh",
+    "db:types": "supabase gen types typescript --linked > src/types/supabase.generated.ts",
+    "functions:check": "deno check supabase/functions/*/index.ts",
+    "e2e:web": "node scripts/e2e-web-smoke.mjs"
   },
   "private": true
 }

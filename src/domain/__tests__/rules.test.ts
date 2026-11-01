@@ -1,3 +1,4 @@
+import { lineupOps } from '../lineup';
 import { decideMotm } from '../motm';
 import { newlyUnlocked, ACHIEVEMENTS } from '../achievements';
 import { rank, formatValue } from '../leaderboard';
@@ -94,5 +95,33 @@ describe('format', () => {
     expect(timeUntil('2026-11-04T14:30:00Z', now)).toBe('2h 30m');
     expect(timeUntil('2026-11-01T00:00:00Z', now)).toBe('closed');
     expect(formatKickoff(new Date(now + 60_000).toISOString(), new Date(now))).toMatch(/^Today/);
+  });
+});
+
+
+describe('line-up operations', () => {
+  const base = lineupOps.fromAssignment(['a', 'b', 'c'], ['d', 'e', 'f'], { a: 'GK' }, { A: 'a' }, 2);
+  it('builds slots with goalkeeper first and overflow as substitutes', () => {
+    expect(base.A.map((s) => [s.user_id, s.is_goalkeeper, s.is_substitute])).toEqual([['a', true, false], ['b', false, false], ['c', false, true]]);
+  });
+  it('moves players between teams and to the bench', () => {
+    const moved = lineupOps.move(base, 'b', 'B', 5);
+    expect(moved.A.map((s) => s.user_id)).toEqual(['a', 'c']);
+    expect(moved.B.map((s) => s.user_id)).toContain('b');
+    expect(lineupOps.move(base, 'd', 'bench', 5).B.map((s) => s.user_id)).toEqual(['e', 'f']);
+    // full team: new arrivals become substitutes
+    expect(lineupOps.move(base, 'd', 'A', 2).A.find((s) => s.user_id === 'd')?.is_substitute).toBe(true);
+  });
+  it('swaps players keeping slot roles', () => {
+    const s = lineupOps.swap(base, 'a', 'd');
+    expect(s.A[0]).toMatchObject({ user_id: 'd', is_goalkeeper: true });
+    expect(s.B[0]).toMatchObject({ user_id: 'a', is_goalkeeper: false });
+    // swapping with a bench player replaces them
+    expect(lineupOps.swap(base, 'b', 'z').A[1].user_id).toBe('z');
+  });
+  it('one goalkeeper per side, toggles substitutes', () => {
+    const g = lineupOps.setGoalkeeper(base, 'b');
+    expect(g.A.filter((s) => s.is_goalkeeper).map((s) => s.user_id)).toEqual(['b']);
+    expect(lineupOps.toggleSub(base, 'b').A[1].is_substitute).toBe(true);
   });
 });

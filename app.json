@@ -1,35 +1,88 @@
 {
   "expo": {
-    "name": "matchday",
+    "name": "MATCHDAY",
     "slug": "matchday",
+    "scheme": "matchday",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#0A0C0F",
+    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "app.matchday.ios",
+      "associatedDomains": [],
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "MATCHDAY uses your photos so you can set a profile picture or group logo.",
+        "NSCameraUsageDescription": "MATCHDAY uses the camera to scan friend and group invite QR codes."
+      }
     },
     "android": {
+      "package": "app.matchday.android",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0A0C0F",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro",
+      "name": "MATCHDAY",
+      "themeColor": "#0A0C0F",
+      "backgroundColor": "#0A0C0F"
     },
     "plugins": [
       "expo-router",
-      "expo-status-bar",
-      "expo-image",
-      "expo-secure-store",
+      "expo-font",
       "expo-web-browser",
       "expo-sharing",
-      "expo-splash-screen",
-      "expo-font"
-    ]
+      "expo-image",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#0A0C0F"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#22C55E"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MATCHDAY uses your photos so you can set a profile picture or group logo."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "MATCHDAY uses the camera to scan invite QR codes."
+        }
+      ],
+      "expo-status-bar"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": ""
+      }
+    }
   }
 }
