@@ -20,6 +20,7 @@ const TYPES: [string, string, string][] = [
   ['goals_awaiting_approval', 'Goals to approve (hosts)', 'When players submit goals'],
   ['payment_required', 'Payment requests', 'When a session fee is due'],
   ['session_finalised', 'Results', 'When results and MOTM are published'],
+  ['session_video', 'Match videos', 'When the host adds a video of a game'],
   ['achievement_unlocked', 'Achievements', 'When you unlock something new'],
   ['friend_request', 'Friend requests', 'New requests and acceptances'],
   ['season_started', 'Seasons', 'New seasons and awards in your groups'],

@@ -104,6 +104,7 @@ Adjustments relative to the original brief:
 | Stats | `get_home_dashboard`, `get_pending_tasks`, `get_player_profile`, `get_head_to_head`, `get_leaderboard`, `get_group_records`, `get_wrapped`, `correct_session`, `reconcile_session` |
 | Payments | `get_session_payment_statuses`, `get_payment_summary`, `record_cash_payment`, `mark_host_confirmed` |
 | Moderation | `report_content`, `resolve_report`, `delete_comment` |
+| Videos | `add_session_video`, `remove_session_video` (YouTube links only, managers, after kick-off, max 5) |
 
 **Line-up visibility:** `team_players` rows are visible to session managers always, and to other viewers only once the fixture's line-up is confirmed (`lineup_confirmed_at`), the fixture is played, or the session has kicked off (`lineup_visible`). Confirming notifies every confirmed player; re-confirming changed teams sends "Line-ups updated".
 

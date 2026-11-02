@@ -68,6 +68,16 @@ export interface SessionDetail {
   stats: { user_id: string; rating_avg: number | null; rating_eligible: boolean; goals: number; motm: boolean }[];
   isManager: boolean;
   me: (Attendance & { profile: PublicProfile }) | undefined;
+  videos: SessionVideo[];
+}
+
+export interface SessionVideo {
+  id: string;
+  session_id: string;
+  video_id: string;
+  title: string | null;
+  added_by: string | null;
+  created_at: string;
 }
 
 export interface SessionGuest {
@@ -93,6 +103,7 @@ export function useSessionDetail(id: string) {
       { table: 'payments', filter: `session_id=eq.${id}` },
       { table: 'team_players' },
       { table: 'fixture_teams' },
+      { table: 'session_videos', filter: `session_id=eq.${id}` },
     ],
     [keys.session(id)],
     !!id,
@@ -105,7 +116,7 @@ export function useSessionDetail(id: string) {
     refetchOnMount: 'always',
     queryFn: async (): Promise<SessionDetail> => {
       const session = await q<Session>(supabase.from('sessions').select('*').eq('id', id).single());
-      const [attendance, invites, fixtures, hosts, submissions, goals, payments, motm, stats, isManager, group, host, guests] = await Promise.all([
+      const [attendance, invites, fixtures, hosts, submissions, goals, payments, motm, stats, isManager, group, host, guests, videos] = await Promise.all([
         q<any[]>(supabase.from('session_attendance').select(`*, profile:profiles!session_attendance_user_id_fkey(${PROFILE_COLS})`).eq('session_id', id)),
         q<any[]>(supabase.from('session_invitations').select(`profile:profiles!session_invitations_user_id_fkey(${PROFILE_COLS})`).eq('session_id', id)),
         q<any[]>(supabase.from('fixtures').select('*, teams:fixture_teams(*, players:team_players(*))').eq('session_id', id).order('number')),
@@ -119,6 +130,8 @@ export function useSessionDetail(id: string) {
         session.group_id ? q<any>(supabase.from('groups').select('id, name, logo_url').eq('id', session.group_id).maybeSingle()) : Promise.resolve(null),
         session.host_id ? q<any>(supabase.from('profiles').select(PROFILE_COLS).eq('id', session.host_id).maybeSingle()) : Promise.resolve(null),
         q<SessionGuest[]>(supabase.from('session_guests').select('*').eq('session_id', id).order('created_at')),
+        // match videos (older databases without the table just show none)
+        q<SessionVideo[]>(supabase.from('session_videos').select('*').eq('session_id', id).order('created_at')).catch(() => [] as SessionVideo[]),
       ]);
       const approved = new Map<string, { user_id: string; goals: number; assists: number }>();
       for (const g of goals) {
@@ -145,6 +158,7 @@ export function useSessionDetail(id: string) {
         stats,
         isManager,
         me: attendance.find((a) => a.user_id === userId),
+        videos,
       };
     },
   });

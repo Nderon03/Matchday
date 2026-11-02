@@ -22,6 +22,7 @@ import { removeSessionPlayer } from '@/features/removePlayer';
 import { LateStatusCard, useLateStatus } from '@/features/FinesPanel';
 import { usePriceLabel } from '@/hooks/useFees';
 import { SettleUpCard, useGroupBalances, useMyOutstanding } from '@/features/SettleUp';
+import { MatchVideos } from '@/features/MatchVideos';
 import type { RsvpStatus } from '@/types/db';
 
 export default function SessionScreen() {
@@ -249,6 +250,8 @@ export default function SessionScreen() {
           </Card>
         </Row>
       )}
+
+      <MatchVideos detail={d} now={now} />
 
       {/* Results */}
       {scores.length > 0 && (

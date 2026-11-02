@@ -3,7 +3,7 @@
  * Bump LEGAL_VERSION when the Terms or Privacy Policy change materially: users accept the version
  * during onboarding and it is recorded on their profile.
  */
-export const LEGAL_VERSION = '2026-11-02';
+export const LEGAL_VERSION = '2026-11-02.2';
 export const LEGAL_UPDATED = '2 November 2026';
 export const OPERATOR = 'Nderon Beqiri';
 export const CONTACT_EMAIL = 'matchdayenquiries@hotmail.com';
@@ -33,6 +33,7 @@ export const PRIVACY: LegalDoc = {
         'Account details: email address, password (stored securely by our authentication provider, never readable by us), username, display name, and if you add them, a profile photo, bio and preferred position.',
         'Football activity: groups you join, sessions you are invited to or attend, RSVPs, check-ins, line-ups, scores, goals and assists, Man of the Match votes, player ratings, achievements and the statistics calculated from them.',
         'Social features: friends, friend requests, blocks, comments, reactions and reports you make.',
+        'Match videos: links to YouTube videos that hosts add to a session (we store only the YouTube link, not the video).',
         'Payments: amounts, payment status, refunds, late fines and guest fees, and the Stripe identifiers that link a payment to Stripe. Card details are entered on Stripe’s own pages and never reach us. If you receive payouts as a host, Stripe collects your identity and bank details; we only receive whether your account is ready to receive payments.',
         'Device and notifications: a push notification token for each device you use, your notification and privacy settings, and basic technical information such as device type, app version and crash reports.',
         'Security records: logs of important actions (for example payments, removals and corrections) to keep the service fair and secure.',
@@ -62,6 +63,7 @@ export const PRIVACY: LegalDoc = {
         'Other players see your username, display name, photo and position. Who sees your statistics, achievements and bio depends on your privacy setting; members of a group always see your record within that group.',
         'Hosts and group admins see attendance, payment status and any amounts you owe in their sessions and groups.',
         'Man of the Match votes and player ratings are anonymous: other users, including hosts, only see totals and averages, never who voted for whom.',
+        'If you appear in a match video and want it taken down, ask the host or contact us and we will remove the link.',
       ],
     },
     {
@@ -72,6 +74,7 @@ export const PRIVACY: LegalDoc = {
         'Stripe — card payments, payouts to hosts and identity checks for hosts (Stripe is also an independent controller for payment data; see stripe.com/privacy).',
         'Expo, Google (Firebase Cloud Messaging) and Apple (Push Notification service) — delivering push notifications.',
         'Resend — sending emails.',
+        'YouTube (Google) — match videos are hosted on YouTube; video thumbnails load from YouTube and playing a video opens YouTube, which applies its own privacy policy.',
         'Sentry — crash and error reports so we can fix problems.',
       ],
     },
@@ -145,6 +148,7 @@ export const TERMS: LegalDoc = {
         'Hosts and group admins set their own rules, prices, late-fine settings and who can join, and can remove players or guests.',
         'Hosts are responsible for the games they organise, including venue bookings and telling players about any changes.',
         'Hosts who collect fees must set up a Stripe account, agree to the Stripe Connected Account Agreement and are responsible for their own tax.',
+        'Hosts can link YouTube videos of a game. Only share videos the people in them are happy to appear in, and remove a video if someone asks. Videos are hosted by YouTube under YouTube’s own terms; MATCHDAY only stores the link.',
       ],
     },
     {
