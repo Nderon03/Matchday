@@ -35,6 +35,8 @@ Deno.serve(handler(async (req) => {
       business_type: 'individual',
       // hosts are recipients: players pay the platform and Stripe transfers the host's share
       capabilities: { transfers: { requested: true } },
+      // transfers-only accounts must use the recipient service agreement
+      tos_acceptance: { service_agreement: 'recipient' },
       business_profile: { mcc: '7941', product_description: 'Collecting player contributions for casual football sessions' },
       metadata: { matchday_user_id: user.id },
     });

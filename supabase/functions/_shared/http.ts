@@ -60,6 +60,13 @@ export function handler(fn: (req: Request) => Promise<Response>) {
       if (e instanceof HttpError) return json({ error: { code: e.code, message: e.message } }, e.status);
       const pg = e as { hint?: string; message?: string };
       if (pg?.hint) return json({ error: { code: pg.hint, message: pg.message } }, 400);
+      // Stripe errors carry a safe, human-readable message (never secrets) — show it so problems
+      // like missing Connect branding are obvious instead of a generic failure.
+      const stripeErr = e as { type?: string; message?: string; code?: string };
+      if (typeof stripeErr?.type === 'string' && stripeErr.type.startsWith('Stripe')) {
+        console.error('Stripe error', stripeErr.type, stripeErr.code, stripeErr.message);
+        return json({ error: { code: stripeErr.code ?? 'stripe_error', message: `Stripe: ${stripeErr.message}` } }, 400);
+      }
       console.error(e);
       return json({ error: { code: 'internal', message: 'Something went wrong. Please try again.' } }, 500);
     }
