@@ -39,7 +39,9 @@ Deno.serve(handler(async (req) => {
     if (s.host_id === user.id) throw new HttpError(400, 'invalid', 'Hosts do not pay themselves.');
     const { data: attendance } = await admin.from('session_attendance').select('*').eq('session_id', s.id).eq('user_id', user.id).maybeSingle();
     const { data: existing } = await admin.from('payments').select('*').eq('session_id', s.id).eq('payer_id', user.id).eq('kind', 'session').maybeSingle();
-    if (s.payment_mode === 'upfront') {
+    if (existing && ['unpaid', 'failed', 'pending', 'cancelled'].includes(existing.status)) {
+      // an existing bill (pay-after request, or a bill for playing without paying upfront) can always be paid
+    } else if (s.payment_mode === 'upfront') {
       if (attendance?.status !== 'confirmed') throw new HttpError(400, 'not_attending', 'Confirm your attendance before paying.');
       const window = canPayUpfrontNow(new Date(s.starts_at));
       if (!window.ok) throw new HttpError(400, 'window_not_open', `Upfront payment opens ${window.opensAt!.toUTCString()} (card holds last up to 7 days).`);
@@ -87,7 +89,10 @@ Deno.serve(handler(async (req) => {
     const { data: fresh } = await admin.from('payments').select('*').eq('id', created.id).single();
     payment = fresh;
   } else {
-    await admin.from('payments').update({ status: 'pending', failure_reason: null, method: 'card' }).eq('id', payment.id);
+    // after kick-off there is nothing to hold: charge immediately
+    const afterGame = !['scheduled', 'in_progress'].includes(s.status);
+    if (afterGame && payment.mode === 'upfront') payment.mode = 'after';
+    await admin.from('payments').update({ status: 'pending', failure_reason: null, method: 'card', mode: payment.mode }).eq('id', payment.id);
   }
   // re-itemise from the stored bill so Stripe charges exactly what the database holds
   const storedFines = (await fineRows(payment.id)).map((f: any) => ({ label: `Late fine (${f.session?.name ?? 'earlier session'})`, amount_pence: f.amount_pence }));

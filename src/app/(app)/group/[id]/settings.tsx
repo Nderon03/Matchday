@@ -37,6 +37,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
     rating_min_votes: settings.rating_min_votes, default_motm_mode: settings.default_motm_mode,
     late_fines_enabled: settings.late_fines_enabled, late_fine_base_pence: settings.late_fine_base_pence,
     late_fine_cap_pence: settings.late_fine_cap_pence, late_fine_reset_after: settings.late_fine_reset_after,
+    require_settled: settings.require_settled,
   } : null);
   const isOwner = myRole === 'owner';
 
@@ -102,6 +103,16 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
       )}
       {cfg && (
         <>
+          <SectionTitle title="Payments" />
+          <Card>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong">Settle up before playing</Text>
+                <Text variant="caption" tone="muted">Players with an unpaid bill from an earlier game can’t join the next one until they pay or you mark it paid in cash. Hosts can still add someone directly.</Text>
+              </View>
+              <Switch value={cfg.require_settled} onValueChange={(v) => setCfg({ ...cfg, require_settled: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Settle up before playing" />
+            </Row>
+          </Card>
           <SectionTitle title="Late fines" />
           <Card>
             <View style={{ gap: space.lg }}>

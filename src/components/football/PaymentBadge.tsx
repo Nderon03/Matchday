@@ -12,7 +12,7 @@ export function PaymentBadge({ status, size = 16 }: { status: PaymentStatus | un
     s === 'paid' || s === 'partially_refunded'
       ? (['checkmark-circle', colors.success, 'Paid'] as const)
       : s === 'pending' || s === 'authorised'
-        ? (['time', colors.warning, s === 'authorised' ? 'Card authorised' : 'Payment pending'] as const)
+        ? (['time', colors.warning, s === 'authorised' ? 'Pending, charged after the game' : 'Payment pending'] as const)
         : s === 'refunded' || s === 'cancelled'
           ? (['return-down-back', colors.textMuted, s === 'refunded' ? 'Refunded' : 'Released'] as const)
           : (['close-circle', colors.danger, s === 'failed' ? 'Payment failed' : s === 'disputed' ? 'Disputed' : 'Unpaid'] as const);
@@ -26,7 +26,7 @@ export function PaymentBadge({ status, size = 16 }: { status: PaymentStatus | un
 export function paymentLabel(status: PaymentStatus | undefined) {
   switch (status) {
     case 'paid': return 'Paid';
-    case 'authorised': return 'Authorised — charged after the game';
+    case 'authorised': return 'Pending · charged after the game';
     case 'pending': return 'Pending';
     case 'failed': return 'Failed';
     case 'refunded': return 'Refunded';

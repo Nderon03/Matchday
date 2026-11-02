@@ -50,6 +50,7 @@ export function routeForNotification(data: Record<string, any> | undefined): str
       case 'goals_reviewed':
         return `/session/${data.session_id}/goals`;
       case 'payment_required':
+      case 'payment_reminder':
       case 'payment_failed':
       case 'payment_confirmed':
         return `/session/${data.session_id}/payments`;

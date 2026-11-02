@@ -37,6 +37,16 @@ Per-group setting (off by default): first fine (£1), cap (£8), on-time session
   payment** for owed fines (`payments.kind = 'fine'`). Everything is notified and audited.
 * Players see their level, next fine and owed amount on the session page and the group's Fines tab.
 
+## Unpaid bills
+
+* **Settle up before playing** (group setting, on by default): a player with an unpaid bill from an
+  earlier game in the group can't join another game there until they pay by card or the host marks it
+  paid in cash. Hosts can still add a player directly. The session screen shows a "Settle up to join"
+  card with pay buttons; hosts and admins see "owes £X" next to players.
+* **Upfront non-payers**: when the host completes an upfront session, anyone who played without paying
+  gets a bill (charged immediately when paid, since the game has happened).
+* **Reminders**: unpaid bills get a reminder after 24 hours and a last one after 3 days.
+
 ## Mode A — pay upfront (authorise now, capture after the game)
 
 The brief asked for funds to be held until the host confirms the session took place. Building our

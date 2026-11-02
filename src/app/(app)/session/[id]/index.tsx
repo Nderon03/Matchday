@@ -16,11 +16,12 @@ import { rpc } from '@/lib/api';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
-import { formatKickoff, rating, timeUntil } from '@/domain/format';
+import { formatKickoff, formatPence, rating, timeUntil } from '@/domain/format';
 import { sameWeekdayNextWeek } from '@/features/sessionDates';
 import { removeSessionPlayer } from '@/features/removePlayer';
 import { LateStatusCard, useLateStatus } from '@/features/FinesPanel';
 import { usePriceLabel } from '@/hooks/useFees';
+import { SettleUpCard, useGroupBalances, useMyOutstanding } from '@/features/SettleUp';
 import type { RsvpStatus } from '@/types/db';
 
 export default function SessionScreen() {
@@ -37,6 +38,8 @@ export default function SessionScreen() {
   const confirm = useConfirm();
   const price = usePriceLabel();
   const lateStatus = useLateStatus(detail.data?.session.group_id, detail.data?.session.payment_mode !== 'free');
+  const outstanding = useMyOutstanding(detail.data?.session.group_id, detail.data?.session.status === 'scheduled');
+  const balances = useGroupBalances(detail.data?.session.group_id, !!detail.data?.isManager);
   const [guestOpen, setGuestOpen] = useState(false);
   const [guestName, setGuestName] = useState('');
 
@@ -92,6 +95,8 @@ export default function SessionScreen() {
       .join('  ·  ');
   };
   const guestsIn = d.guests.filter((g) => g.status === 'confirmed');
+  // unpaid bills from earlier games in this group (not this one) block joining
+  const owedBills = (outstanding.data ?? []).filter((b) => b.session_id !== id);
   // a removed player who has been invited again can rejoin like anyone else
   const reinvited = me?.status === 'removed' && d.invited.some((p) => p.id === userId);
   const blocked = me?.status === 'removed' && !reinvited;
@@ -174,7 +179,9 @@ export default function SessionScreen() {
               </Row>
             ) : me?.status === 'waitlisted' ? (
               <Button title="Leave waiting list" variant="secondary" onPress={() => respond('withdrawn')} />
-            ) : blocked ? null : (
+            ) : blocked ? null : owedBills.length > 0 ? (
+              <SettleUpCard bills={owedBills} />
+            ) : (
               <Row gap={space.sm} wrap>
                 <Button title={groups.confirmed.length + guestsIn.length >= s.max_attendance ? 'Join waiting list' : 'I’m in'} icon="checkmark" loading={busy === 'rsvp-confirmed'} onPress={() => respond('confirmed')} />
                 <Button title="Can’t make it" variant="secondary" loading={busy === 'rsvp-declined'} onPress={() => respond('declined')} />
@@ -203,7 +210,7 @@ export default function SessionScreen() {
           <Row gap={space.md}>
             <PaymentBadge status={myPayment} size={24} />
             <View style={{ flex: 1 }}>
-              <Text variant="bodyStrong">{myPayment === 'paid' ? 'Paid' : myPayment === 'authorised' ? 'Card authorised' : `${price(s.price_pence).total} due`}</Text>
+              <Text variant="bodyStrong">{myPayment === 'paid' ? 'Paid' : myPayment === 'authorised' ? 'Pending · charged after the game' : `${price(s.price_pence).total} due`}</Text>
               <Text variant="small" tone="muted">{myPayment === 'paid' ? 'Thanks! Receipt in payments.' : 'Tap to pay by card, Apple Pay or Google Pay'}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
@@ -360,6 +367,7 @@ export default function SessionScreen() {
               {a.verification === 'verified' && <Ionicons name="shield-checkmark" size={16} color={colors.primary} accessibilityLabel="Verified" />}
               {a.verification === 'absent' && <Badge label="Absent" tone="danger" />}
               {s.payment_mode !== 'free' && a.user_id !== s.host_id && <PaymentBadge status={payments.get(a.user_id)} />}
+              {!!balances.data?.get(a.user_id) && <Badge label={`owes ${formatPence(balances.data.get(a.user_id)!)}`} tone="warning" align="center" />}
               {!!d.isManager && a.user_id !== s.host_id && ['scheduled', 'in_progress'].includes(s.status) && (
                 <IconButton icon="person-remove-outline" label={`Remove ${a.profile.display_name}`} size={32} tone="danger" onPress={() => removePlayer(a.user_id, a.profile.display_name)} />
               )}

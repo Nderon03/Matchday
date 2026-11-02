@@ -61,6 +61,7 @@ export interface GroupSettings {
   late_fine_base_pence: number;
   late_fine_cap_pence: number;
   late_fine_reset_after: number;
+  require_settled: boolean;
 }
 
 export interface Season {

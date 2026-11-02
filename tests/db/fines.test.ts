@@ -21,6 +21,8 @@ async function setup(opts: { enabled?: boolean } = {}) {
   if (opts.enabled !== false) {
     await db.as(host, `update group_settings set late_fines_enabled = true where group_id = $1`, [g]);
   }
+  // these tests play many games in a row without paying; the settle-up rule has its own tests
+  await db.as(host, `update group_settings set require_settled = false where group_id = $1`, [g]);
   return { host, p, q, g };
 }
 
@@ -34,6 +36,12 @@ async function play(ctx: { host: string; p: string; q: string; g: string }, mode
     },
   });
   for (const u of [ctx.p, ctx.q]) await db.rpc(u, 'respond_to_session', { p_session: sid, p_response: 'confirmed' });
+  if (mode === 'upfront') {
+    // players paid upfront (card held) before kick-off
+    for (const u of [ctx.p, ctx.q]) {
+      await db.admin(`insert into payments (session_id, payer_id, payee_id, amount_pence, mode, status) values ($1, $2, $3, 900, 'upfront', 'authorised')`, [sid, u, ctx.host]);
+    }
+  }
   const [f] = await db.admin(`select id from fixtures where session_id = $1`, [sid]);
   await db.rpc(ctx.host, 'save_lineup', { p_fixture: f.id, p_teams: { A: { players: [{ user_id: ctx.host }, { user_id: ctx.p }] }, B: { players: [{ user_id: ctx.q }] } } });
   for (const u of late) await db.rpc(ctx.host, 'set_attendance_verification', { p_session: sid, p_user: u, p_verification: 'verified', p_late: true });
@@ -147,17 +155,16 @@ describe('late fines', () => {
 
   it('admins can request a one-off payment for owed fines; visibility is limited', async () => {
     const ctx = await setup();
-    await play(ctx, 'upfront', [ctx.p]); // £1 owed
-    await play(ctx, 'upfront', [ctx.p]); // £2 owed
+    await play(ctx, 'upfront', [ctx.p]); // £1 — rolls onto game 2's upfront payment
+    await play(ctx, 'upfront', [ctx.p]); // £2 owed (no later bill yet)
     await expectAppError(db.rpc(ctx.q, 'request_late_fine_payment', { p_group: ctx.g, p_user: ctx.p }), 'forbidden');
     const pid = await db.rpc<string>(ctx.host, 'request_late_fine_payment', { p_group: ctx.g, p_user: ctx.p });
     const [pay] = await db.admin(`select kind, amount_pence, status from payments where id = $1`, [pid]);
-    expect(pay).toEqual({ kind: 'fine', amount_pence: 300, status: 'unpaid' });
-    const owed = await db.admin(`select count(*)::int n from late_fines where group_id = $1 and user_id = $2 and status = 'included'`, [ctx.g, ctx.p]);
-    expect(owed[0].n).toBe(2);
-    // a fine payment does not pick up other fines twice, and paying settles them
+    expect(pay).toEqual({ kind: 'fine', amount_pence: 200, status: 'unpaid' });
+    // a fine payment does not pick up other fines twice, and paying settles it
     await db.admin(`update payments set status = 'paid' where id = $1`, [pid]);
-    expect((await db.admin(`select count(*)::int n from late_fines where group_id = $1 and user_id = $2 and status = 'paid'`, [ctx.g, ctx.p]))[0].n).toBe(2);
+    const [settled] = await db.admin(`select status from late_fines where payment_id = $1`, [pid]);
+    expect(settled.status).toBe('paid');
 
     // players see their own fines; other members don't; admins see the group list
     expect(await db.as(ctx.p, `select id from late_fines where group_id = $1`, [ctx.g])).toHaveLength(2);

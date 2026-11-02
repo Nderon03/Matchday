@@ -17,10 +17,11 @@ import { toggleIn } from '@/domain/sets';
 import { useAction } from '@/hooks/useAction';
 import { rpc } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
-import { formatDate } from '@/domain/format';
+import { formatDate, formatPence } from '@/domain/format';
 import { shareText } from '@/lib/share';
 import { removeGroupMember } from '@/features/removePlayer';
 import { FinesPanel } from '@/features/FinesPanel';
+import { useGroupBalances } from '@/features/SettleUp';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
@@ -37,6 +38,7 @@ export default function GroupScreen() {
   const group = useGroup(id);
   const { userId } = useAuth();
   const confirm = useConfirm();
+  const balances = useGroupBalances(id, group.data?.myRole === 'owner' || group.data?.myRole === 'admin');
   const sessions = useGroupSessions(id);
   const [tab, setTab] = useState<Tab>('overview');
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -191,6 +193,7 @@ export default function GroupScreen() {
                 <Text variant="bodyStrong" onPress={() => router.push(`/player/${m.user_id}`)}>{m.profile.display_name}</Text>
                 <Text variant="caption" tone="muted">@{m.profile.username} · joined {formatDate(m.joined_at)}</Text>
               </View>
+              {!!balances.data?.get(m.user_id) && <Badge label={`owes ${formatPence(balances.data.get(m.user_id)!)}`} tone="warning" align="center" />}
               {m.role !== 'member' && <Badge label={m.role} tone={m.role === 'owner' ? 'primary' : 'neutral'} align="center" />}
               {canRemove(m.user_id, m.role) && (
                 <IconButton icon="person-remove-outline" label={`Remove ${m.profile.display_name}`} size={32} tone="danger" onPress={() => removeMember(m.user_id, m.profile.display_name)} />
