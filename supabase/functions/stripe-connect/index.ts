@@ -33,10 +33,10 @@ Deno.serve(handler(async (req) => {
       country: 'GB',
       email: user.email,
       business_type: 'individual',
-      // hosts are recipients: players pay the platform and Stripe transfers the host's share
-      capabilities: { transfers: { requested: true } },
-      // transfers-only accounts must use the recipient service agreement
-      tos_acceptance: { service_agreement: 'recipient' },
+      // Players pay the platform and Stripe transfers the host's share (destination charges).
+      // UK platform + UK hosts use the standard (full) service agreement; the "recipient"
+      // agreement is only for cross-border payouts and Stripe rejects it domestically.
+      capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
       business_profile: { mcc: '7941', product_description: 'Collecting player contributions for casual football sessions' },
       metadata: { matchday_user_id: user.id },
     });
