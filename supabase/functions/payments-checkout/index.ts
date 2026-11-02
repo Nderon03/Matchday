@@ -102,6 +102,20 @@ Deno.serve(handler(async (req) => {
   await admin.from('payments').update({ application_fee_pence: platformFee }).eq('id', payment.id);
 
   const stripe = stripeClient();
+  // Reopening checkout: send the player back to their open Stripe page if the amount is the same;
+  // if the bill changed (e.g. a fine was waived), close the old page first so it can't be paid.
+  if (payment.stripe_checkout_session_id) {
+    try {
+      const prev = await stripe.checkout.sessions.retrieve(payment.stripe_checkout_session_id);
+      if (prev.status === 'complete') return json({ already_paid: true, status: payment.status });
+      if (prev.status === 'open') {
+        if (prev.amount_total === final.total_pence && prev.url) return json({ url: prev.url, payment_id: payment.id, ...final });
+        await stripe.checkout.sessions.expire(prev.id);
+      }
+    } catch (e) {
+      console.warn('Could not reuse previous checkout session', e);
+    }
+  }
   const checkout = await stripe.checkout.sessions.create(
     {
       mode: 'payment',
@@ -125,7 +139,8 @@ Deno.serve(handler(async (req) => {
       cancel_url: appUrl(`session/${s.id}/payments?checkout=cancelled`),
       expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
     },
-    { idempotencyKey: `checkout-${payment.id}-${payment.amount_pence}-${Date.now() >> 16}` },
+    // unique per attempt: protects against network retries of this exact request only
+    { idempotencyKey: `checkout-${payment.id}-${crypto.randomUUID()}` },
   );
   await admin.from('payments').update({ stripe_checkout_session_id: checkout.id }).eq('id', payment.id);
   return json({ url: checkout.url, payment_id: payment.id, ...final });

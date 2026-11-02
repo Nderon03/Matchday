@@ -38,7 +38,10 @@ Deno.serve(async (req) => {
     else if (patch.lookup.checkoutSessionId) q = q.eq('stripe_checkout_session_id', patch.lookup.checkoutSessionId);
     else if (patch.lookup.paymentIntentId) q = q.eq('stripe_payment_intent_id', patch.lookup.paymentIntentId);
     const { data: payment } = await q.maybeSingle();
-    if (payment) {
+    // an expired checkout page only resets the bill if it is still the bill's current page
+    // (when a player reopens checkout we close the old page and create a new one)
+    const staleExpiry = event.type === 'checkout.session.expired' && payment && payment.stripe_checkout_session_id !== patch.lookup.checkoutSessionId;
+    if (payment && !staleExpiry) {
       paymentId = payment.id;
       const update: Record<string, unknown> = { ...(patch.fields ?? {}) };
       if (patch.status && shouldTransition(payment.status as PaymentStatus, patch.status)) update.status = patch.status;
