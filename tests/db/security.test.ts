@@ -302,3 +302,35 @@ describe('sessions', () => {
     await expectAppError(db.rpc(a, 'send_friend_request', { p_target: targets[30] }), 'rate_limited');
   });
 });
+
+describe('line-up visibility', () => {
+  it('players only see line-ups once the host confirms them', async () => {
+    const host = await db.createUser(uniq('lh'));
+    const p1 = await db.createUser(uniq('la'));
+    const p2 = await db.createUser(uniq('lb'));
+    for (const u of [p1, p2]) await db.befriend(host, u);
+    const sid = await db.rpc<string>(host, 'create_session', {
+      p: { name: 'Draft FC', starts_at: new Date(Date.now() + 86400_000).toISOString(), format_size: 5, invitee_ids: [p1, p2] },
+    });
+    for (const u of [p1, p2]) await db.rpc(u, 'respond_to_session', { p_session: sid, p_response: 'confirmed' });
+    const [f] = await db.admin(`select id from fixtures where session_id = $1`, [sid]);
+    const teams = { A: { players: [{ user_id: host }, { user_id: p1 }] }, B: { players: [{ user_id: p2 }] } };
+    const visible = (u: string) => db.as(u, `select user_id from team_players where fixture_id = $1`, [f.id]);
+
+    await db.rpc(host, 'save_lineup', { p_fixture: f.id, p_teams: teams, p_confirm: false });
+    expect(await visible(host)).toHaveLength(3);
+    expect(await visible(p1)).toHaveLength(0);
+    expect((await db.admin(`select count(*)::int n from notifications where type = 'lineup_announced' and data->>'fixture_id' = $1`, [f.id]))[0].n).toBe(0);
+
+    await db.rpc(host, 'save_lineup', { p_fixture: f.id, p_teams: teams, p_confirm: true });
+    expect(await visible(p1)).toHaveLength(3);
+    expect(await visible(p2)).toHaveLength(3);
+    const notes = await db.admin(`select user_id, title from notifications where type = 'lineup_announced' and data->>'fixture_id' = $1`, [f.id]);
+    expect(notes.map((n) => n.user_id).sort()).toEqual([p1, p2].sort());
+
+    // changing confirmed teams tells the squad
+    await db.rpc(host, 'save_lineup', { p_fixture: f.id, p_teams: { A: { players: [{ user_id: host }, { user_id: p2 }] }, B: { players: [{ user_id: p1 }] } }, p_confirm: true });
+    const updated = await db.admin(`select count(*)::int n from notifications where title = 'Line-ups updated' and data->>'fixture_id' = $1`, [f.id]);
+    expect(updated[0].n).toBe(2);
+  });
+});

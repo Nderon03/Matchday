@@ -353,9 +353,32 @@ export default function SessionScreen() {
         </View>
       )}
 
+      {/* Line-ups status for players */}
+      {!d.isManager && d.me?.status === 'confirmed' && ['scheduled', 'in_progress'].includes(s.status) && (() => {
+        const next = d.fixtures.find((f) => !f.played) ?? d.fixtures[d.fixtures.length - 1];
+        const ready = !!next && (!!next.lineup_confirmed_at || s.status !== 'scheduled');
+        const myTeam = ready ? next.teams.find((t) => t.players.some((p) => p.user_id === userId)) : undefined;
+        return (
+          <Card onPress={() => router.push(`/session/${id}/lineup${next ? `?fixture=${next.id}` : ''}`)} variant={ready ? 'highlight' : 'alt'}>
+            <Row gap={space.md}>
+              <Ionicons name={ready ? 'shirt' : 'hourglass-outline'} size={22} color={ready ? colors.primary : colors.textMuted} />
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong">{ready ? 'Line-ups are in' : 'Waiting for line-ups'}</Text>
+                <Text variant="caption" tone="muted">
+                  {ready
+                    ? myTeam ? `You're on ${myTeam.name}${myTeam.players.find((p) => p.user_id === userId)?.is_substitute ? ' (sub)' : ''}. Tap to see the teams.` : 'Tap to see the teams.'
+                    : "The host hasn't announced the teams yet. We'll notify you."}
+                </Text>
+              </View>
+              {ready && <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />}
+            </Row>
+          </Card>
+        );
+      })()}
+
       {/* Squad */}
       <View style={{ gap: space.sm }}>
-        <SectionTitle title={`Squad · ${groups.confirmed.length}`} action="Teams" onAction={() => router.push(`/session/${id}/lineup`)} />
+        <SectionTitle title={`Squad · ${groups.confirmed.length}`} action="Line-ups" onAction={() => router.push(`/session/${id}/lineup`)} />
         <Card padded={false}>
           {groups.confirmed.map((a, i) => (
             <Row key={a.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>

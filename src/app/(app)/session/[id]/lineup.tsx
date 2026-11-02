@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Chip, ErrorState, Header, Input, Loading, Row, Screen, Segmented, Sheet, Text, useConfirm, useToast } from '@/components/ui';
+import { Button, Card, Chip, EmptyState, ErrorState, Header, Input, Loading, Row, Screen, Segmented, Sheet, Text, useConfirm, useToast } from '@/components/ui';
 import { Pitch, type LineupPlayer } from '@/components/football/Pitch';
 import { lineupOps, type LineupState, type Zone } from '@/domain/lineup';
 import { suggestTeams, randomTeams, balanceTeams, hasEnoughHistory, type BalancePlayer, type BalanceResult, type GoalkeeperMode } from '@/domain/balancing';
@@ -19,6 +19,11 @@ type Strengths = { players: BalancePlayer[]; pairings: { user_a: string; user_b:
 function buildSuggestion(kind: 'balanced' | 'random', pool: BalancePlayer[], pairings: Strengths['pairings'], goalkeepers: GoalkeeperMode = 'auto'): BalanceResult {
   if (kind === 'random') return randomTeams(pool, undefined, goalkeepers);
   return hasEnoughHistory(pool) ? balanceTeams(pool, { recentPairings: pairings, goalkeepers }) : suggestTeams(pool, { goalkeepers });
+}
+
+/** Players see a game's teams once the host confirms them (or once the session has kicked off). */
+function lineupPublished(session: SessionDetail['session'], fixture: SessionDetail['fixtures'][number]) {
+  return !!fixture.lineup_confirmed_at || fixture.played || session.status !== 'scheduled';
 }
 
 export default function LineupScreen() {
@@ -106,6 +111,8 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
   const editable = d.isManager && d.session.status !== 'finalised' && !(fixture.played && d.session.status === 'completed');
+  const published = lineupPublished(d.session, fixture);
+  const confirmed = !!fixture.lineup_confirmed_at;
   const ratings = useMemo(() => {
     const map: Record<string, number | null> = {};
     for (const p of strengths?.players ?? []) {
@@ -140,7 +147,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
       });
       await rpc('save_lineup', { p_fixture: fixture.id, p_teams: { A: toJson('A'), B: toJson('B') }, p_confirm: confirm });
       setDirty(false);
-    }, confirm ? 'Line-ups confirmed — players notified' : 'Saved');
+    }, !confirm ? 'Draft saved — only hosts can see it' : fixture.lineup_confirmed_at ? 'Teams updated — players notified' : 'Line-ups confirmed — players notified');
 
   const onTap = (uid: string) => {
     if (!editable) return;
@@ -158,16 +165,45 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
   return (
     <Screen edges={['top', 'bottom']} scrollEnabled={scrollEnabled} maxWidth={640}
       footer={editable ? (
-        <Row gap={space.sm}>
-          <Button title="Save draft" variant="secondary" style={{ flex: 1 }} disabled={!dirty} loading={busy === 'save'} onPress={() => save(false)} />
-          <Button title={!!fixture.lineup_confirmed_at && !dirty ? 'Confirmed ✓' : 'Confirm teams'} style={{ flex: 1.4 }} disabled={!dirty && !!fixture.lineup_confirmed_at} loading={busy === 'save'} onPress={() => save(true)} />
-        </Row>
+        confirmed ? (
+          // once announced, every save is visible to players, so there is no draft step
+          <Button title={dirty ? 'Update teams' : 'Confirmed ✓'} disabled={!dirty} loading={busy === 'save'} onPress={() => save(true)} />
+        ) : (
+          <Row gap={space.sm}>
+            <Button title="Save draft" variant="secondary" style={{ flex: 1 }} disabled={!dirty} loading={busy === 'save'} onPress={() => save(false)} />
+            <Button title="Confirm teams" style={{ flex: 1.4 }} loading={busy === 'save'} onPress={() => save(true)} />
+          </Row>
+        )
       ) : undefined}
     >
       <Header title="Line-ups" subtitle={`${d.session.format_size}-a-side · ${Object.keys(players).length} confirmed`} />
 
       {d.fixtures.length > 1 && (
         <Segmented scroll value={fixture.id} onChange={onSelectFixture} options={d.fixtures.map((f) => ({ value: f.id, label: `Game ${f.number}${f.played ? ' ✓' : ''}` }))} />
+      )}
+
+      {!d.isManager && !published ? (
+        <Card>
+          <EmptyState
+            icon="hourglass-outline"
+            title="Waiting for line-ups"
+            message={d.me?.status === 'confirmed'
+              ? "You're in. The host hasn't announced the teams yet — we'll notify you as soon as they do."
+              : "The host hasn't announced the teams yet. Confirm your place to be picked."}
+          />
+        </Card>
+      ) : null}
+
+      {!!editable && !confirmed && !fixture.played && (
+        <Card variant="alt">
+          <Row gap={space.sm}>
+            <Text variant="small" style={{ flex: 1 }}>
+              {d.session.status === 'scheduled'
+                ? 'Draft — players can\'t see these teams until you tap Confirm teams.'
+                : 'Not confirmed yet — players can see these teams because the session has started.'}
+            </Text>
+          </Row>
+        </Card>
       )}
 
       {!!editable && (
@@ -201,7 +237,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
         </View>
       )}
 
-      <Pitch
+      {(d.isManager || published) && <Pitch
         players={players}
         lineup={lineup}
         bench={bench}
@@ -216,7 +252,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
         onTapPlayer={onTap}
         onMove={(uid, to) => update(lineupOps.move(lineup, uid, to, d.session.format_size))}
         onDragState={(dragging) => setScrollEnabled(!dragging)}
-      />
+      />}
 
       {!!editable && (
         <Row gap={space.sm}>
