@@ -11,6 +11,17 @@ import { supabase } from '@/lib/supabase';
 import { invoke } from '@/lib/api';
 import { space } from '@/theme/tokens';
 import type { ProfileVisibility } from '@/types/db';
+import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
+
+/** Version line: app version plus which over-the-air update is running (handy when checking an update arrived). */
+function versionLabel() {
+  const version = Constants.expoConfig?.version ?? '1.0.0';
+  if (Platform.OS === 'web') return `MATCHDAY v${version} · web`;
+  if (!Updates.isEnabled || Updates.isEmbeddedLaunch || !Updates.updateId) return `MATCHDAY v${version} · ${Platform.OS} · original build`;
+  const when = Updates.createdAt ? ` · ${Updates.createdAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${Updates.createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : '';
+  return `MATCHDAY v${version} · ${Platform.OS} · update ${Updates.updateId.slice(0, 8)}${when}`;
+}
 
 export default function Settings() {
   const { signOut, userId, session } = useAuth();
@@ -62,7 +73,7 @@ export default function Settings() {
       <SectionTitle title="Account" />
       <Button title="Sign out" variant="secondary" icon="log-out-outline" onPress={signOut} />
       <Button title="Delete account" variant="danger" icon="trash-outline" onPress={() => setDeleteOpen(true)} />
-      <Text variant="caption" tone="faint" align="center">MATCHDAY v1.0 · {Platform.OS}</Text>
+      <Text variant="caption" tone="faint" align="center">{versionLabel()}</Text>
 
       <Sheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete your account">
         <Text tone="muted">This permanently deletes your profile, friends, statistics and notifications. Groups you own are handed to another admin. This cannot be undone.</Text>
