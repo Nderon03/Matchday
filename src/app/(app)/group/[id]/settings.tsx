@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Switch, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Avatar, Badge, Button, Card, Chip, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Segmented, Stepper, Text, useToast } from '@/components/ui';
+import { Avatar, Badge, Button, Card, Chip, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Segmented, Stepper, Text, useConfirm, useToast } from '@/components/ui';
 import { keys, useGroup, type GroupDetail } from '@/hooks/queries';
+import { removeGroupMember } from '@/features/removePlayer';
 import { useAction } from '@/hooks/useAction';
 import { useAuth } from '@/providers/AuthProvider';
 import { q, rpc } from '@/lib/api';
@@ -25,6 +26,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
   const { colors } = useTheme();
   const { userId } = useAuth();
   const toast = useToast();
+  const confirm = useConfirm();
   const { run, busy } = useAction([keys.group(id), keys.groups]);
   const reports = useQuery({ queryKey: ['group', id, 'reports'], queryFn: () => q<any[]>(supabase.from('reports').select('*').eq('group_id', id).eq('status', 'open').order('created_at', { ascending: false })) });
   const { myRole, members, group: g, settings } = data;
@@ -112,12 +114,32 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
                   <Chip key={r} label={`Make ${r}`} onPress={() => run(`role-${m.user_id}`, () => rpc('set_member_role', { p_group: id, p_user: m.user_id, p_role: r }), 'Role updated')} />
                 ))}
                 {!!isOwner && <Chip label="Transfer ownership" onPress={() => run(`own-${m.user_id}`, () => rpc('transfer_group_ownership', { p_group: id, p_new_owner: m.user_id }), 'Ownership transferred')} />}
-                <Chip label="Remove" onPress={() => run(`rm-${m.user_id}`, () => rpc('remove_group_member', { p_group: id, p_user: m.user_id }), 'Member removed')} />
+                <Chip label="Remove" onPress={() => removeGroupMember({ confirm, run, groupId: id, userId: m.user_id, name: m.profile.display_name })} />
               </Row>
             )}
           </View>
         ))}
       </Card>
+
+      {data.removals.length > 0 && (
+        <>
+          <SectionTitle title={`Removed players · ${data.removals.length}`} />
+          <Text variant="caption" tone="muted">They can’t rejoin through links or requests. Allow them back to add them to the group again.</Text>
+          <Card padded={false}>
+            {data.removals.map((r, i) => (
+              <Row key={r.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
+                <Avatar uri={r.profile.avatar_url} name={r.profile.display_name} size={32} />
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyStrong">{r.profile.display_name}</Text>
+                  <Text variant="caption" tone="muted">{r.reason ? `Reason: ${r.reason}` : 'No reason given'}</Text>
+                </View>
+                <Button title="Allow back" size="sm" variant="secondary" loading={busy === `re-${r.user_id}`}
+                  onPress={() => run(`re-${r.user_id}`, () => rpc('readmit_group_member', { p_group: id, p_user: r.user_id }), `${r.profile.display_name} added back`)} />
+              </Row>
+            ))}
+          </Card>
+        </>
+      )}
 
       <SectionTitle title={`Moderation · ${reports.data?.length ?? 0} open`} />
       {reports.data?.map((r) => (
@@ -136,7 +158,11 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
       ))}
 
       <SectionTitle title="Danger zone" />
-      {!isOwner && <Button title="Leave group" variant="danger" onPress={() => run('leave', async () => { await rpc('remove_group_member', { p_group: id, p_user: userId }); router.replace('/leagues'); }, 'You left the group')} />}
+      {!isOwner && <Button title="Leave group" variant="danger" onPress={async () => {
+        if (await confirm({ title: 'Leave this group?', message: 'You can rejoin later if the group allows it. Your stats are kept.', confirmLabel: 'Leave', destructive: true })) {
+          run('leave', async () => { await rpc('remove_group_member', { p_group: id, p_user: userId }); router.replace('/leagues'); }, 'You left the group');
+        }
+      }} />}
       {!!isOwner && (
         <Button title="Delete group" variant="danger" onPress={() => run('delete', async () => {
           const { error } = await supabase.from('groups').delete().eq('id', id);

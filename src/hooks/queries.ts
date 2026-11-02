@@ -206,6 +206,9 @@ export interface GroupDetail {
   seasons: Season[];
   myRole: GroupRole | null;
   joinRequests: { id: string; user_id: string; message: string | null; created_at: string; profile: PublicProfile }[];
+  /** Admins see everyone removed; a removed player sees only their own removal. */
+  removals: { user_id: string; reason: string | null; removed_at: string; profile: PublicProfile }[];
+  myRemoval: { reason: string | null; removed_at: string } | null;
 }
 
 export function useGroup(id: string) {
@@ -214,16 +217,22 @@ export function useGroup(id: string) {
     queryKey: keys.group(id),
     enabled: !!id && !!userId,
     queryFn: async (): Promise<GroupDetail> => {
-      const [group, settings, members, seasons, requests] = await Promise.all([
+      const [group, settings, members, seasons, requests, removals] = await Promise.all([
         q<Group>(supabase.from('groups').select('*').eq('id', id).single()),
         q<GroupSettings | null>(supabase.from('group_settings').select('*').eq('group_id', id).maybeSingle()),
         q<any[]>(supabase.from('group_members').select(`user_id, role, joined_at, profile:profiles(${PROFILE_COLS})`).eq('group_id', id)),
         q<Season[]>(supabase.from('seasons').select('*').eq('group_id', id).order('starts_on', { ascending: false })),
         q<any[]>(supabase.from('group_join_requests').select(`id, user_id, message, created_at, profile:profiles!group_join_requests_user_id_fkey(${PROFILE_COLS})`).eq('group_id', id).eq('status', 'pending')),
+        q<any[]>(supabase.from('group_removals').select(`user_id, reason, removed_at, profile:profiles!group_removals_user_id_fkey(${PROFILE_COLS})`).eq('group_id', id).order('removed_at', { ascending: false })),
       ]);
       const order: Record<GroupRole, number> = { owner: 0, admin: 1, moderator: 2, member: 3 };
       members.sort((a, b) => order[a.role as GroupRole] - order[b.role as GroupRole] || a.profile.display_name.localeCompare(b.profile.display_name));
-      return { group, settings, members, seasons, myRole: members.find((m) => m.user_id === userId)?.role ?? null, joinRequests: requests };
+      const mine = removals.find((r) => r.user_id === userId);
+      return {
+        group, settings, members, seasons, myRole: members.find((m) => m.user_id === userId)?.role ?? null, joinRequests: requests,
+        removals: removals.filter((r) => r.profile),
+        myRemoval: mine ? { reason: mine.reason, removed_at: mine.removed_at } : null,
+      };
     },
   });
 }

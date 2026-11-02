@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Avatar, Badge, Button, Card, EmptyState, ErrorState, Header, IconButton, Input, Loading, Row, Screen, SectionTitle, Segmented, Sheet, StatTile, Text,
+  Avatar, Badge, Button, Card, EmptyState, ErrorState, Header, IconButton, Input, Loading, Row, Screen, SectionTitle, Segmented, Sheet, StatTile, Text, useConfirm,
 } from '@/components/ui';
 import { SessionCard } from '@/components/football/SessionCard';
 import { Leaderboard } from '@/components/football/Leaderboard';
@@ -19,6 +19,8 @@ import { rpc } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/domain/format';
 import { shareText } from '@/lib/share';
+import { removeGroupMember } from '@/features/removePlayer';
+import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 
@@ -32,6 +34,8 @@ export default function GroupScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const group = useGroup(id);
+  const { userId } = useAuth();
+  const confirm = useConfirm();
   const sessions = useGroupSessions(id);
   const [tab, setTab] = useState<Tab>('overview');
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -57,6 +61,9 @@ export default function GroupScreen() {
   const { group: g, members, seasons, myRole, joinRequests, settings } = group.data;
   const isAdmin = myRole === 'owner' || myRole === 'admin';
   const canAdd = !!myRole && (isAdmin || g.join_policy !== 'invite_only');
+  // owners can remove anyone but themselves; admins can remove moderators and members
+  const canRemove = (uid: string, role: string) => uid !== userId && role !== 'owner' && (myRole === 'owner' || (myRole === 'admin' && (role === 'member' || role === 'moderator')));
+  const removeMember = (uid: string, name: string) => removeGroupMember({ confirm, run, groupId: id, userId: uid, name });
   const memberIds = new Set(members.map((m) => m.user_id));
   const addableFriends = (friends.data?.friends ?? []).filter((f) => !memberIds.has(f.id));
   const upcoming = (sessions.data ?? []).filter((s) => ['scheduled', 'in_progress'].includes(s.status)).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
@@ -72,7 +79,19 @@ export default function GroupScreen() {
 
       {!!g.cover_url && <Image source={{ uri: g.cover_url }} style={{ height: 140, borderRadius: radius.lg }} contentFit="cover" />}
 
-      {!myRole && (
+      {!myRole && !!group.data.myRemoval && (
+        <Card style={{ borderColor: colors.danger, backgroundColor: colors.dangerMuted }}>
+          <Row gap={space.md} style={{ alignItems: 'flex-start' }}>
+            <Ionicons name="person-remove" size={24} color={colors.danger} />
+            <View style={{ flex: 1, gap: 4 }}>
+              <Text variant="h3" color={colors.danger}>You’ve been removed from this group</Text>
+              {!!group.data.myRemoval.reason && <Text>Reason: {group.data.myRemoval.reason}</Text>}
+              <Text variant="small" tone="muted">You can only rejoin if an admin adds you back.</Text>
+            </View>
+          </Row>
+        </Card>
+      )}
+      {!myRole && !group.data.myRemoval && (
         <Card variant="highlight">
           <Row gap={space.md}>
             <Text style={{ flex: 1 }}>You’re viewing a public group.</Text>
@@ -169,7 +188,10 @@ export default function GroupScreen() {
                 <Text variant="bodyStrong" onPress={() => router.push(`/player/${m.user_id}`)}>{m.profile.display_name}</Text>
                 <Text variant="caption" tone="muted">@{m.profile.username} · joined {formatDate(m.joined_at)}</Text>
               </View>
-              {m.role !== 'member' && <Badge label={m.role} tone={m.role === 'owner' ? 'primary' : 'neutral'} />}
+              {m.role !== 'member' && <Badge label={m.role} tone={m.role === 'owner' ? 'primary' : 'neutral'} align="center" />}
+              {canRemove(m.user_id, m.role) && (
+                <IconButton icon="person-remove-outline" label={`Remove ${m.profile.display_name}`} size={32} tone="danger" onPress={() => removeMember(m.user_id, m.profile.display_name)} />
+              )}
             </Row>
           ))}
         </Card>

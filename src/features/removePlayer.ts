@@ -34,3 +34,22 @@ export async function removeSessionPlayer({ confirm, run, sessionId, userId, nam
   await run(`rm-${userId}`, () => rpc('remove_session_player', { p_session: sessionId, p_user: userId, p_reason: reason, p_remove_guests: removeGuests }),
     removeGuests ? `${name} and their guest${theirGuests.length > 1 ? 's' : ''} removed` : `${name} removed`);
 }
+
+/** Admin removes a member from a group; they can only come back when an admin re-admits them. */
+export async function removeGroupMember({ confirm, run, groupId, userId, name }: {
+  confirm: ReturnType<typeof useConfirm>;
+  run: Run;
+  groupId: string;
+  userId: string;
+  name: string;
+}) {
+  const r = await confirm({
+    title: `Remove ${name} from the group?`,
+    message: 'They’ll lose access to the group and can only rejoin if an admin adds them back. They’ll be told straight away. Their past stats are kept.',
+    confirmLabel: 'Remove',
+    destructive: true,
+    reasonLabel: 'Reason (optional, shown to them)',
+  });
+  if (!r) return;
+  await run(`rmg-${userId}`, () => rpc('remove_group_member', { p_group: groupId, p_user: userId, p_reason: typeof r === 'object' ? r.reason || null : null }), `${name} removed`);
+}

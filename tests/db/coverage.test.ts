@@ -128,6 +128,46 @@ describe('leaderboards across scopes and categories', () => {
   });
 });
 
+describe('removing members from a group', () => {
+  it('removed members can only come back when an admin re-admits them', async () => {
+    const owner = await db.createUser(uniq('own'));
+    const member = await db.createUser(uniq('mem'));
+    const kicked = await db.createUser(uniq('kick'));
+    for (const u of [member, kicked]) await db.befriend(owner, u);
+    await db.befriend(member, kicked);
+    const g = await db.rpc<string>(owner, 'create_group', { p_name: 'Kick FC', p_visibility: 'public', p_join_policy: 'open' });
+    await db.rpc(owner, 'add_group_members', { p_group: g, p_users: [member, kicked] });
+
+    await expectAppError(db.rpc(member, 'remove_group_member', { p_group: g, p_user: kicked }), 'forbidden');
+    await db.rpc(owner, 'remove_group_member', { p_group: g, p_user: kicked, p_reason: 'Repeated no-shows' });
+    expect((await db.admin(`select public.is_group_member($1, $2) m`, [g, kicked]))[0].m).toBe(false);
+    const [n] = await db.admin(`select body, data from notifications where user_id = $1 and type = 'group_removed'`, [kicked]);
+    expect(n.body).toMatch(/Reason: Repeated no-shows/);
+    expect(n.data.group_name).toBe('Kick FC');
+
+    // open group, invite link and a regular member's re-add are all blocked
+    await expectAppError(db.rpc(kicked, 'join_group', { p_group: g }), 'removed');
+    const code = await db.rpc<string>(owner, 'create_invite_link', { p_kind: 'group', p_target: g });
+    await expectAppError(db.rpc(kicked, 'accept_invite', { p_code: code }), 'removed');
+    expect(await db.rpc<number>(member, 'add_group_members', { p_group: g, p_users: [kicked] })).toBe(0);
+    // the removed player can see their removal; other members cannot
+    expect(await db.as(kicked, `select reason from group_removals where group_id = $1`, [g])).toEqual([{ reason: 'Repeated no-shows' }]);
+    expect(await db.as(member, `select * from group_removals where group_id = $1`, [g])).toHaveLength(0);
+
+    // admin re-admits → back in, and can later leave freely without being "removed"
+    await expectAppError(db.rpc(member, 'readmit_group_member', { p_group: g, p_user: kicked }), 'forbidden');
+    await db.rpc(owner, 'readmit_group_member', { p_group: g, p_user: kicked });
+    expect((await db.admin(`select public.is_group_member($1, $2) m`, [g, kicked]))[0].m).toBe(true);
+    await db.rpc(kicked, 'remove_group_member', { p_group: g, p_user: kicked });
+    expect(await db.rpc(kicked, 'join_group', { p_group: g })).toBe('joined');
+
+    // an admin can also bring someone back by adding them directly
+    await db.rpc(owner, 'remove_group_member', { p_group: g, p_user: member });
+    expect(await db.rpc<number>(owner, 'add_group_members', { p_group: g, p_users: [member] })).toBe(1);
+    expect((await db.admin(`select count(*)::int n from group_removals where group_id = $1`, [g]))[0].n).toBe(0);
+  });
+});
+
 describe('removing players and guests', () => {
   async function setup() {
     const host = await db.createUser(uniq('h'));
