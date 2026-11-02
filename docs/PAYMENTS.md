@@ -101,7 +101,7 @@ verified non-host player and sends a payment request. Players pay through Checko
 
 1. Create a Stripe account, enable **Connect** (Express) for the UK, and set your platform profile.
 2. Set function secrets (`supabase secrets set …`): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
-   `APP_URL` (web origin or `matchday://`), optional `PLATFORM_FEE_BPS`, `CRON_SECRET`.
+   `APP_URL` (the public web address, e.g. `https://matchday-online.netlify.app`; Stripe returns players to `/done`), optional `PLATFORM_FEE_BPS`, `CRON_SECRET`.
 3. Add a webhook endpoint → `https://<project-ref>.supabase.co/functions/v1/stripe-webhook`, listening to
    **both** account and connected-account events:
    `checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_succeeded`,

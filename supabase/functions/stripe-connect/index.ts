@@ -46,8 +46,8 @@ Deno.serve(handler(async (req) => {
   const link = await stripe.accountLinks.create({
     account: accountId,
     type: 'account_onboarding',
-    refresh_url: appUrl('settings/payouts?refresh=1'),
-    return_url: appUrl('settings/payouts?done=1'),
+    refresh_url: appUrl('done?kind=payouts-retry'),
+    return_url: appUrl('done?kind=payouts'),
   });
   return json({ url: link.url });
 }));

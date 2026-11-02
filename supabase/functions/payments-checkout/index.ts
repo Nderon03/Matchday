@@ -156,8 +156,8 @@ Deno.serve(handler(async (req) => {
         metadata: { payment_id: payment.id, session_id: s.id, payer_id: user.id, kind: payment.kind },
       },
       metadata: { payment_id: payment.id, session_id: s.id },
-      success_url: appUrl(`session/${s.id}/payments?checkout=success`),
-      cancel_url: appUrl(`session/${s.id}/payments?checkout=cancelled`),
+      success_url: appUrl(`done?kind=paid&session=${s.id}`),
+      cancel_url: appUrl(`done?kind=cancelled&session=${s.id}`),
       expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
     },
     // unique per attempt: protects against network retries of this exact request only
