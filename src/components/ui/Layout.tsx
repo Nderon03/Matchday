@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View, type ScrollViewProps, type ViewStyle } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, type ScrollViewProps, type ViewStyle } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -27,19 +27,30 @@ export function Screen({
   const inner: ViewStyle = { width: '100%', maxWidth, alignSelf: 'center', paddingHorizontal: padded ? (isDesktop ? space.xxxl : space.lg) : 0 };
   return (
     <SafeAreaView edges={isDesktop ? [] : edges} style={[styles.flex, { backgroundColor: colors.bg }]}>
-      {scroll ? (
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[{ paddingBottom: space.huge, paddingTop: isDesktop ? space.xxl : space.sm }, contentStyle]}
-          refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.primary} /> : undefined}
-          {...rest}
-        >
-          <View style={[inner, { gap: space.lg }]}>{children}</View>
-        </ScrollView>
-      ) : (
-        <View style={[styles.flex, inner, contentStyle]}>{children}</View>
-      )}
-      {!!footer && <View style={[inner, { paddingBottom: space.lg, paddingTop: space.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>{footer}</View>}
+      {/* Keep the focused field and any bottom bar above the on-screen keyboard.
+          iOS: scroll views inset themselves; a fixed footer is lifted with padding.
+          Android: the screen shrinks to the space above the keyboard. */}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        enabled={Platform.OS === 'android' || (Platform.OS === 'ios' && (!scroll || !!footer))}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        {scroll ? (
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios' && !footer}
+            contentContainerStyle={[{ paddingBottom: space.huge, paddingTop: isDesktop ? space.xxl : space.sm }, contentStyle]}
+            refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.primary} /> : undefined}
+            {...rest}
+          >
+            <View style={[inner, { gap: space.lg }]}>{children}</View>
+          </ScrollView>
+        ) : (
+          <View style={[styles.flex, inner, contentStyle]}>{children}</View>
+        )}
+        {!!footer && <View style={[inner, { paddingBottom: space.lg, paddingTop: space.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>{footer}</View>}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

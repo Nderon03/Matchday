@@ -318,6 +318,17 @@ describe('seasons, records, head-to-head and the scheduler', () => {
     const h2h = await db.rpc<any>(host, 'get_head_to_head', { p_a: players[0], p_b: players[5] });
     expect(h2h.rivalry).toMatchObject({ games: 3, a_wins: 3, b_wins: 0, draws: 0 });
     expect(h2h.teammates.games).toBe(0);
+    // any two players (not including the viewer), scoped to the group
+    const h2hGroup = await db.rpc<any>(players[9], 'get_head_to_head', { p_a: players[1], p_b: players[6], p_group: groupId });
+    expect(h2hGroup.group_id).toBe(groupId);
+    expect(h2hGroup.rivalry).toMatchObject({ games: 3, a_wins: 3 });
+    expect(h2hGroup.a.goals).toBe(6);
+    await expectAppError(db.rpc(players[9], 'get_head_to_head', { p_a: players[1], p_b: players[1] }), 'invalid');
+    // private profile: hidden outside the group, visible to fellow members inside it
+    await db.admin(`update user_preferences set profile_visibility = 'private', show_stats = false where user_id = $1`, [players[6]]);
+    const outsider = await db.createUser(uniq('cmp'));
+    await expectAppError(db.rpc(outsider, 'get_head_to_head', { p_a: players[1], p_b: players[6] }), 'forbidden');
+    expect((await db.rpc<any>(players[9], 'get_head_to_head', { p_a: players[1], p_b: players[6], p_group: groupId })).rivalry.games).toBe(3);
 
     const streakLb = await db.as(host, `select * from public.get_leaderboard('streak', 'group', $1)`, [groupId]);
     expect(Number(streakLb[0].value)).toBe(3);

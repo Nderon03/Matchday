@@ -157,6 +157,10 @@ export default function GroupScreen() {
       {tab === 'tables' && <Leaderboard scope="group" groupId={id} seasons={seasons} minAppearances={settings?.leaderboard_min_appearances} />}
 
       {tab === 'members' && (
+        <View style={{ gap: space.md }}>
+        {members.length >= 2 && (
+          <Button title="Compare two players" icon="git-compare-outline" variant="secondary" onPress={() => router.push({ pathname: '/compare', params: { groupId: id } })} />
+        )}
         <Card padded={false}>
           {members.map((m, i) => (
             <Row key={m.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
@@ -169,6 +173,7 @@ export default function GroupScreen() {
             </Row>
           ))}
         </Card>
+        </View>
       )}
 
       {tab === 'awards' && (

@@ -89,6 +89,7 @@ export function useSessionDetail(id: string) {
       { table: 'sessions', filter: `id=eq.${id}` },
       { table: 'goal_submissions', filter: `session_id=eq.${id}` },
       { table: 'session_guests', filter: `session_id=eq.${id}` },
+      { table: 'session_invitations', filter: `session_id=eq.${id}` },
       { table: 'payments', filter: `session_id=eq.${id}` },
       { table: 'team_players' },
       { table: 'fixture_teams' },
@@ -99,6 +100,9 @@ export function useSessionDetail(id: string) {
   return useQuery({
     queryKey: keys.session(id),
     enabled: !!id && !!userId,
+    // a session changes often (RSVPs, invites, line-ups): always refresh when a screen opens
+    staleTime: 0,
+    refetchOnMount: 'always',
     queryFn: async (): Promise<SessionDetail> => {
       const session = await q<Session>(supabase.from('sessions').select('*').eq('id', id).single());
       const [attendance, invites, fixtures, hosts, submissions, goals, payments, motm, stats, isManager, group, host, guests] = await Promise.all([

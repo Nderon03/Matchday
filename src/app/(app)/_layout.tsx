@@ -9,12 +9,14 @@ import { isConfigured } from '@/lib/env';
 import { SetupRequired } from '@/features/SetupRequired';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { KickedNotice } from '@/features/KickedNotice';
+import { useLiveRefresh } from '@/hooks/useLiveRefresh';
 
 export default function AppLayout() {
   const { session, initialising, profile, profileLoading } = useAuth();
   const { colors } = useTheme();
   const pathname = usePathname();
   usePushRegistration(!!session && !!profile?.onboarded);
+  useLiveRefresh();
   // resume an invite link that was opened before signing in
   useEffect(() => {
     if (!session || !profile?.onboarded) return;

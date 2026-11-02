@@ -66,7 +66,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
             ) : (
               <Button title="Add friend" icon="person-add-outline" size="sm" loading={busy === 'add'} onPress={() => run('add', () => rpc('send_friend_request', { p_target: userId }), 'Friend request sent')} />
             )}
-            {!!d.can_view_stats && <Button title="Compare" icon="git-compare-outline" size="sm" variant="secondary" onPress={() => router.push({ pathname: '/compare', params: { b: userId } })} />}
+            {!!d.can_view_stats && <Button title="Compare" icon="git-compare-outline" size="sm" variant="secondary" onPress={() => router.push({ pathname: '/compare', params: groupId ? { b: userId, groupId } : { b: userId } })} />}
             <Button title="Share card" icon="share-social-outline" size="sm" variant="ghost" onPress={share} />
           </>
         )}
