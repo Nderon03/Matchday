@@ -78,7 +78,12 @@ export default function SignUp() {
         <Input label="Password" value={form.password} onChangeText={set('password')} secure autoComplete="new-password" textContentType="newPassword" icon="lock-closed-outline" error={errors.password} hint="At least 8 characters with a letter and a number" />
         {!!errors._ && <Text tone="danger" variant="small" accessibilityRole="alert">{errors._}</Text>}
         <Button title="Create account" size="lg" loading={busy} onPress={submit} disabled={check.state === 'checking'} />
-        <Text variant="caption" tone="faint" align="center">By continuing you agree to play fair and keep the stats honest.</Text>
+        <Text variant="caption" tone="faint" align="center">
+          By creating an account you agree to the{' '}
+          <Text variant="caption" tone="primary" onPress={() => router.push('/legal/terms')}>Terms of Use</Text>
+          {' '}and{' '}
+          <Text variant="caption" tone="primary" onPress={() => router.push('/legal/privacy')}>Privacy Policy</Text>.
+        </Text>
       </View>
     </Screen>
   );

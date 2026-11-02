@@ -315,9 +315,18 @@ describe('identity, social and moderation RPCs', () => {
     const a = await db.createUser(uniq('ona'));
     const b = await db.createUser(uniq('onb'));
     const name = uniq('striker');
-    const [prof] = await db.as(a, `select * from public.complete_onboarding($1, $2, 'FWD')`, [name, 'Super Striker']);
-    expect(prof).toMatchObject({ username: name, onboarded: true, position: 'FWD' });
-    await expectAppError(db.rpc(b, 'complete_onboarding', { p_username: name, p_display_name: 'Copycat', p_position: 'ANY' }), 'username_taken');
+    // new players must accept the terms
+    await expectAppError(db.rpc(a, 'complete_onboarding', { p_username: name, p_display_name: 'Super Striker', p_position: 'FWD' }), 'terms_required');
+    const [prof] = await db.as(a, `select * from public.complete_onboarding($1, $2, 'FWD', true, '2026-11-02')`, [name, 'Super Striker']);
+    expect(prof).toMatchObject({ username: name, onboarded: true, position: 'FWD', terms_version: '2026-11-02' });
+    expect(prof.terms_accepted_at).toBeTruthy();
+    // once onboarded, changing username doesn't need the terms again
+    const [renamed] = await db.as(a, `select * from public.complete_onboarding($1, $2, 'MID')`, [name + 'x', 'Super Striker']);
+    expect(renamed).toMatchObject({ username: name + 'x', terms_version: '2026-11-02' });
+    await db.as(a, `select public.complete_onboarding($1, $2, 'FWD')`, [name, 'Super Striker']);
+    await expectAppError(db.rpc(b, 'complete_onboarding', { p_username: name, p_display_name: 'Copycat', p_position: 'ANY', p_accept_terms: true, p_terms_version: 'v1' }), 'username_taken');
+    await db.rpc(b, 'accept_terms', { p_version: '2027-01-01' });
+    expect((await db.admin(`select terms_version from profiles where id = $1`, [b]))[0].terms_version).toBe('2027-01-01');
 
     const found = await db.as(b, `select * from public.search_users($1)`, [name.slice(0, 6)]);
     expect(found.some((r) => r.id === a)).toBe(true);

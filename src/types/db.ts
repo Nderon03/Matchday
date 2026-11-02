@@ -23,6 +23,8 @@ export interface Profile {
   bio: string | null;
   position: PlayerPosition;
   onboarded: boolean;
+  terms_version?: string | null;
+  terms_accepted_at?: string | null;
   created_at: string;
 }
 

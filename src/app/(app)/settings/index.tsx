@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,7 @@ import { space } from '@/theme/tokens';
 import type { ProfileVisibility } from '@/types/db';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
+import { CONTACT_EMAIL } from '@/legal/content';
 
 /** Version line: app version plus which over-the-air update is running (handy when checking an update arrived). */
 function versionLabel() {
@@ -69,6 +70,15 @@ export default function Settings() {
 
       <SectionTitle title="Appearance" />
       <Segmented value={preference} onChange={setPreference} options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }, { value: 'system', label: 'System' }]} />
+
+      <SectionTitle title="About" />
+      <Card padded={false}>
+        <ListItem title="Terms of Use" left={icon('document-text-outline')} onPress={() => router.push('/legal/terms')} />
+        <Divider />
+        <ListItem title="Privacy Policy" left={icon('shield-checkmark-outline')} onPress={() => router.push('/legal/privacy')} />
+        <Divider />
+        <ListItem title="Contact us" subtitle={CONTACT_EMAIL} left={icon('mail-outline')} onPress={() => Linking.openURL(`mailto:${CONTACT_EMAIL}`)} />
+      </Card>
 
       <SectionTitle title="Account" />
       <Button title="Sign out" variant="secondary" icon="log-out-outline" onPress={signOut} />

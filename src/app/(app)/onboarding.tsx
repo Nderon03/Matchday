@@ -10,6 +10,8 @@ import { useUsernameCheck } from '@/hooks/useUsernameCheck';
 import { POSITION_LABEL } from '@/domain/format';
 import { space } from '@/theme/tokens';
 import type { PlayerPosition } from '@/types/db';
+import { TermsCheckbox } from '@/features/LegalAgreement';
+import { LEGAL_VERSION } from '@/legal/content';
 
 export default function Onboarding() {
   const { profile, userId, refreshProfile } = useAuth();
@@ -19,6 +21,7 @@ export default function Onboarding() {
   const [position, setPosition] = useState<PlayerPosition>(profile?.position ?? 'ANY');
   const [avatar, setAvatar] = useState(profile?.avatar_url ?? null);
   const [busy, setBusy] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const check = useUsernameCheck(username, profile?.username);
 
   useEffect(() => {
@@ -39,9 +42,10 @@ export default function Onboarding() {
 
   const finish = async () => {
     if (!displayName.trim()) return toast.show('Add a display name', 'error');
+    if (!agreed) return toast.show('Please agree to the Terms of Use and Privacy Policy', 'error');
     setBusy(true);
     try {
-      await rpc('complete_onboarding', { p_username: username, p_display_name: displayName, p_position: position });
+      await rpc('complete_onboarding', { p_username: username, p_display_name: displayName, p_position: position, p_accept_terms: agreed, p_terms_version: LEGAL_VERSION });
       await refreshProfile();
       router.replace('/');
     } catch (e) {
@@ -81,7 +85,8 @@ export default function Onboarding() {
           ))}
         </View>
       </View>
-      <Button title="Let’s play" size="lg" loading={busy} disabled={check.state === 'taken' || check.state === 'invalid' || check.state === 'checking'} onPress={finish} />
+      <TermsCheckbox checked={agreed} onChange={setAgreed} />
+      <Button title="Let’s play" size="lg" loading={busy} disabled={!agreed || check.state === 'taken' || check.state === 'invalid' || check.state === 'checking'} onPress={finish} />
     </Screen>
   );
 }

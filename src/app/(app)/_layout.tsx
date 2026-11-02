@@ -9,6 +9,7 @@ import { isConfigured } from '@/lib/env';
 import { SetupRequired } from '@/features/SetupRequired';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { KickedNotice } from '@/features/KickedNotice';
+import { TermsUpdatePrompt } from '@/features/LegalAgreement';
 import { useLiveRefresh } from '@/hooks/useLiveRefresh';
 
 export default function AppLayout() {
@@ -38,6 +39,7 @@ export default function AppLayout() {
     <>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }} />
       {!!(profile?.onboarded) && <KickedNotice />}
+      <TermsUpdatePrompt />
     </>
   );
 }

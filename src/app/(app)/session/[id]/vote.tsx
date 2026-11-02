@@ -82,6 +82,16 @@ export default function VoteScreen() {
     <Screen edges={['top', 'bottom']} maxWidth={640}
       footer={!allDone ? <Button title="Submit votes" size="lg" disabled={!ready} loading={busy} onPress={submit} /> : undefined}>
       <Header title="Vote & rate" subtitle={v.closes_at ? `Closes in ${timeUntil(v.closes_at)} · votes are anonymous` : 'Votes are anonymous'} />
+      {!allDone && (
+        <Card variant="alt">
+          <Row gap={space.sm}>
+            <Ionicons name="lock-closed" size={18} color={colors.primary} />
+            <Text variant="small" style={{ flex: 1 }}>
+              Your votes and ratings are anonymous. Nobody, not even the host, can see who voted for whom: players only see totals and averages.
+            </Text>
+          </Row>
+        </Card>
+      )}
       {!!allDone && (
         <Card variant="highlight">
           <Row gap={space.md}>
