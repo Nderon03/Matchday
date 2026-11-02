@@ -32,6 +32,8 @@ export default function SessionScreen() {
   const now = useNow();
   const { run, busy } = useAction([keys.session(id), keys.mySessions]);
   const [finaliseOpen, setFinaliseOpen] = useState(false);
+  // set when the host closes voting here, so Finalise unlocks immediately (the clock only ticks every 30s)
+  const [closedHere, setClosedHere] = useState(false);
   const [tally, setTally] = useState<{ user_id: string; votes: number }[] | null>(null);
   const [tiebreak, setTiebreak] = useState<string | null>(null);
   const resultRef = useRef<HostInstance>(null);
@@ -66,7 +68,7 @@ export default function SessionScreen() {
   const nameOf = (uid: string) => d.attendance.find((a) => a.user_id === uid)?.profile.display_name ?? 'Player';
   const pendingClaims = d.submissions.filter((x) => x.status === 'pending').length;
   const verified = me?.verification === 'verified';
-  const votingOpen = s.status === 'completed' && (!s.voting_closes_at || new Date(s.voting_closes_at).getTime() > now);
+  const votingOpen = s.status === 'completed' && !closedHere && (!s.voting_closes_at || new Date(s.voting_closes_at).getTime() > now);
   const canCheckIn = me?.status === 'confirmed' && !me.checked_in_at && ['scheduled', 'in_progress'].includes(s.status) && new Date(s.starts_at).getTime() - now < 3 * 3600_000;
   const waitPos = me?.status === 'waitlisted' ? groups.waitlisted.findIndex((w) => w.user_id === userId) + 1 : 0;
 
@@ -334,7 +336,10 @@ export default function SessionScreen() {
                     {votingOpen ? `Voting closes in ${timeUntil(s.voting_closes_at!)}. Results finalise automatically when it closes (if all goal claims are resolved).` : 'Voting has closed. Finalise to publish the results and update statistics.'}
                   </Text>
                   <Row gap={space.sm} wrap>
-                    {!!votingOpen && <Button title="Close voting now" variant="secondary" size="sm" loading={busy === 'close'} onPress={() => run('close', () => rpc('close_voting', { p_session: id }), 'Voting closed')} />}
+                    {!!votingOpen && <Button title="Close voting now" variant="secondary" size="sm" loading={busy === 'close'} onPress={async () => {
+                      const ok = await run('close', async () => { await rpc('close_voting', { p_session: id }); return true; }, 'Voting closed — you can finalise now');
+                      if (ok) setClosedHere(true);
+                    }} />}
                     <Button title="Finalise results" icon="lock-closed" size="sm" disabled={votingOpen} onPress={openFinalise} />
                   </Row>
                 </>
