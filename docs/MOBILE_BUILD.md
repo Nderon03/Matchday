@@ -14,7 +14,8 @@ visibility **Plain text**:
 
 * `EXPO_PUBLIC_SUPABASE_URL`
 * `EXPO_PUBLIC_SUPABASE_ANON_KEY`
-* `EXPO_PUBLIC_APP_URL` (optional, the public web address used in invite links)
+* `EXPO_PUBLIC_APP_URL` (the public web address used in invite links, e.g. `https://matchday-online.netlify.app`)
+* `EXPO_PUBLIC_SENTRY_DSN` (crash reporting; from Sentry → project → Client Keys)
 
 ## Push notifications
 

@@ -10,6 +10,7 @@ import { SetupRequired } from '@/features/SetupRequired';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { KickedNotice } from '@/features/KickedNotice';
 import { TermsUpdatePrompt } from '@/features/LegalAgreement';
+import { setCrashUser } from '@/lib/sentry';
 import { useLiveRefresh } from '@/hooks/useLiveRefresh';
 
 export default function AppLayout() {
@@ -17,6 +18,7 @@ export default function AppLayout() {
   const { colors } = useTheme();
   const pathname = usePathname();
   usePushRegistration(!!session && !!profile?.onboarded);
+  useEffect(() => setCrashUser(session?.user.id ?? null), [session?.user.id]);
   useLiveRefresh();
   // resume an invite link that was opened before signing in
   useEffect(() => {

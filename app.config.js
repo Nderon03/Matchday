@@ -16,6 +16,8 @@ module.exports = ({ config }) => {
     ...config,
     runtimeVersion: { policy: 'fingerprint' },
     ...(projectId ? { updates: { ...config.updates, url: `https://u.expo.dev/${projectId}` } } : {}),
+    // crash reporting; source-map upload runs only when SENTRY_AUTH_TOKEN is set for the build
+    plugins: [...(config.plugins ?? []), ['@sentry/react-native/expo', { organization: 'nderon', project: 'matchday', url: 'https://sentry.io/' }]],
     android: {
       ...config.android,
       ...(googleServicesFile ? { googleServicesFile } : {}),

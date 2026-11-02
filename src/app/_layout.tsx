@@ -12,6 +12,7 @@ import { AuthProvider } from '@/providers/AuthProvider';
 import { queryClient } from '@/lib/queryClient';
 import { routeForNotification } from '@/lib/notifications';
 import { useOtaUpdates } from '@/hooks/useOtaUpdates';
+import { Sentry, reportError, sentryEnabled } from '@/lib/sentry';
 import { Button, ConfirmProvider, Text, ToastProvider } from '@/components/ui';
 import { space } from '@/theme/tokens';
 
@@ -36,7 +37,7 @@ function ThemedStack() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [loaded, error] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold });
   useEffect(() => {
     if (loaded || error) SplashScreen.hideAsync().catch(() => undefined);
@@ -60,7 +61,10 @@ export default function RootLayout() {
 }
 
 /** Top-level error boundary: recover without leaving the user stuck. */
+export default sentryEnabled ? Sentry.wrap(RootLayout) : RootLayout;
+
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  useEffect(() => reportError(error), [error]);
   return (
     <View style={{ flex: 1, backgroundColor: '#0A0C0F', alignItems: 'center', justifyContent: 'center', padding: space.xxl, gap: space.md }}>
       <Text variant="h2" color="#F4F6F8" align="center">Something went wrong</Text>
