@@ -14,6 +14,29 @@ MATCHDAY never stores or transmits card data and never holds customer funds.
 * Checkout is hosted by Stripe and works identically on iOS, Android (in-app browser) and web, so no
   native Stripe SDK is needed.
 
+## Booking fee (who pays card processing)
+
+With destination charges Stripe bills its processing fee to the **platform**, not the host. To avoid
+losing money on every payment while the host still receives exactly the advertised price, players pay a
+small **booking fee**, grossed up to cover the card fee: `(amount × rate + fixed) / (1 − rate)`.
+Defaults match UK cards (1.5% + 20p → 35p on £9); set `PLAYER_FEE_BPS` / `PLAYER_FEE_FIXED_PENCE`
+(or 0 to switch off). The fee is shown as its own line before paying and on Stripe Checkout, and is
+taken as the `application_fee_amount`. Optional `PLATFORM_FEE_BPS` takes an extra cut from the host.
+
+## Late fines
+
+Per-group setting (off by default): first fine (£1), cap (£8), on-time sessions to reset (3).
+* Hosts mark **Arrived late** on the attendance screen; only verified players in **paid** sessions are
+  fined (free sessions are ignored entirely, and hosts are never fined).
+* Amount = `min(cap, first × 2^level)`, where level counts late arrivals since the last reset; a reset
+  happens after N on-time paid sessions in a row. Waived lateness does not escalate.
+* Fines are added to the player's **next payment in that group** (database trigger on bill creation):
+  for pay-after sessions that's the same session's bill; for upfront sessions the next one. Released
+  holds return fines to "owed".
+* Hosts/admins can **waive**, **change the amount**, **mark paid in cash**, or **request a one-off card
+  payment** for owed fines (`payments.kind = 'fine'`). Everything is notified and audited.
+* Players see their level, next fine and owed amount on the session page and the group's Fines tab.
+
 ## Mode A — pay upfront (authorise now, capture after the game)
 
 The brief asked for funds to be held until the host confirms the session took place. Building our

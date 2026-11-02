@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import {
+  bookingFee, paymentLines,
   verifyStripeSignature, patchFromEvent, shouldTransition, canPayUpfrontNow, hostConfirmDeadline, applicationFee,
   accountFlagsFromEvent, buildExpoMessages, chunk,
 } from '../payments-core';
@@ -101,5 +102,26 @@ describe('push message building', () => {
     expect(msgs).toHaveLength(2);
     expect(msgs[0].data).toMatchObject({ session_id: 's', type: 'voting_open' });
     expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+  });
+});
+
+describe('booking fee and payment lines', () => {
+  it('covers the card fee so the host receives the full amount', () => {
+    expect(bookingFee(900)).toBe(35); // (13.5 + 20) / 0.985 = 34.01 → 35p
+    expect(bookingFee(1000)).toBe(36);
+    expect(bookingFee(0)).toBe(0);
+    expect(bookingFee(900, 0, 0)).toBe(0);
+    // after Stripe takes 1.5% + 20p of the total, the platform keeps at least £0
+    for (const amount of [100, 500, 900, 1700, 9999]) {
+      const fee = bookingFee(amount);
+      const stripeFee = Math.round((amount + fee) * 0.015 + 20);
+      expect(fee - stripeFee).toBeGreaterThanOrEqual(0);
+    }
+  });
+  it('itemises session fee, fines and booking fee', () => {
+    const r = paymentLines({ sessionPence: 900, fines: [{ label: 'Late fine', amount_pence: 200 }] });
+    expect(r.lines.map((l) => [l.kind, l.amount_pence])).toEqual([['session', 900], ['fine', 200], ['fee', 38]]);
+    expect(r).toMatchObject({ host_receives_pence: 1100, booking_fee_pence: 38, total_pence: 1138 });
+    expect(paymentLines({ sessionPence: 900, fines: [], feeRateBps: 0, feeFixedPence: 0 }).lines).toHaveLength(1);
   });
 });

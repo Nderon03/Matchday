@@ -19,6 +19,7 @@ import { space } from '@/theme/tokens';
 import { formatKickoff, formatPence, rating, timeUntil } from '@/domain/format';
 import { sameWeekdayNextWeek } from '@/features/sessionDates';
 import { removeSessionPlayer } from '@/features/removePlayer';
+import { LateStatusCard, useLateStatus } from '@/features/FinesPanel';
 import type { RsvpStatus } from '@/types/db';
 
 export default function SessionScreen() {
@@ -33,6 +34,7 @@ export default function SessionScreen() {
   const [tiebreak, setTiebreak] = useState<string | null>(null);
   const resultRef = useRef<HostInstance>(null);
   const confirm = useConfirm();
+  const lateStatus = useLateStatus(detail.data?.session.group_id, detail.data?.session.payment_mode !== 'free');
   const [guestOpen, setGuestOpen] = useState(false);
   const [guestName, setGuestName] = useState('');
 
@@ -141,6 +143,8 @@ export default function SessionScreen() {
           </Row>
         </Card>
       )}
+
+      {s.status === 'scheduled' && s.payment_mode !== 'free' && !!lateStatus.data?.enabled && <LateStatusCard status={lateStatus.data} />}
 
       {/* Player actions */}
       {s.status === 'scheduled' && (

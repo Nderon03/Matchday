@@ -7,6 +7,8 @@ import { PeoplePicker } from '@/components/football/PeoplePicker';
 import { keys, useFriends, useSessionDetail, type PublicProfile } from '@/hooks/queries';
 import { useAction } from '@/hooks/useAction';
 import { q, rpc } from '@/lib/api';
+import { useLateStatus } from '@/features/FinesPanel';
+import { formatPence } from '@/domain/format';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { useQuery } from '@tanstack/react-query';
@@ -21,6 +23,7 @@ export default function AttendanceScreen() {
   const [adding, setAdding] = useState<{ replacementFor: string | null } | null>(null);
   const [pick, setPick] = useState<Set<string>>(new Set());
   const d = detail.data;
+  const lateStatus = useLateStatus(d?.session.group_id, d?.session.payment_mode !== 'free');
   const members = useQuery({
     queryKey: ['group', d?.session.group_id, 'members-lite'],
     enabled: !!d?.session.group_id,
@@ -49,6 +52,11 @@ export default function AttendanceScreen() {
       <Header title="Attendance" subtitle={`${confirmed.length} confirmed · ${confirmed.filter((a) => a.checked_in_at).length} checked in`} />
       <Card variant="alt">
         <Text variant="small">You have the final say. Only verified players get official stats and can vote. When you complete the session, anyone in a line-up is verified automatically unless you marked them absent.</Text>
+        {!!lateStatus.data?.enabled && s.payment_mode !== 'free' && (
+          <Text variant="small" tone="warning" style={{ marginTop: space.sm }}>
+            Late fines are on in this group: “Arrived late” fines the player (doubling, max {formatPence(lateStatus.data.cap_pence)}). You can waive fines from the group’s Fines tab.
+          </Text>
+        )}
       </Card>
       {!locked && (
         <Row gap={space.sm} wrap>

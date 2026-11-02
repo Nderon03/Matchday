@@ -57,6 +57,10 @@ export interface GroupSettings {
   leaderboard_min_appearances: number;
   default_motm_mode: MotmMode;
   voting_window_hours: number;
+  late_fines_enabled: boolean;
+  late_fine_base_pence: number;
+  late_fine_cap_pence: number;
+  late_fine_reset_after: number;
 }
 
 export interface Season {
@@ -165,6 +169,7 @@ export interface Notification {
 
 export interface Payment {
   id: string;
+  kind: 'session' | 'fine';
   session_id: string;
   payer_id: string;
   amount_pence: number;

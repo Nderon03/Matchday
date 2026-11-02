@@ -16,7 +16,7 @@ Deno.serve(handler(async (req) => {
   if (body.action === 'confirm') {
     const { error } = await client.rpc('mark_host_confirmed', { p_session: body.session_id });
     if (error) throw error;
-    const { data: payments } = await admin.from('payments').select('*').eq('session_id', body.session_id).in('status', ['authorised', 'cancelled']);
+    const { data: payments } = await admin.from('payments').select('*').eq('session_id', body.session_id).eq('kind', 'session').in('status', ['authorised', 'cancelled']);
     const { data: att } = await admin.from('session_attendance').select('user_id, verification').eq('session_id', body.session_id);
     const absent = new Set((att ?? []).filter((a) => a.verification === 'absent').map((a) => a.user_id));
     const results = { captured: 0, released: 0, requested: 0, failed: 0 };

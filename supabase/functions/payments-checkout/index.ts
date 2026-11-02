@@ -1,92 +1,129 @@
-// Creates a Stripe Checkout Session for a player's session fee.
+// Creates a Stripe Checkout Session for a player's bill: session fee + any late fines,
+// plus a booking fee that covers card processing so the host receives the full amount.
 // Destination charge: funds settle to the host's connected account; the platform never holds them.
 // Upfront mode uses manual capture (authorise now, capture once the host confirms the game happened).
+// Checkout shows Apple Pay / Google Pay / cards automatically (enable them in the Stripe dashboard).
+//
+// Body: { session_id, payment_id?, quote? }
+//   quote: true → returns the itemised bill without creating anything.
+//   payment_id   → pay a specific bill (e.g. a one-off late-fine request).
 import { adminClient, handler, HttpError, json, requireUser } from '../_shared/http.ts';
 import { appUrl, stripeClient } from '../_shared/stripe.ts';
-import { applicationFee, canPayUpfrontNow } from '../_shared/payments-core.ts';
+import { applicationFee, canPayUpfrontNow, paymentLines } from '../_shared/payments-core.ts';
+
+const FEE_RATE_BPS = Number(Deno.env.get('PLAYER_FEE_BPS') ?? '150');
+const FEE_FIXED_PENCE = Number(Deno.env.get('PLAYER_FEE_FIXED_PENCE') ?? '20');
+const HOST_FEE_BPS = Number(Deno.env.get('PLATFORM_FEE_BPS') ?? '0');
 
 Deno.serve(handler(async (req) => {
   const { user } = await requireUser(req);
-  const { session_id } = (await req.json()) as { session_id: string };
-  if (!session_id) throw new HttpError(400, 'invalid', 'Missing session.');
+  const body = (await req.json()) as { session_id: string; payment_id?: string; quote?: boolean };
+  if (!body.session_id) throw new HttpError(400, 'invalid', 'Missing session.');
   const admin = adminClient();
 
-  const { data: s } = await admin.from('sessions').select('*').eq('id', session_id).maybeSingle();
+  const { data: s } = await admin.from('sessions').select('*').eq('id', body.session_id).maybeSingle();
   if (!s) throw new HttpError(404, 'not_found', 'Session could not be found.');
-  if (s.payment_mode === 'free') throw new HttpError(400, 'invalid', 'This session is free.');
-  if (s.status === 'cancelled') throw new HttpError(400, 'locked', 'This session was cancelled.');
-  if (s.host_id === user.id) throw new HttpError(400, 'invalid', 'Hosts do not pay themselves.');
 
-  const { data: attendance } = await admin.from('session_attendance').select('*').eq('session_id', session_id).eq('user_id', user.id).maybeSingle();
-  const { data: existing } = await admin.from('payments').select('*').eq('session_id', session_id).eq('payer_id', user.id).maybeSingle();
-
-  if (s.payment_mode === 'upfront') {
-    if (attendance?.status !== 'confirmed') throw new HttpError(400, 'not_attending', 'Confirm your attendance before paying.');
-    const window = canPayUpfrontNow(new Date(s.starts_at));
-    if (!window.ok) {
-      throw new HttpError(400, 'window_not_open', `Upfront payment opens ${window.opensAt!.toUTCString()} (card holds last up to 7 days).`);
+  // ---------------------------------------------------------------- which bill?
+  let payment: any = null;
+  if (body.payment_id) {
+    const { data } = await admin.from('payments').select('*').eq('id', body.payment_id).eq('payer_id', user.id).maybeSingle();
+    if (!data) throw new HttpError(404, 'not_found', 'Payment not found.');
+    payment = data;
+  } else {
+    if (s.payment_mode === 'free') throw new HttpError(400, 'invalid', 'This session is free.');
+    if (s.status === 'cancelled') throw new HttpError(400, 'locked', 'This session was cancelled.');
+    if (s.host_id === user.id) throw new HttpError(400, 'invalid', 'Hosts do not pay themselves.');
+    const { data: attendance } = await admin.from('session_attendance').select('*').eq('session_id', s.id).eq('user_id', user.id).maybeSingle();
+    const { data: existing } = await admin.from('payments').select('*').eq('session_id', s.id).eq('payer_id', user.id).eq('kind', 'session').maybeSingle();
+    if (s.payment_mode === 'upfront') {
+      if (attendance?.status !== 'confirmed') throw new HttpError(400, 'not_attending', 'Confirm your attendance before paying.');
+      const window = canPayUpfrontNow(new Date(s.starts_at));
+      if (!window.ok) throw new HttpError(400, 'window_not_open', `Upfront payment opens ${window.opensAt!.toUTCString()} (card holds last up to 7 days).`);
+      if (s.status !== 'scheduled' && s.status !== 'in_progress') throw new HttpError(400, 'locked', 'Upfront payment is closed for this session.');
+    } else if (!existing || attendance?.verification !== 'verified') {
+      throw new HttpError(400, 'not_due', 'Payment is requested after the session has been completed.');
     }
-    if (s.status !== 'scheduled' && s.status !== 'in_progress') throw new HttpError(400, 'locked', 'Upfront payment is closed for this session.');
-  } else if (!existing || attendance?.verification !== 'verified') {
-    throw new HttpError(400, 'not_due', 'Payment is requested after the session has been completed.');
+    payment = existing;
   }
-  if (existing && ['paid', 'authorised', 'partially_refunded', 'refunded', 'disputed'].includes(existing.status)) {
-    return json({ already_paid: true, status: existing.status });
+  if (payment && ['paid', 'authorised', 'partially_refunded', 'refunded', 'disputed'].includes(payment.status)) {
+    return json({ already_paid: true, status: payment.status });
   }
 
-  const { data: account } = await admin.from('payment_accounts').select('*').eq('user_id', s.host_id).maybeSingle();
+  // ---------------------------------------------------------------- itemise
+  const fineRows = async (paymentId: string | null) => {
+    if (paymentId) {
+      const { data } = await admin.from('late_fines').select('amount_pence, session:sessions(name)').eq('payment_id', paymentId);
+      return data ?? [];
+    }
+    if (!s.group_id) return [];
+    const { data } = await admin.from('late_fines').select('amount_pence, session:sessions(name)').eq('group_id', s.group_id).eq('user_id', user.id).eq('status', 'owed');
+    return data ?? [];
+  };
+  const fines = (await fineRows(payment?.id ?? null)).map((f: any) => ({ label: `Late fine (${f.session?.name ?? 'earlier session'})`, amount_pence: f.amount_pence }));
+  const finesTotal = fines.reduce((a, f) => a + f.amount_pence, 0);
+  const sessionPence = payment ? (payment.kind === 'fine' ? 0 : payment.amount_pence - finesTotal) : s.price_pence;
+  const bill = paymentLines({ sessionPence, fines, feeRateBps: FEE_RATE_BPS, feeFixedPence: FEE_FIXED_PENCE });
+
+  if (body.quote) return json(bill);
+
+  const payeeId = payment?.payee_id ?? s.host_id;
+  const { data: account } = await admin.from('payment_accounts').select('*').eq('user_id', payeeId).maybeSingle();
   if (!account?.charges_enabled) {
     throw new HttpError(400, 'host_not_ready', 'The host has not finished setting up payouts yet. Let them know, or pay them directly.');
   }
 
-  const fee = applicationFee(s.price_pence, Number(Deno.env.get('PLATFORM_FEE_BPS') ?? '0'));
-  const { data: payment, error } = await admin
-    .from('payments')
-    .upsert(
-      {
-        id: existing?.id,
-        session_id,
-        payer_id: user.id,
-        payee_id: s.host_id,
-        amount_pence: s.price_pence,
-        application_fee_pence: fee,
-        mode: s.payment_mode,
-        status: 'pending',
-        method: 'card',
-        failure_reason: null,
-      },
-      { onConflict: 'session_id,payer_id' },
-    )
-    .select()
-    .single();
-  if (error) throw error;
+  // ---------------------------------------------------------------- create / reuse the bill row
+  if (!payment) {
+    // inserting the bill attaches any owed late fines (database trigger)
+    const { data: created, error } = await admin.from('payments').insert({
+      session_id: s.id, payer_id: user.id, payee_id: s.host_id, amount_pence: s.price_pence, mode: s.payment_mode,
+      status: 'pending', method: 'card', kind: 'session',
+    }).select().single();
+    if (error) throw error;
+    const { data: fresh } = await admin.from('payments').select('*').eq('id', created.id).single();
+    payment = fresh;
+  } else {
+    await admin.from('payments').update({ status: 'pending', failure_reason: null, method: 'card' }).eq('id', payment.id);
+  }
+  // re-itemise from the stored bill so Stripe charges exactly what the database holds
+  const storedFines = (await fineRows(payment.id)).map((f: any) => ({ label: `Late fine (${f.session?.name ?? 'earlier session'})`, amount_pence: f.amount_pence }));
+  const storedFinesTotal = storedFines.reduce((a, f) => a + f.amount_pence, 0);
+  const final = paymentLines({
+    sessionPence: payment.kind === 'fine' ? 0 : payment.amount_pence - storedFinesTotal,
+    fines: storedFines, feeRateBps: FEE_RATE_BPS, feeFixedPence: FEE_FIXED_PENCE,
+  });
+  if (final.host_receives_pence !== payment.amount_pence) throw new HttpError(409, 'bill_changed', 'Your bill changed. Please try again.');
+
+  const platformFee = final.booking_fee_pence + applicationFee(payment.amount_pence, HOST_FEE_BPS);
+  await admin.from('payments').update({ application_fee_pence: platformFee }).eq('id', payment.id);
 
   const stripe = stripeClient();
   const checkout = await stripe.checkout.sessions.create(
     {
       mode: 'payment',
       customer_email: user.email,
-      line_items: [{
+      line_items: final.lines.map((l) => ({
         quantity: 1,
         price_data: {
           currency: s.currency,
-          unit_amount: s.price_pence,
-          product_data: { name: `${s.name} — match fee`, description: new Date(s.starts_at).toUTCString() },
+          unit_amount: l.amount_pence,
+          product_data: { name: l.kind === 'session' ? `${s.name} — match fee` : l.label },
         },
-      }],
+      })),
       payment_intent_data: {
-        capture_method: s.payment_mode === 'upfront' ? 'manual' : 'automatic',
-        application_fee_amount: fee || undefined,
+        capture_method: payment.mode === 'upfront' ? 'manual' : 'automatic',
+        application_fee_amount: platformFee || undefined,
         transfer_data: { destination: account.stripe_account_id },
-        metadata: { payment_id: payment.id, session_id, payer_id: user.id },
+        metadata: { payment_id: payment.id, session_id: s.id, payer_id: user.id, kind: payment.kind },
       },
-      metadata: { payment_id: payment.id, session_id },
-      success_url: appUrl(`session/${session_id}/payments?checkout=success`),
-      cancel_url: appUrl(`session/${session_id}/payments?checkout=cancelled`),
+      metadata: { payment_id: payment.id, session_id: s.id },
+      success_url: appUrl(`session/${s.id}/payments?checkout=success`),
+      cancel_url: appUrl(`session/${s.id}/payments?checkout=cancelled`),
       expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
     },
-    { idempotencyKey: `checkout-${payment.id}-${Date.now() >> 16}` },
+    { idempotencyKey: `checkout-${payment.id}-${payment.amount_pence}-${Date.now() >> 16}` },
   );
   await admin.from('payments').update({ stripe_checkout_session_id: checkout.id }).eq('id', payment.id);
-  return json({ url: checkout.url, payment_id: payment.id });
+  return json({ url: checkout.url, payment_id: payment.id, ...final });
 }));

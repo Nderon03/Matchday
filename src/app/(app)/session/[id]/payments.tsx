@@ -3,7 +3,7 @@ import { Linking, Platform, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useQuery } from '@tanstack/react-query';
-import { Avatar, Badge, Button, Card, ErrorState, Header, Loading, Row, Screen, SectionTitle, StatTile, Text } from '@/components/ui';
+import { Avatar, Badge, Button, Card, ErrorState, Header, Loading, Row, Screen, SectionTitle, StatTile, Text, useToast } from '@/components/ui';
 import { PaymentBadge, paymentLabel } from '@/components/football/PaymentBadge';
 import { keys, useSessionDetail } from '@/hooks/queries';
 import { useAction } from '@/hooks/useAction';
@@ -12,8 +12,12 @@ import { invoke, q, rpc } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { formatKickoff, formatPence } from '@/domain/format';
 import { useTheme } from '@/theme/ThemeProvider';
-import { space } from '@/theme/tokens';
+import { radius, space } from '@/theme/tokens';
 import type { Payment } from '@/types/db';
+import * as Clipboard from 'expo-clipboard';
+import { appLink } from '@/lib/links';
+
+interface PaymentQuote { lines: { label: string; amount_pence: number; kind: 'session' | 'fine' | 'fee' }[]; host_receives_pence: number; booking_fee_pence: number; total_pence: number }
 
 export default function PaymentsScreen() {
   const { id, checkout } = useLocalSearchParams<{ id: string; checkout?: string }>();
@@ -26,20 +30,31 @@ export default function PaymentsScreen() {
   const mine = useQuery({
     queryKey: ['my-payment', id],
     enabled: !!userId,
-    queryFn: () => q<Payment | null>(supabase.from('payments').select('*').eq('session_id', id).eq('payer_id', userId!).maybeSingle()),
-    refetchInterval: (query) => (query.state.data?.status === 'pending' ? 4000 : false),
+    queryFn: () => q<Payment[]>(supabase.from('payments').select('*').eq('session_id', id).eq('payer_id', userId!)),
+    refetchInterval: (query) => (query.state.data?.some((x) => x.status === 'pending') ? 4000 : false),
+  });
+  const sessionBill = mine.data?.find((x) => x.kind !== 'fine') ?? null;
+  const fineBills = (mine.data ?? []).filter((x) => x.kind === 'fine');
+  // itemised bill (session fee + late fines + booking fee) before paying
+  const quote = useQuery({
+    queryKey: ['payment-quote', id, sessionBill?.id ?? null, sessionBill?.amount_pence ?? null],
+    enabled: !!userId && !!detail.data && detail.data.session.payment_mode !== 'free' && detail.data.session.host_id !== userId
+      && !(sessionBill && ['paid', 'authorised', 'partially_refunded', 'refunded'].includes(sessionBill.status)),
+    retry: false,
+    queryFn: () => invoke<PaymentQuote>('payments-checkout', { session_id: id, quote: true }),
   });
   const [opening, setOpening] = useState(false);
+  const toast = useToast();
 
   if (detail.isLoading) return <Screen><Header title="Payments" /><Loading /></Screen>;
   if (!d) return <Screen><Header title="Payments" /><ErrorState error={detail.error} onRetry={detail.refetch} /></Screen>;
   const s = d.session;
-  const p = mine.data;
+  const p = sessionBill;
   const isHostSelf = s.host_id === userId;
 
-  const pay = async () => {
+  const pay = async (paymentId?: string) => {
     setOpening(true);
-    const r = await run('pay', () => invoke<{ url?: string; already_paid?: boolean }>('payments-checkout', { session_id: id }));
+    const r = await run('pay', () => invoke<{ url?: string; already_paid?: boolean }>('payments-checkout', { session_id: id, ...(paymentId ? { payment_id: paymentId } : {}) }));
     setOpening(false);
     if (r?.url) {
       if (Platform.OS === 'web') window.location.assign(r.url);
@@ -72,19 +87,50 @@ export default function PaymentsScreen() {
                     : 'Pay your share after the game.'}
                 </Text>
               </View>
-              <Text variant="h2">{formatPence(p?.amount_pence ?? s.price_pence)}</Text>
+              <Text variant="h2">{formatPence(quote.data?.total_pence ?? p?.amount_pence ?? s.price_pence)}</Text>
             </Row>
+            {!!quote.data && quote.data.lines.length > 1 && (
+              <View style={{ gap: 4, padding: space.md, borderRadius: radius.md, backgroundColor: colors.surfaceAlt }}>
+                {quote.data.lines.map((l, i) => (
+                  <Row key={i} style={{ justifyContent: 'space-between' }}>
+                    <Text variant="small" tone={l.kind === 'fine' ? 'warning' : l.kind === 'fee' ? 'muted' : 'default'} style={{ flex: 1 }}>{l.label}</Text>
+                    <Text variant="smallStrong">{formatPence(l.amount_pence)}</Text>
+                  </Row>
+                ))}
+                <Row style={{ justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 4, marginTop: 2 }}>
+                  <Text variant="smallStrong">Total</Text>
+                  <Text variant="smallStrong">{formatPence(quote.data.total_pence)}</Text>
+                </Row>
+                {quote.data.booking_fee_pence > 0 && <Text variant="caption" tone="faint">The booking fee covers card processing, so the host receives the full amount.</Text>}
+              </View>
+            )}
             {!!(p?.failure_reason) && p.status === 'failed' && <Text variant="small" tone="danger">{p.failure_reason}</Text>}
             {(!p || ['unpaid', 'failed', 'pending', 'cancelled'].includes(p.status)) && p?.method !== 'cash' && (
-              <Button title={p?.status === 'failed' ? 'Try again' : p?.status === 'pending' ? 'Resume payment' : 'Pay with card'} icon="lock-closed" size="lg" loading={opening || busy === 'pay'} onPress={pay}
+              <Button title={p?.status === 'failed' ? 'Try again' : p?.status === 'pending' ? 'Resume payment' : 'Pay now'} icon="lock-closed" size="lg" loading={opening || busy === 'pay'} onPress={() => pay()}
                 disabled={s.status === 'cancelled' || (s.payment_mode === 'upfront' && d.me?.status !== 'confirmed')} />
             )}
             {s.payment_mode === 'upfront' && d.me?.status !== 'confirmed' && !p && <Text variant="caption" tone="muted">Confirm your place to pay.</Text>}
             {!!(p?.receipt_url) && <Button title="View receipt" variant="ghost" icon="receipt-outline" onPress={() => Linking.openURL(p.receipt_url!)} />}
-            <Text variant="caption" tone="faint">Payments are processed by Stripe. MATCHDAY never sees or stores your card details. A status only changes once Stripe confirms it.</Text>
+            <Text variant="caption" tone="faint">Pay by card, Apple Pay or Google Pay — processed by Stripe. MATCHDAY never sees or stores your card details. A status only changes once Stripe confirms it.</Text>
           </View>
         </Card>
       )}
+
+      {fineBills.map((fb) => (
+        <Card key={fb.id} variant={fb.status === 'paid' ? 'default' : 'highlight'}>
+          <Row gap={space.md}>
+            <PaymentBadge status={fb.status} size={24} />
+            <View style={{ flex: 1 }}>
+              <Text variant="bodyStrong">Late fines</Text>
+              <Text variant="small" tone="muted">{paymentLabel(fb.status)}</Text>
+            </View>
+            <Text variant="h3">{formatPence(fb.amount_pence)}</Text>
+          </Row>
+          {['unpaid', 'failed', 'pending'].includes(fb.status) && (
+            <Button title="Pay late fines" icon="lock-closed" style={{ marginTop: space.md }} loading={opening} onPress={() => pay(fb.id)} />
+          )}
+        </Card>
+      ))}
 
       {!!d.isManager && (
         <View style={{ gap: space.sm }}>
@@ -116,7 +162,7 @@ export default function PaymentsScreen() {
                     <Avatar uri={pl.avatar_url} name={pl.display_name} size={32} />
                     <View style={{ flex: 1 }}>
                       <Text variant="bodyStrong">{pl.display_name}</Text>
-                      <Text variant="caption" tone="muted">{paymentLabel(pl.status)}{pl.method === 'cash' ? ' (cash)' : ''}{pl.refunded ? ` · ${formatPence(pl.refunded)} refunded` : ''}</Text>
+                      <Text variant="caption" tone="muted">{paymentLabel(pl.status)}{pl.method === 'cash' ? ' (cash)' : ''}{pl.fines_pence ? ` · incl. ${formatPence(pl.fines_pence)} late fine` : ''}{pl.refunded ? ` · ${formatPence(pl.refunded)} refunded` : ''}</Text>
                     </View>
                     <PaymentBadge status={pl.status} />
                     {['unpaid', 'failed'].includes(pl.status) && (
@@ -130,6 +176,10 @@ export default function PaymentsScreen() {
                 ))}
                 {!summary.data.players.length && <Text tone="muted" style={{ padding: space.lg }}>No players to collect from yet.</Text>}
               </Card>
+              <Button title="Copy payment link for the group chat" icon="link-outline" variant="secondary" onPress={async () => {
+                await Clipboard.setStringAsync(appLink(`/session/${id}/payments`));
+                toast.success('Payment link copied — paste it in your group chat');
+              }} />
               <Badge label="Funds settle directly to your Stripe account" tone="neutral" />
             </>
           )}

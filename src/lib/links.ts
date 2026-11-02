@@ -11,6 +11,12 @@ function webBase(): string | null {
   return null;
 }
 
+/** Shareable link to any screen (web address when available, else the app scheme). */
+export function appLink(path: string) {
+  const base = webBase();
+  return base ? `${base}${path}` : Linking.createURL(path);
+}
+
 /** Shareable link for an invite code. */
 export function inviteUrl(code: string) {
   const base = webBase();

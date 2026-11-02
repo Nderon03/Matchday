@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Avatar, Badge, Button, Card, Chip, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Segmented, Stepper, Text, useConfirm, useToast } from '@/components/ui';
 import { keys, useGroup, type GroupDetail } from '@/hooks/queries';
 import { removeGroupMember } from '@/features/removePlayer';
+import { formatPence } from '@/domain/format';
 import { useAction } from '@/hooks/useAction';
 import { useAuth } from '@/providers/AuthProvider';
 import { q, rpc } from '@/lib/api';
@@ -34,6 +35,8 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
   const [cfg, setCfg] = useState(settings ? {
     track_assists: settings.track_assists, leaderboard_min_appearances: settings.leaderboard_min_appearances, voting_window_hours: settings.voting_window_hours,
     rating_min_votes: settings.rating_min_votes, default_motm_mode: settings.default_motm_mode,
+    late_fines_enabled: settings.late_fines_enabled, late_fine_base_pence: settings.late_fine_base_pence,
+    late_fine_cap_pence: settings.late_fine_cap_pence, late_fine_reset_after: settings.late_fine_reset_after,
   } : null);
   const isOwner = myRole === 'owner';
 
@@ -93,6 +96,46 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
                 <Text>Default MOTM</Text>
                 <Segmented value={cfg.default_motm_mode} onChange={(v) => setCfg({ ...cfg, default_motm_mode: v })} options={[{ value: 'session', label: 'Per session' }, { value: 'fixture', label: 'Per game' }]} />
               </View>
+            </View>
+          </Card>
+        </>
+      )}
+      {cfg && (
+        <>
+          <SectionTitle title="Late fines" />
+          <Card>
+            <View style={{ gap: space.lg }}>
+              <Row style={{ justifyContent: 'space-between' }}>
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyStrong">Fine players who arrive late</Text>
+                  <Text variant="caption" tone="muted">Paid sessions only. Hosts mark lateness on the attendance screen and can waive any fine.</Text>
+                </View>
+                <Switch value={cfg.late_fines_enabled} onValueChange={(v) => setCfg({ ...cfg, late_fines_enabled: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Late fines" />
+              </Row>
+              {cfg.late_fines_enabled && (
+                <>
+                  <View style={{ gap: space.sm }}>
+                    <Text>First fine</Text>
+                    <Row gap={space.sm} wrap>
+                      {[50, 100, 200].map((v) => <Chip key={v} label={formatPence(v)} selected={cfg.late_fine_base_pence === v} onPress={() => setCfg({ ...cfg, late_fine_base_pence: v })} />)}
+                    </Row>
+                  </View>
+                  <View style={{ gap: space.sm }}>
+                    <Text>Maximum fine</Text>
+                    <Row gap={space.sm} wrap>
+                      {[400, 800, 1000, 1500].map((v) => <Chip key={v} label={formatPence(v)} selected={cfg.late_fine_cap_pence === v} onPress={() => setCfg({ ...cfg, late_fine_cap_pence: v })} />)}
+                    </Row>
+                  </View>
+                  <Row style={{ justifyContent: 'space-between' }}>
+                    <View style={{ flex: 1 }}><Text>On-time sessions in a row to reset</Text></View>
+                    <Stepper value={cfg.late_fine_reset_after} onChange={(v) => setCfg({ ...cfg, late_fine_reset_after: v })} min={1} max={20} label="On-time sessions to reset" />
+                  </Row>
+                  <Text variant="caption" tone="muted">
+                    Each late arrival doubles the fine: {[0, 1, 2, 3, 4].map((n) => formatPence(Math.min(cfg.late_fine_cap_pence, cfg.late_fine_base_pence * 2 ** n))).join(' → ')}.
+                    {' '}Fines are added to the player’s next payment in this group.
+                  </Text>
+                </>
+              )}
             </View>
           </Card>
         </>

@@ -32,6 +32,34 @@ export function applicationFee(amountPence: number, feeBps: number): number {
   return Math.min(amountPence, Math.round((amountPence * feeBps) / 10_000));
 }
 
+/**
+ * Booking fee paid by the player so the host receives the full advertised amount and the
+ * platform's Stripe processing fee (destination charges bill the platform) is covered.
+ * Grossed up: fee = (amount × rate + fixed) / (1 − rate), rounded up. Defaults: UK cards 1.5% + 20p.
+ */
+export function bookingFee(amountPence: number, rateBps = 150, fixedPence = 20): number {
+  if (amountPence <= 0 || (rateBps <= 0 && fixedPence <= 0)) return 0;
+  const rate = Math.max(0, rateBps) / 10_000;
+  return Math.ceil((amountPence * rate + Math.max(0, fixedPence)) / (1 - rate));
+}
+
+export interface PaymentLine {
+  label: string;
+  amount_pence: number;
+  kind: 'session' | 'fine' | 'fee';
+}
+
+/** Lines shown before paying and on Stripe Checkout. */
+export function paymentLines(opts: { sessionPence: number; fines: { label: string; amount_pence: number }[]; feeRateBps?: number; feeFixedPence?: number }) {
+  const lines: PaymentLine[] = [];
+  if (opts.sessionPence > 0) lines.push({ label: 'Session fee', amount_pence: opts.sessionPence, kind: 'session' });
+  for (const f of opts.fines) if (f.amount_pence > 0) lines.push({ label: f.label, amount_pence: f.amount_pence, kind: 'fine' });
+  const hostReceives = lines.reduce((a, l) => a + l.amount_pence, 0);
+  const fee = bookingFee(hostReceives, opts.feeRateBps, opts.feeFixedPence);
+  if (fee > 0) lines.push({ label: 'Booking fee', amount_pence: fee, kind: 'fee' });
+  return { lines, host_receives_pence: hostReceives, booking_fee_pence: fee, total_pence: hostReceives + fee };
+}
+
 /** Allowed status transitions; webhooks may arrive out of order, so never regress. */
 const ALLOWED_FROM: Record<PaymentStatus, PaymentStatus[]> = {
   pending: ['unpaid', 'failed', 'cancelled'],

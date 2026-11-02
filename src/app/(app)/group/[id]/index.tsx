@@ -20,11 +20,12 @@ import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/domain/format';
 import { shareText } from '@/lib/share';
 import { removeGroupMember } from '@/features/removePlayer';
+import { FinesPanel } from '@/features/FinesPanel';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 
-type Tab = 'overview' | 'members' | 'fixtures' | 'results' | 'tables' | 'awards' | 'seasons' | 'feed' | 'records';
+type Tab = 'overview' | 'members' | 'fixtures' | 'results' | 'tables' | 'awards' | 'seasons' | 'feed' | 'records' | 'fines';
 const AWARD_LABEL: Record<string, string> = {
   player_of_season: 'Player of the Season', golden_boot: 'Golden Boot', most_motm: 'Most MOTM Awards', highest_rating: 'Highest Average Rating',
   most_appearances: 'Most Appearances', most_wins: 'Most Wins', best_win_pct: 'Best Win Percentage', most_improved: 'Most Improved Player', most_assists: 'Playmaker (Most Assists)',
@@ -107,7 +108,9 @@ export default function GroupScreen() {
         { value: 'overview', label: 'Overview' }, { value: 'fixtures', label: 'Fixtures' }, { value: 'results', label: 'Results' },
         { value: 'tables', label: 'Tables' }, { value: 'members', label: 'Members' }, { value: 'awards', label: 'Awards' },
         { value: 'seasons', label: 'Seasons' }, { value: 'feed', label: 'Feed' }, { value: 'records', label: 'Records' },
+        ...(myRole && (isAdmin || settings?.late_fines_enabled) ? [{ value: 'fines' as const, label: 'Fines' }] : []),
       ]} />
+      {tab === 'fines' && !!myRole && <FinesPanel groupId={id} isAdmin={isAdmin} />}
 
       {tab === 'overview' && (
         <View style={{ gap: space.lg }}>
