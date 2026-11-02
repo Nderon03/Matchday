@@ -14,6 +14,7 @@ import type { ProfileVisibility } from '@/types/db';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import { CONTACT_EMAIL } from '@/legal/content';
+import { reportError, sentryEnabled } from '@/lib/sentry';
 
 /** Version line: app version plus which over-the-air update is running (handy when checking an update arrived). */
 function versionLabel() {
@@ -31,6 +32,7 @@ export default function Settings() {
   const qc = useQueryClient();
   const toast = useToast();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [taps, setTaps] = useState(0);
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -83,7 +85,17 @@ export default function Settings() {
       <SectionTitle title="Account" />
       <Button title="Sign out" variant="secondary" icon="log-out-outline" onPress={signOut} />
       <Button title="Delete account" variant="danger" icon="trash-outline" onPress={() => setDeleteOpen(true)} />
-      <Text variant="caption" tone="faint" align="center">{versionLabel()}</Text>
+      <Text variant="caption" tone="faint" align="center" onPress={() => {
+        // hidden check: tap 5 times to send a test error to crash reporting
+        const n = taps + 1;
+        setTaps(n);
+        if (n === 5) {
+          setTaps(0);
+          if (!sentryEnabled) return toast.show('Crash reporting is off in this build (no Sentry DSN).', 'error');
+          reportError(new Error('MATCHDAY test error (sent from Settings)'));
+          toast.success('Test error sent to Sentry');
+        }
+      }}>{versionLabel()}</Text>
 
       <Sheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete your account">
         <Text tone="muted">This permanently deletes your profile, friends, statistics and notifications. Groups you own are handed to another admin. This cannot be undone.</Text>
