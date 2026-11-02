@@ -144,12 +144,19 @@ export function patchFromEvent(event: StripeEventLike): PaymentPatch | null {
   }
 }
 
+/** A host can receive payments once Stripe has activated transfers (or card payments) on their account. */
+export function canReceivePayments(account: { charges_enabled?: boolean; capabilities?: Record<string, string> | null }) {
+  return Boolean(account.charges_enabled) || account.capabilities?.transfers === 'active';
+}
+
 export function accountFlagsFromEvent(event: StripeEventLike) {
   if (event.type !== 'account.updated') return null;
   const a = event.data.object;
   return {
     stripe_account_id: a.id as string,
-    charges_enabled: Boolean(a.charges_enabled),
+    // "can receive player payments": recipient accounts (money → platform → host) have the
+    // transfers capability but not card_payments, so charges_enabled alone would be false
+    charges_enabled: canReceivePayments(a),
     payouts_enabled: Boolean(a.payouts_enabled),
     details_submitted: Boolean(a.details_submitted),
   };

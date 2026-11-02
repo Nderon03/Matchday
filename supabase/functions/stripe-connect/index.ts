@@ -2,6 +2,7 @@
 // Stripe performs identity verification (KYC) and manages payouts; MATCHDAY never holds funds.
 import { adminClient, handler, json, requireUser } from '../_shared/http.ts';
 import { appUrl, stripeClient } from '../_shared/stripe.ts';
+import { canReceivePayments } from '../_shared/payments-core.ts';
 
 Deno.serve(handler(async (req) => {
   const { user } = await requireUser(req);
@@ -15,7 +16,7 @@ Deno.serve(handler(async (req) => {
   if (action === 'status') {
     if (!accountId) return json({ connected: false });
     const acct = await stripe.accounts.retrieve(accountId);
-    const flags = { charges_enabled: acct.charges_enabled, payouts_enabled: acct.payouts_enabled, details_submitted: acct.details_submitted };
+    const flags = { charges_enabled: canReceivePayments(acct as any), payouts_enabled: acct.payouts_enabled, details_submitted: acct.details_submitted };
     await admin.from('payment_accounts').update(flags).eq('user_id', user.id);
     return json({ connected: true, ...flags, requirements: acct.requirements?.currently_due ?? [] });
   }
@@ -32,7 +33,8 @@ Deno.serve(handler(async (req) => {
       country: 'GB',
       email: user.email,
       business_type: 'individual',
-      capabilities: { card_payments: { requested: true }, transfers: { requested: true } },
+      // hosts are recipients: players pay the platform and Stripe transfers the host's share
+      capabilities: { transfers: { requested: true } },
       business_profile: { mcc: '7941', product_description: 'Collecting player contributions for casual football sessions' },
       metadata: { matchday_user_id: user.id },
     });

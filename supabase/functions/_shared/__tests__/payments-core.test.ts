@@ -2,7 +2,7 @@ import Stripe from 'stripe';
 import {
   bookingFee, paymentLines,
   verifyStripeSignature, patchFromEvent, shouldTransition, canPayUpfrontNow, hostConfirmDeadline, applicationFee,
-  accountFlagsFromEvent, buildExpoMessages, chunk,
+  accountFlagsFromEvent, buildExpoMessages, chunk, canReceivePayments,
 } from '../payments-core';
 
 const secret = 'whsec_test_secret';
@@ -54,6 +54,11 @@ describe('event → payment status mapping', () => {
     expect(patchFromEvent(ev('charge.dispute.created', { payment_intent: 'pi' }))?.status).toBe('disputed');
     expect(patchFromEvent(ev('checkout.session.expired', { id: 'cs' }))?.status).toBe('unpaid');
     expect(patchFromEvent(ev('customer.created', {}))).toBeNull();
+  });
+  it('recipient accounts can receive payments once transfers are active', () => {
+    expect(canReceivePayments({ charges_enabled: false, capabilities: { transfers: 'active' } })).toBe(true);
+    expect(canReceivePayments({ charges_enabled: false, capabilities: { transfers: 'pending' } })).toBe(false);
+    expect(accountFlagsFromEvent(ev('account.updated', { id: 'acct_2', charges_enabled: false, capabilities: { transfers: 'active' }, payouts_enabled: true, details_submitted: true }))?.charges_enabled).toBe(true);
   });
   it('account updates sync connected-account flags', () => {
     expect(accountFlagsFromEvent(ev('account.updated', { id: 'acct_1', charges_enabled: true, payouts_enabled: false, details_submitted: true })))
