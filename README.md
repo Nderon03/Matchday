@@ -187,12 +187,14 @@ and schedule `payments-cron`. Hosts connect payouts in **Settings → Payouts**.
 
 ## Android build
 
+Step-by-step guide (env variables, push credentials, devices): [docs/MOBILE_BUILD.md](docs/MOBILE_BUILD.md).
+
 ```bash
 npx eas-cli@latest login
 ```
 
 ```bash
-npx eas-cli@latest build --profile development --platform android   # dev client for local testing
+npx eas-cli@latest build --profile preview --platform android      # installable APK for testing
 ```
 
 ```bash
@@ -205,7 +207,7 @@ production Supabase project. Package id: `app.matchday.android` (change in `app.
 ## iOS build
 
 ```bash
-npx eas-cli@latest build --profile development --platform ios
+npx eas-cli@latest build --profile preview --platform ios        # ad-hoc build for registered iPhones
 ```
 
 ```bash

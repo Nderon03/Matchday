@@ -79,10 +79,7 @@
       "typedRoutes": false
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": ""
-      }
+      "router": {}
     }
   }
 }
