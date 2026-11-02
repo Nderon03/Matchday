@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { Badge, Card, Row, Text } from '@/components/ui';
-import { formatKickoff, formatPence } from '@/domain/format';
+import { formatKickoff } from '@/domain/format';
+import { usePriceLabel } from '@/hooks/useFees';
 import type { Session } from '@/types/db';
 
 export function statusBadge(s: Pick<Session, 'status'>, myStatus?: string) {
@@ -22,6 +23,7 @@ export function statusBadge(s: Pick<Session, 'status'>, myStatus?: string) {
 
 export function SessionCard({ session, myStatus, confirmed, groupName }: { session: Session; myStatus?: string; confirmed?: number; groupName?: string | null }) {
   const { colors } = useTheme();
+  const price = usePriceLabel();
   return (
     <Card onPress={() => router.push(`/session/${session.id}`)} accessibilityLabel={`${session.name}, ${formatKickoff(session.starts_at)}`}>
       <View style={{ gap: space.sm }}>
@@ -39,7 +41,7 @@ export function SessionCard({ session, myStatus, confirmed, groupName }: { sessi
             <Row gap={6}><Ionicons name="people-outline" size={15} color={colors.textMuted} /><Text variant="small" tone="muted">{confirmed}/{session.max_attendance}</Text></Row>
           )}
           {session.payment_mode !== 'free' && (
-            <Row gap={6}><Ionicons name="card-outline" size={15} color={colors.textMuted} /><Text variant="small" tone="muted">{formatPence(session.price_pence)}</Text></Row>
+            <Row gap={6}><Ionicons name="card-outline" size={15} color={colors.textMuted} /><Text variant="small" tone="muted">{price(session.price_pence).total}</Text></Row>
           )}
         </Row>
       </View>

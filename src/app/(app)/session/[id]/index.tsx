@@ -16,10 +16,11 @@ import { rpc } from '@/lib/api';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
-import { formatKickoff, formatPence, rating, timeUntil } from '@/domain/format';
+import { formatKickoff, rating, timeUntil } from '@/domain/format';
 import { sameWeekdayNextWeek } from '@/features/sessionDates';
 import { removeSessionPlayer } from '@/features/removePlayer';
 import { LateStatusCard, useLateStatus } from '@/features/FinesPanel';
+import { usePriceLabel } from '@/hooks/useFees';
 import type { RsvpStatus } from '@/types/db';
 
 export default function SessionScreen() {
@@ -34,6 +35,7 @@ export default function SessionScreen() {
   const [tiebreak, setTiebreak] = useState<string | null>(null);
   const resultRef = useRef<HostInstance>(null);
   const confirm = useConfirm();
+  const price = usePriceLabel();
   const lateStatus = useLateStatus(detail.data?.session.group_id, detail.data?.session.payment_mode !== 'free');
   const [guestOpen, setGuestOpen] = useState(false);
   const [guestName, setGuestName] = useState('');
@@ -124,7 +126,15 @@ export default function SessionScreen() {
             <Row gap={8}><Ionicons name="time-outline" size={17} color={colors.textMuted} /><Text>{formatKickoff(s.starts_at)} · {s.duration_minutes} min</Text></Row>
             {(s.venue || s.location) && <Row gap={8}><Ionicons name="location-outline" size={17} color={colors.textMuted} /><Text style={{ flex: 1 }}>{[s.venue, s.location].filter(Boolean).join(' · ')}</Text></Row>}
             <Row gap={8}><Ionicons name="people-outline" size={17} color={colors.textMuted} /><Text>{groups.confirmed.length + guestsIn.length}/{s.max_attendance} confirmed{guestsIn.length ? ` (incl. ${guestsIn.length} guest${guestsIn.length > 1 ? 's' : ''})` : ''}{groups.waitlisted.length ? ` · ${groups.waitlisted.length} waiting` : ''}</Text></Row>
-            {s.payment_mode !== 'free' && <Row gap={8}><Ionicons name="card-outline" size={17} color={colors.textMuted} /><Text>{formatPence(s.price_pence)} per player · {s.payment_mode === 'upfront' ? 'pay upfront' : 'pay after'}</Text></Row>}
+            {s.payment_mode !== 'free' && (
+              <Row gap={8} style={{ alignItems: 'flex-start' }}>
+                <Ionicons name="card-outline" size={17} color={colors.textMuted} style={{ marginTop: 2 }} />
+                <View style={{ flex: 1 }}>
+                  <Text>{price(s.price_pence).total} per player · {s.payment_mode === 'upfront' ? 'pay upfront' : 'pay after'}</Text>
+                  {!!price(s.price_pence).detail && <Text variant="caption" tone="muted">{price(s.price_pence).breakdown}</Text>}
+                </View>
+              </Row>
+            )}
             {!!d.host && <Row gap={8}><Avatar uri={d.host.avatar_url} name={d.host.display_name} size={20} /><Text tone="muted">Hosted by {d.host.display_name}</Text></Row>}
           </View>
           {!!s.description && <Text tone="muted" variant="small">{s.description}</Text>}
@@ -193,8 +203,8 @@ export default function SessionScreen() {
           <Row gap={space.md}>
             <PaymentBadge status={myPayment} size={24} />
             <View style={{ flex: 1 }}>
-              <Text variant="bodyStrong">{myPayment === 'paid' ? 'Paid' : myPayment === 'authorised' ? 'Card authorised' : `${formatPence(s.price_pence)} due`}</Text>
-              <Text variant="small" tone="muted">{myPayment === 'paid' ? 'Thanks! Receipt in payments.' : 'Tap to pay securely with Stripe'}</Text>
+              <Text variant="bodyStrong">{myPayment === 'paid' ? 'Paid' : myPayment === 'authorised' ? 'Card authorised' : `${price(s.price_pence).total} due`}</Text>
+              <Text variant="small" tone="muted">{myPayment === 'paid' ? 'Thanks! Receipt in payments.' : 'Tap to pay by card, Apple Pay or Google Pay'}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
           </Row>

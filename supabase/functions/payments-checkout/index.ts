@@ -11,8 +11,6 @@ import { adminClient, handler, HttpError, json, requireUser } from '../_shared/h
 import { appUrl, stripeClient } from '../_shared/stripe.ts';
 import { applicationFee, canPayUpfrontNow, paymentLines } from '../_shared/payments-core.ts';
 
-const FEE_RATE_BPS = Number(Deno.env.get('PLAYER_FEE_BPS') ?? '150');
-const FEE_FIXED_PENCE = Number(Deno.env.get('PLAYER_FEE_FIXED_PENCE') ?? '20');
 const HOST_FEE_BPS = Number(Deno.env.get('PLATFORM_FEE_BPS') ?? '0');
 
 Deno.serve(handler(async (req) => {
@@ -20,6 +18,11 @@ Deno.serve(handler(async (req) => {
   const body = (await req.json()) as { session_id: string; payment_id?: string; quote?: boolean };
   if (!body.session_id) throw new HttpError(400, 'invalid', 'Missing session.');
   const admin = adminClient();
+  // booking fee settings live in the database (app_settings) so they can change without a redeploy
+  const { data: fees } = await admin.from('app_settings').select('*').maybeSingle();
+  const FEE_RATE_BPS = fees?.booking_fee_rate_bps ?? 150;
+  const FEE_FIXED_PENCE = fees?.booking_fee_fixed_pence ?? 20;
+  const FEE_MIN_PENCE = fees?.booking_fee_min_pence ?? 50;
 
   const { data: s } = await admin.from('sessions').select('*').eq('id', body.session_id).maybeSingle();
   if (!s) throw new HttpError(404, 'not_found', 'Session could not be found.');
@@ -63,7 +66,7 @@ Deno.serve(handler(async (req) => {
   const fines = (await fineRows(payment?.id ?? null)).map((f: any) => ({ label: `Late fine (${f.session?.name ?? 'earlier session'})`, amount_pence: f.amount_pence }));
   const finesTotal = fines.reduce((a, f) => a + f.amount_pence, 0);
   const sessionPence = payment ? (payment.kind === 'fine' ? 0 : payment.amount_pence - finesTotal) : s.price_pence;
-  const bill = paymentLines({ sessionPence, fines, feeRateBps: FEE_RATE_BPS, feeFixedPence: FEE_FIXED_PENCE });
+  const bill = paymentLines({ sessionPence, fines, feeRateBps: FEE_RATE_BPS, feeFixedPence: FEE_FIXED_PENCE, feeMinPence: FEE_MIN_PENCE });
 
   if (body.quote) return json(bill);
 
@@ -91,7 +94,7 @@ Deno.serve(handler(async (req) => {
   const storedFinesTotal = storedFines.reduce((a, f) => a + f.amount_pence, 0);
   const final = paymentLines({
     sessionPence: payment.kind === 'fine' ? 0 : payment.amount_pence - storedFinesTotal,
-    fines: storedFines, feeRateBps: FEE_RATE_BPS, feeFixedPence: FEE_FIXED_PENCE,
+    fines: storedFines, feeRateBps: FEE_RATE_BPS, feeFixedPence: FEE_FIXED_PENCE, feeMinPence: FEE_MIN_PENCE,
   });
   if (final.host_receives_pence !== payment.amount_pence) throw new HttpError(409, 'bill_changed', 'Your bill changed. Please try again.');
 

@@ -8,7 +8,8 @@ import { useAuth } from '@/providers/AuthProvider';
 import { rpc } from '@/lib/api';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
-import { formatKickoff, formatPence } from '@/domain/format';
+import { formatKickoff } from '@/domain/format';
+import { usePriceLabel } from '@/hooks/useFees';
 import { sameWeekdayNextWeek } from '@/features/sessionDates';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -37,6 +38,7 @@ export default function Create() {
   const toast = useToast();
   const qc = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
+  const price = usePriceLabel();
   const lastHosted = sessions.data?.filter((s) => s.host_id === userId && s.status !== 'cancelled').sort((a, b) => b.starts_at.localeCompare(a.starts_at))[0];
 
   const repeat = async () => {
@@ -92,7 +94,7 @@ export default function Create() {
                   <Text variant="bodyStrong">{t.name}</Text>
                   <Text variant="small" tone="muted">
                     {t.format_size}-a-side · {t.recurrence !== 'none' ? `${t.recurrence} · ` : ''}{String(t.start_time).slice(0, 5)}
-                    {t.venue ? ` · ${t.venue}` : ''}{t.payment_mode !== 'free' ? ` · ${formatPence(t.price_pence)}` : ''}
+                    {t.venue ? ` · ${t.venue}` : ''}{t.payment_mode !== 'free' ? ` · ${price(t.price_pence).total} per player` : ''}
                   </Text>
                 </View>
                 <Text variant="smallStrong" tone="primary">Use</Text>

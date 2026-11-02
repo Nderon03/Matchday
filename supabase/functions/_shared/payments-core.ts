@@ -33,14 +33,16 @@ export function applicationFee(amountPence: number, feeBps: number): number {
 }
 
 /**
- * Booking fee paid by the player so the host receives the full advertised amount and the
- * platform's Stripe processing fee (destination charges bill the platform) is covered.
- * Grossed up: fee = (amount × rate + fixed) / (1 − rate), rounded up. Defaults: UK cards 1.5% + 20p.
+ * Booking fee paid by the player on top of the host's price. It goes to the platform (app owner),
+ * covers Stripe's processing fee (destination charges bill the platform) and the remainder is
+ * platform revenue. The host always receives their full price.
+ * fee = max(minimum, ceil((amount × rate + fixed) / (1 − rate))). Mirrors src/domain/fees.ts.
  */
-export function bookingFee(amountPence: number, rateBps = 150, fixedPence = 20): number {
-  if (amountPence <= 0 || (rateBps <= 0 && fixedPence <= 0)) return 0;
+export function bookingFee(amountPence: number, rateBps = 150, fixedPence = 20, minPence = 0): number {
+  if (amountPence <= 0) return 0;
   const rate = Math.max(0, rateBps) / 10_000;
-  return Math.ceil((amountPence * rate + Math.max(0, fixedPence)) / (1 - rate));
+  const covering = rate > 0 || fixedPence > 0 ? Math.ceil((amountPence * rate + Math.max(0, fixedPence)) / (1 - rate)) : 0;
+  return Math.max(Math.max(0, minPence), covering);
 }
 
 export interface PaymentLine {
@@ -50,12 +52,12 @@ export interface PaymentLine {
 }
 
 /** Lines shown before paying and on Stripe Checkout. */
-export function paymentLines(opts: { sessionPence: number; fines: { label: string; amount_pence: number }[]; feeRateBps?: number; feeFixedPence?: number }) {
+export function paymentLines(opts: { sessionPence: number; fines: { label: string; amount_pence: number }[]; feeRateBps?: number; feeFixedPence?: number; feeMinPence?: number }) {
   const lines: PaymentLine[] = [];
   if (opts.sessionPence > 0) lines.push({ label: 'Session fee', amount_pence: opts.sessionPence, kind: 'session' });
   for (const f of opts.fines) if (f.amount_pence > 0) lines.push({ label: f.label, amount_pence: f.amount_pence, kind: 'fine' });
   const hostReceives = lines.reduce((a, l) => a + l.amount_pence, 0);
-  const fee = bookingFee(hostReceives, opts.feeRateBps, opts.feeFixedPence);
+  const fee = bookingFee(hostReceives, opts.feeRateBps, opts.feeFixedPence, opts.feeMinPence);
   if (fee > 0) lines.push({ label: 'Booking fee', amount_pence: fee, kind: 'fee' });
   return { lines, host_receives_pence: hostReceives, booking_fee_pence: fee, total_pence: hostReceives + fee };
 }

@@ -16,6 +16,7 @@ import { radius, space } from '@/theme/tokens';
 import type { Payment } from '@/types/db';
 import * as Clipboard from 'expo-clipboard';
 import { appLink } from '@/lib/links';
+import { usePriceLabel } from '@/hooks/useFees';
 
 interface PaymentQuote { lines: { label: string; amount_pence: number; kind: 'session' | 'fine' | 'fee' }[]; host_receives_pence: number; booking_fee_pence: number; total_pence: number }
 
@@ -45,6 +46,7 @@ export default function PaymentsScreen() {
   });
   const [opening, setOpening] = useState(false);
   const toast = useToast();
+  const price = usePriceLabel();
 
   if (detail.isLoading) return <Screen><Header title="Payments" /><Loading /></Screen>;
   if (!d) return <Screen><Header title="Payments" /><ErrorState error={detail.error} onRetry={detail.refetch} /></Screen>;
@@ -67,7 +69,7 @@ export default function PaymentsScreen() {
 
   return (
     <Screen edges={['top', 'bottom']} maxWidth={640} onRefresh={() => { mine.refetch(); summary.refetch(); }} refreshing={mine.isRefetching}>
-      <Header title="Payments" subtitle={`${s.name} · ${formatPence(s.price_pence)} per player`} />
+      <Header title="Payments" subtitle={`${s.name} · ${price(s.price_pence).total} per player`} />
 
       {checkout === 'success' && p?.status !== 'paid' && p?.status !== 'authorised' && (
         <Card variant="alt"><Text variant="small">Payment submitted — waiting for Stripe to confirm. This usually takes a few seconds; your status updates automatically.</Text></Card>
@@ -144,6 +146,9 @@ export default function PaymentsScreen() {
                 <StatTile compact label="Outstanding" value={formatPence(summary.data.outstanding_pence)} />
                 {summary.data.authorised_pence > 0 && <StatTile compact label="Authorised" value={formatPence(summary.data.authorised_pence)} />}
               </Row>
+              <Text variant="caption" tone="muted">
+                You receive {formatPence(s.price_pence)} per player (plus any late fines). Players pay {price(s.price_pence).total}: the {formatPence(price(s.price_pence).feePence)} booking fee goes to MATCHDAY and covers card processing.
+              </Text>
               <Text variant="caption" tone="muted">{summary.data.paid_count} paid · {summary.data.unpaid_count} unpaid · {summary.data.failed_count} failed · {summary.data.refunded_count} refunded</Text>
               {s.payment_mode === 'upfront' && !s.host_confirmed_at && new Date(s.starts_at) < new Date() && (
                 <Card variant="highlight">

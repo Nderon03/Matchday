@@ -9,7 +9,8 @@ import { useFeed, useHome } from '@/hooks/queries';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
-import { formatKickoff, formatPence, rating } from '@/domain/format';
+import { formatKickoff, rating } from '@/domain/format';
+import { usePriceLabel } from '@/hooks/useFees';
 import { useLayout } from '@/hooks/useLayout';
 
 function greeting() {
@@ -23,6 +24,7 @@ export default function Home() {
   const { isWide } = useLayout();
   const home = useHome();
   const feed = useFeed();
+  const price = usePriceLabel();
   const d = home.data;
   const next = d?.next_session;
   const career = d?.career;
@@ -74,7 +76,7 @@ export default function Home() {
                   <View style={{ gap: 6 }}>
                     <Row gap={6}><Ionicons name="time-outline" size={16} color={colors.textMuted} /><Text tone="muted">{formatKickoff(next.starts_at)}</Text></Row>
                     {(next.venue || next.location) && <Row gap={6}><Ionicons name="location-outline" size={16} color={colors.textMuted} /><Text tone="muted">{[next.venue, next.location].filter(Boolean).join(' · ')}</Text></Row>}
-                    <Row gap={6}><Ionicons name="people-outline" size={16} color={colors.textMuted} /><Text tone="muted">{next.confirmed}/{next.max_attendance} confirmed{next.payment_mode !== 'free' ? ` · ${formatPence(next.price_pence)} each` : ''}</Text></Row>
+                    <Row gap={6}><Ionicons name="people-outline" size={16} color={colors.textMuted} /><Text tone="muted">{next.confirmed}/{next.max_attendance} confirmed{next.payment_mode !== 'free' ? ` · ${price(next.price_pence).total} each` : ''}</Text></Row>
                   </View>
                   <Row gap={space.sm}>
                     <Button title={next.lineup_ready ? 'View teams' : 'Squad'} size="sm" variant="secondary" icon="shirt-outline" onPress={() => router.push(`/session/${next.id}/lineup`)} />

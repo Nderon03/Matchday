@@ -1,5 +1,7 @@
 export function formatPence(pence: number, currency = 'gbp'): string {
   const symbol = currency.toLowerCase() === 'gbp' ? '£' : currency.toLowerCase() === 'eur' ? '€' : '$';
+  // under £1 reads naturally as pence: "50p"
+  if (currency.toLowerCase() === 'gbp' && pence > 0 && pence < 100) return `${pence}p`;
   const value = pence / 100;
   return `${symbol}${Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2)}`;
 }

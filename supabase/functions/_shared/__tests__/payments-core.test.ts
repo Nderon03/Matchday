@@ -123,5 +123,7 @@ describe('booking fee and payment lines', () => {
     expect(r.lines.map((l) => [l.kind, l.amount_pence])).toEqual([['session', 900], ['fine', 200], ['fee', 38]]);
     expect(r).toMatchObject({ host_receives_pence: 1100, booking_fee_pence: 38, total_pence: 1138 });
     expect(paymentLines({ sessionPence: 900, fines: [], feeRateBps: 0, feeFixedPence: 0 }).lines).toHaveLength(1);
+    // with the 50p minimum
+    expect(paymentLines({ sessionPence: 900, fines: [], feeMinPence: 50 }).booking_fee_pence).toBe(50);
   });
 });

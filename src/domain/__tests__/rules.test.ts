@@ -92,6 +92,8 @@ describe('format', () => {
   it('money', () => {
     expect(formatPence(600)).toBe('£6');
     expect(formatPence(650)).toBe('£6.50');
+    expect(formatPence(50)).toBe('50p');
+    expect(formatPence(0)).toBe('£0');
     expect(poundsToPence('£6.50')).toBe(650);
     expect(poundsToPence('abc')).toBeNull();
   });

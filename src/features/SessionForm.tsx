@@ -18,6 +18,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { toggleIn } from '@/domain/sets';
 import { useAuth } from '@/providers/AuthProvider';
+import { usePriceLabel } from '@/hooks/useFees';
 import type { PaymentMode, Recurrence, Session, SessionVisibility } from '@/types/db';
 
 export interface SessionFormInitial {
@@ -45,6 +46,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
   const groups = useMyGroups();
   const friends = useFriends();
   const { userId } = useAuth();
+  const priceLabel = usePriceLabel();
 
   const startDefault = initial?.starts_at ? new Date(initial.starts_at) : null;
   const [name, setName] = useState(initial?.name ?? '');
@@ -198,7 +200,27 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         <Segmented value={paymentMode} onChange={setPaymentMode} options={[{ value: 'free', label: 'Free' }, { value: 'upfront', label: 'Pay upfront' }, { value: 'after', label: 'Pay after' }]} />
         {paymentMode !== 'free' && (
           <>
-            <Input label="Amount per player (£)" value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="6.00" icon="cash-outline" error={errors.price_pence} />
+            <Input label="Your price per player (£)" value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="e.g. 6.00" icon="cash-outline" error={errors.price_pence}
+              hint="This is what you receive from each player." />
+            {!!poundsToPence(price) && (
+              <Card variant="alt">
+                <View style={{ gap: 4 }}>
+                  <Row style={{ justifyContent: 'space-between' }}>
+                    <Text variant="small">You receive</Text>
+                    <Text variant="smallStrong">{formatPence(poundsToPence(price)!)}</Text>
+                  </Row>
+                  <Row style={{ justifyContent: 'space-between' }}>
+                    <Text variant="small" tone="muted">Booking fee (paid by the player)</Text>
+                    <Text variant="small" tone="muted">{formatPence(priceLabel(poundsToPence(price)!).feePence)}</Text>
+                  </Row>
+                  <Row style={{ justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 4 }}>
+                    <Text variant="smallStrong">Each player pays</Text>
+                    <Text variant="smallStrong">{priceLabel(poundsToPence(price)!).total}</Text>
+                  </Row>
+                  <Text variant="caption" tone="faint">The booking fee covers card processing and keeps MATCHDAY running. Players see the full price before they join.</Text>
+                </View>
+              </Card>
+            )}
             <Text variant="caption" tone="muted">
               {paymentMode === 'upfront'
                 ? 'Players authorise their card when they confirm (from 6 days before kick-off). They are only charged once you confirm the game took place. Holds are released automatically if you don’t confirm within 24 hours.'
@@ -269,7 +291,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
       )}
 
       <Button
-        title={editing ? 'Save changes' : `Create session${paymentMode !== 'free' && poundsToPence(price) ? ` · ${formatPence(poundsToPence(price)!)} each` : ''}`}
+        title={editing ? 'Save changes' : `Create session${paymentMode !== 'free' && poundsToPence(price) ? ` · players pay ${priceLabel(poundsToPence(price)!).total}` : ''}`}
         size="lg"
         loading={busy}
         onPress={submit}
