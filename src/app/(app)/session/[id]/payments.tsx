@@ -18,7 +18,7 @@ import * as Clipboard from 'expo-clipboard';
 import { appLink } from '@/lib/links';
 import { usePriceLabel } from '@/hooks/useFees';
 
-interface PaymentQuote { lines: { label: string; amount_pence: number; kind: 'session' | 'fine' | 'fee' }[]; host_receives_pence: number; booking_fee_pence: number; total_pence: number }
+interface PaymentQuote { lines: { label: string; amount_pence: number; kind: 'session' | 'guest' | 'fine' | 'fee' }[]; host_receives_pence: number; booking_fee_pence: number; total_pence: number }
 
 export default function PaymentsScreen() {
   const { id, checkout } = useLocalSearchParams<{ id: string; checkout?: string }>();
@@ -34,11 +34,13 @@ export default function PaymentsScreen() {
     queryFn: () => q<Payment[]>(supabase.from('payments').select('*').eq('session_id', id).eq('payer_id', userId!)),
     refetchInterval: (query) => (query.state.data?.some((x) => x.status === 'pending') ? 4000 : false),
   });
-  const sessionBill = mine.data?.find((x) => x.kind !== 'fine') ?? null;
+  const sessionBill = mine.data?.find((x) => x.kind === 'session') ?? null;
   const fineBills = (mine.data ?? []).filter((x) => x.kind === 'fine');
+  const guestBills = (mine.data ?? []).filter((x) => x.kind === 'guest');
+  const myGuests = (detail.data?.guests ?? []).filter((g) => g.added_by === userId && g.status === 'confirmed').length;
   // itemised bill (session fee + late fines + booking fee) before paying
   const quote = useQuery({
-    queryKey: ['payment-quote', id, sessionBill?.id ?? null, sessionBill?.amount_pence ?? null],
+    queryKey: ['payment-quote', id, sessionBill?.id ?? null, sessionBill?.amount_pence ?? null, myGuests],
     enabled: !!userId && !!detail.data && detail.data.session.payment_mode !== 'free' && detail.data.session.host_id !== userId
       && !(sessionBill && ['paid', 'authorised', 'partially_refunded', 'refunded'].includes(sessionBill.status)),
     retry: false,
@@ -87,6 +89,7 @@ export default function PaymentsScreen() {
                   {s.payment_mode === 'upfront'
                     ? 'Your card is authorised now and charged only after the host confirms the game took place.'
                     : 'Pay your share after the game.'}
+                  {myGuests > 0 ? ` Includes your ${myGuests === 1 ? 'guest' : `${myGuests} guests`}.` : ''}
                 </Text>
               </View>
               <Text variant="h2">{formatPence(quote.data?.total_pence ?? p?.amount_pence ?? s.price_pence)}</Text>
@@ -118,6 +121,22 @@ export default function PaymentsScreen() {
         </Card>
       )}
 
+      {guestBills.map((gb) => (
+        <Card key={gb.id} variant={gb.status === 'paid' ? 'default' : 'highlight'}>
+          <Row gap={space.md}>
+            <PaymentBadge status={gb.status} size={24} />
+            <View style={{ flex: 1 }}>
+              <Text variant="bodyStrong">Guest fee · {gb.guest_count} {gb.guest_count === 1 ? 'guest' : 'guests'}</Text>
+              <Text variant="small" tone="muted">{['unpaid', 'failed', 'pending'].includes(gb.status) ? 'You added guests after paying for yourself, so they’re billed separately. Charged straight away.' : paymentLabel(gb.status)}</Text>
+            </View>
+            <Text variant="h3">{formatPence(gb.amount_pence)}</Text>
+          </Row>
+          {['unpaid', 'failed', 'pending'].includes(gb.status) && gb.method !== 'cash' && (
+            <Button title="Pay guest fee" icon="lock-closed" style={{ marginTop: space.md }} loading={opening} onPress={() => pay(gb.id)} />
+          )}
+        </Card>
+      ))}
+
       {fineBills.map((fb) => (
         <Card key={fb.id} variant={fb.status === 'paid' ? 'default' : 'highlight'}>
           <Row gap={space.md}>
@@ -147,7 +166,7 @@ export default function PaymentsScreen() {
                 {summary.data.authorised_pence > 0 && <StatTile compact label="Authorised" value={formatPence(summary.data.authorised_pence)} />}
               </Row>
               <Text variant="caption" tone="muted">
-                You receive {formatPence(s.price_pence)} per player (plus any late fines). Players pay {price(s.price_pence).total}: the {formatPence(price(s.price_pence).feePence)} booking fee goes to MATCHDAY and covers card processing.
+                You receive {formatPence(s.price_pence)} per player (plus any late fines). Players pay for guests they bring; your own guests are free. Players pay {price(s.price_pence).total}: the {formatPence(price(s.price_pence).feePence)} booking fee goes to MATCHDAY and covers card processing.
               </Text>
               <Text variant="caption" tone="muted">{summary.data.paid_count} paid · {summary.data.unpaid_count} unpaid · {summary.data.failed_count} failed · {summary.data.refunded_count} refunded</Text>
               {s.payment_mode === 'upfront' && !s.host_confirmed_at && new Date(s.starts_at) < new Date() && (
@@ -167,10 +186,15 @@ export default function PaymentsScreen() {
                     <Avatar uri={pl.avatar_url} name={pl.display_name} size={32} />
                     <View style={{ flex: 1 }}>
                       <Text variant="bodyStrong">{pl.display_name}</Text>
-                      <Text variant="caption" tone="muted">{paymentLabel(pl.status)}{pl.method === 'cash' ? ' (cash)' : ''}{pl.fines_pence ? ` · incl. ${formatPence(pl.fines_pence)} late fine` : ''}{pl.refunded ? ` · ${formatPence(pl.refunded)} refunded` : ''}</Text>
+                      <Text variant="caption" tone="muted">{paymentLabel(pl.status)}{pl.method === 'cash' ? ' (cash)' : ''}{pl.guest_count ? ` · incl. ${pl.guest_count} guest${pl.guest_count > 1 ? 's' : ''}` : ''}{pl.fines_pence ? ` · incl. ${formatPence(pl.fines_pence)} late fine` : ''}{pl.refunded ? ` · ${formatPence(pl.refunded)} refunded` : ''}</Text>
+                      {!!pl.guest_payment_id && (
+                        <Text variant="caption" tone={['unpaid', 'failed', 'pending'].includes(pl.guest_status) ? 'warning' : 'muted'}>
+                          Guest fee ({pl.guest_bill_count}): {formatPence(pl.guest_amount_pence)} · {paymentLabel(pl.guest_status)}
+                        </Text>
+                      )}
                     </View>
                     <PaymentBadge status={pl.status} />
-                    {['unpaid', 'failed'].includes(pl.status) && (
+                    {(['unpaid', 'failed'].includes(pl.status) || ['unpaid', 'failed'].includes(pl.guest_status)) && (
                       <Button title="Cash" size="sm" variant="ghost" loading={busy === `cash-${pl.user_id}`} onPress={() => run(`cash-${pl.user_id}`, () => rpc('record_cash_payment', { p_session: id, p_user: pl.user_id }), 'Marked as paid in cash')} />
                     )}
                     {pl.method === 'card' && ['paid', 'authorised', 'partially_refunded'].includes(pl.status) && pl.payment_id && (

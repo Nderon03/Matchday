@@ -4,6 +4,9 @@
 // Upfront mode uses manual capture (authorise now, capture once the host confirms the game happened).
 // Checkout shows Apple Pay / Google Pay / cards automatically (enable them in the Stripe dashboard).
 //
+// Guests are on the bill of the player who brought them (one payment), or on a separate 'guest' bill
+// if they were added after the player had paid.
+//
 // Body: { session_id, payment_id?, quote? }
 //   quote: true → returns the itemised bill without creating anything.
 //   payment_id   → pay a specific bill (e.g. a one-off late-fine request).
@@ -65,10 +68,23 @@ Deno.serve(handler(async (req) => {
     const { data } = await admin.from('late_fines').select('amount_pence, session:sessions(name)').eq('group_id', s.group_id).eq('user_id', user.id).eq('status', 'owed');
     return data ?? [];
   };
+  let pendingGuests = 0;
+  if (!payment && s.host_id !== user.id) {
+    const { count } = await admin.from('session_guests').select('id', { count: 'exact', head: true }).eq('session_id', s.id).eq('added_by', user.id).eq('status', 'confirmed');
+    pendingGuests = count ?? 0;
+  }
+  // Guests are paid for by the player who brings them (the host's own guests are free).
+  // A stored bill knows how many guests it covers; before a bill exists, count the confirmed guests.
+  const itemise = (p: any, finesTotal: number) => {
+    if (!p) return { sessionPence: s.price_pence, guests: { count: pendingGuests, unitPence: s.price_pence } };
+    if (p.kind === 'fine') return { sessionPence: 0, guests: undefined };
+    if (p.kind === 'guest') return { sessionPence: 0, guests: { count: p.guest_count || 1, unitPence: Math.round(p.amount_pence / (p.guest_count || 1)) } };
+    const guestPence = (p.guest_count ?? 0) * s.price_pence;
+    return { sessionPence: p.amount_pence - finesTotal - guestPence, guests: { count: p.guest_count ?? 0, unitPence: s.price_pence } };
+  };
   const fines = (await fineRows(payment?.id ?? null)).map((f: any) => ({ label: `Late fine (${f.session?.name ?? 'earlier session'})`, amount_pence: f.amount_pence }));
   const finesTotal = fines.reduce((a, f) => a + f.amount_pence, 0);
-  const sessionPence = payment ? (payment.kind === 'fine' ? 0 : payment.amount_pence - finesTotal) : s.price_pence;
-  const bill = paymentLines({ sessionPence, fines, feeRateBps: FEE_RATE_BPS, feeFixedPence: FEE_FIXED_PENCE, feeMinPence: FEE_MIN_PENCE });
+  const bill = paymentLines({ ...itemise(payment, finesTotal), fines, feeRateBps: FEE_RATE_BPS, feeFixedPence: FEE_FIXED_PENCE, feeMinPence: FEE_MIN_PENCE });
 
   if (body.quote) return json(bill);
 
@@ -98,7 +114,7 @@ Deno.serve(handler(async (req) => {
   const storedFines = (await fineRows(payment.id)).map((f: any) => ({ label: `Late fine (${f.session?.name ?? 'earlier session'})`, amount_pence: f.amount_pence }));
   const storedFinesTotal = storedFines.reduce((a, f) => a + f.amount_pence, 0);
   const final = paymentLines({
-    sessionPence: payment.kind === 'fine' ? 0 : payment.amount_pence - storedFinesTotal,
+    ...itemise(payment, storedFinesTotal),
     fines: storedFines, feeRateBps: FEE_RATE_BPS, feeFixedPence: FEE_FIXED_PENCE, feeMinPence: FEE_MIN_PENCE,
   });
   if (final.host_receives_pence !== payment.amount_pence) throw new HttpError(409, 'bill_changed', 'Your bill changed. Please try again.');
@@ -130,7 +146,7 @@ Deno.serve(handler(async (req) => {
         price_data: {
           currency: s.currency,
           unit_amount: l.amount_pence,
-          product_data: { name: l.kind === 'session' ? `${s.name} — match fee` : l.label },
+          product_data: { name: l.kind === 'session' ? `${s.name} — match fee` : l.kind === 'guest' ? `${s.name} — ${l.label.toLowerCase()}` : l.label },
         },
       })),
       payment_intent_data: {

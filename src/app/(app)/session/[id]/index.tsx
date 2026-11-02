@@ -68,6 +68,7 @@ export default function SessionScreen() {
   const nameOf = (uid: string) => d.attendance.find((a) => a.user_id === uid)?.profile.display_name ?? 'Player';
   const pendingClaims = d.submissions.filter((x) => x.status === 'pending').length;
   const verified = me?.verification === 'verified';
+  const notAttending = !!me && ['declined', 'unavailable', 'withdrawn'].includes(me.status);
   const votingOpen = s.status === 'completed' && !closedHere && (!s.voting_closes_at || new Date(s.voting_closes_at).getTime() > now);
   const canCheckIn = me?.status === 'confirmed' && !me.checked_in_at && ['scheduled', 'in_progress'].includes(s.status) && new Date(s.starts_at).getTime() - now < 3 * 3600_000;
   const waitPos = me?.status === 'waitlisted' ? groups.waitlisted.findIndex((w) => w.user_id === userId) + 1 : 0;
@@ -165,30 +166,44 @@ export default function SessionScreen() {
 
       {/* Player actions */}
       {s.status === 'scheduled' && (
-        <Card variant={me?.status === 'confirmed' ? 'highlight' : 'default'}>
+        <Card variant={me?.status === 'confirmed' ? 'highlight' : 'default'} style={notAttending ? { borderColor: colors.danger } : undefined}>
           <View style={{ gap: space.md }}>
             <Text variant="h3">
-              {me?.status === 'confirmed' ? 'You’re playing' : me?.status === 'waitlisted' ? `Waiting list · position ${waitPos}` : blocked ? 'Removed by the host' : reinvited ? 'The host invited you back — are you in?' : me && ['declined', 'unavailable', 'withdrawn'].includes(me.status) ? 'You’re not playing' : 'Are you in?'}
+              {me?.status === 'confirmed' ? 'You’re playing' : me?.status === 'waitlisted' ? `Waiting list · position ${waitPos}` : blocked ? 'Removed by the host' : reinvited ? 'The host invited you back — are you in?' : notAttending ? 'You’re not attending' : 'Are you in?'}
             </Text>
             {me?.status === 'confirmed' ? (
               <Row gap={space.sm} wrap>
                 {!!canCheckIn && <Button title="Check in" icon="checkmark-circle-outline" loading={busy === 'checkin'} onPress={() => run('checkin', () => rpc('check_in', { p_session: id }), 'Checked in — see you on the pitch')} />}
                 {!!me.checked_in_at && <Badge label="Checked in" tone="success" align="center" />}
-                <Button title="Withdraw" variant="secondary" loading={busy === 'rsvp-withdrawn'} onPress={async () => {
-                  if (await confirm({ title: 'Withdraw from this session?', message: 'Your place goes to the next player on the waiting list.', confirmLabel: 'Withdraw', destructive: true })) respond('withdrawn');
+                <Button title="Can’t make it" variant="secondary" loading={busy === 'rsvp-withdrawn'} onPress={async () => {
+                  const guestsNote = myGuests.length ? ` Your guest${myGuests.length > 1 ? 's' : ''} will be removed too.` : '';
+                  if (await confirm({ title: 'Can’t make it anymore?', message: `Your place goes to the next player on the waiting list.${guestsNote} You can rejoin later if there’s space.`, confirmLabel: 'I can’t make it', destructive: true })) respond('withdrawn');
                 }} />
                 <Button title="Add a guest" icon="person-add-outline" variant="ghost" onPress={() => { setGuestName(''); setGuestOpen(true); }} />
               </Row>
             ) : me?.status === 'waitlisted' ? (
               <Button title="Leave waiting list" variant="secondary" onPress={() => respond('withdrawn')} />
-            ) : blocked ? null : owedBills.length > 0 ? (
-              <SettleUpCard bills={owedBills} />
-            ) : (
-              <Row gap={space.sm} wrap>
-                <Button title={groups.confirmed.length + guestsIn.length >= s.max_attendance ? 'Join waiting list' : 'I’m in'} icon="checkmark" loading={busy === 'rsvp-confirmed'} onPress={() => respond('confirmed')} />
-                <Button title="Can’t make it" variant="secondary" loading={busy === 'rsvp-declined'} onPress={() => respond('declined')} />
-                <Button title="Unavailable" variant="ghost" onPress={() => respond('unavailable')} />
-              </Row>
+            ) : blocked ? null : (
+              <View style={{ gap: space.md }}>
+                {!!notAttending && (
+                  <Row gap={space.sm}>
+                    <Ionicons name="close-circle" size={22} color={colors.danger} />
+                    <Text variant="small" tone="muted" style={{ flex: 1 }}>
+                      {me!.status === 'unavailable' ? 'You marked yourself unavailable.' : me!.status === 'withdrawn' ? 'You dropped out of this session.' : 'You said you can’t make it.'}
+                      {' '}The host and squad can see this. Changed your mind? You can still join below.
+                    </Text>
+                  </Row>
+                )}
+                {owedBills.length > 0 ? (
+                  <SettleUpCard bills={owedBills} />
+                ) : (
+                  <Row gap={space.sm} wrap>
+                    <Button title={groups.confirmed.length + guestsIn.length >= s.max_attendance ? 'Join waiting list' : notAttending ? 'Actually, I’m in' : 'I’m in'} icon="checkmark" loading={busy === 'rsvp-confirmed'} onPress={() => respond('confirmed')} />
+                    {me?.status !== 'declined' && me?.status !== 'withdrawn' && <Button title="Can’t make it" variant="secondary" loading={busy === 'rsvp-declined'} onPress={() => respond('declined')} />}
+                    {me?.status !== 'unavailable' && <Button title="Unavailable" variant="ghost" onPress={() => respond('unavailable')} />}
+                  </Row>
+                )}
+              </View>
             )}
             {!!s.rsvp_deadline && <Text variant="caption" tone="muted">Withdrawals close {formatKickoff(s.rsvp_deadline)}</Text>}
 
@@ -435,8 +450,20 @@ export default function SessionScreen() {
 
       <Sheet visible={guestOpen} onClose={() => setGuestOpen(false)} title="Bring a guest">
         <Text tone="muted">For someone without a MATCHDAY account. They take a squad spot and can be picked in line-ups, but don’t get stats or votes.</Text>
+        {s.payment_mode !== 'free' && s.price_pence > 0 && s.host_id !== userId && (
+          <Card variant="alt">
+            <Row gap={space.sm}>
+              <Ionicons name="card-outline" size={18} color={colors.warning} />
+              <Text variant="small" style={{ flex: 1 }}>
+                You pay for your guests: {formatPence(s.price_pence)} each, added to your bill so it’s one payment
+                {s.payment_mode === 'upfront' ? ' before the game' : ' after the game'}. If you’ve already paid, the guest fee is billed separately.
+                Unpaid guest fees stop you joining the next game, like any other bill.
+              </Text>
+            </Row>
+          </Card>
+        )}
         <Input label="Guest’s name" value={guestName} onChangeText={setGuestName} placeholder="e.g. Dave (Sam’s brother)" maxLength={40} autoFocus />
-        <Button title="Add guest" icon="person-add" disabled={!guestName.trim()} loading={busy === 'guest'} onPress={async () => {
+        <Button title={s.payment_mode !== 'free' && s.price_pence > 0 && s.host_id !== userId ? `Add guest · ${formatPence(s.price_pence)}` : 'Add guest'} icon="person-add" disabled={!guestName.trim()} loading={busy === 'guest'} onPress={async () => {
           const r = await run('guest', () => rpc<{ status: string }>('add_session_guest', { p_session: id, p_name: guestName }),
             (x) => (x.status === 'pending' ? 'Request sent to the host' : `${guestName.trim()} added`));
           if (r) setGuestOpen(false);

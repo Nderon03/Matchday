@@ -14,7 +14,7 @@ export interface OutstandingBill {
   session_id: string;
   session_name: string;
   played_at: string;
-  kind: 'session' | 'fine';
+  kind: 'session' | 'fine' | 'guest';
   amount_pence: number;
   status: string;
 }
@@ -60,7 +60,7 @@ export function SettleUpCard({ bills }: { bills: OutstandingBill[] }) {
         {bills.map((b) => (
           <Row key={b.payment_id} gap={space.md}>
             <View style={{ flex: 1 }}>
-              <Text variant="smallStrong">{b.kind === 'fine' ? 'Late fines' : b.session_name}</Text>
+              <Text variant="smallStrong">{b.kind === 'fine' ? 'Late fines' : b.kind === 'guest' ? `Guest fee · ${b.session_name}` : b.session_name}</Text>
               <Text variant="caption" tone="muted">{formatDate(b.played_at)}</Text>
             </View>
             <Text variant="smallStrong">{formatPence(b.amount_pence)}</Text>

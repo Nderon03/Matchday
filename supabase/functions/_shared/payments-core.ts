@@ -48,13 +48,23 @@ export function bookingFee(amountPence: number, rateBps = 150, fixedPence = 20, 
 export interface PaymentLine {
   label: string;
   amount_pence: number;
-  kind: 'session' | 'fine' | 'fee';
+  kind: 'session' | 'guest' | 'fine' | 'fee';
 }
 
 /** Lines shown before paying and on Stripe Checkout. */
-export function paymentLines(opts: { sessionPence: number; fines: { label: string; amount_pence: number }[]; feeRateBps?: number; feeFixedPence?: number; feeMinPence?: number }) {
+export function paymentLines(opts: {
+  sessionPence: number;
+  fines: { label: string; amount_pence: number }[];
+  /** guests the player is paying for, at the session price each */
+  guests?: { count: number; unitPence: number };
+  feeRateBps?: number; feeFixedPence?: number; feeMinPence?: number;
+}) {
   const lines: PaymentLine[] = [];
   if (opts.sessionPence > 0) lines.push({ label: 'Session fee', amount_pence: opts.sessionPence, kind: 'session' });
+  if (opts.guests && opts.guests.count > 0 && opts.guests.unitPence > 0) {
+    const { count, unitPence } = opts.guests;
+    lines.push({ label: `${count === 1 ? 'Guest' : `Guests (${count} × £${(unitPence / 100).toFixed(2)})`}`, amount_pence: count * unitPence, kind: 'guest' });
+  }
   for (const f of opts.fines) if (f.amount_pence > 0) lines.push({ label: f.label, amount_pence: f.amount_pence, kind: 'fine' });
   const hostReceives = lines.reduce((a, l) => a + l.amount_pence, 0);
   const fee = bookingFee(hostReceives, opts.feeRateBps, opts.feeFixedPence, opts.feeMinPence);

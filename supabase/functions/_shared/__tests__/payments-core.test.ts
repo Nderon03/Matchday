@@ -128,6 +128,12 @@ describe('booking fee and payment lines', () => {
     expect(r.lines.map((l) => [l.kind, l.amount_pence])).toEqual([['session', 900], ['fine', 200], ['fee', 38]]);
     expect(r).toMatchObject({ host_receives_pence: 1100, booking_fee_pence: 38, total_pence: 1138 });
     expect(paymentLines({ sessionPence: 900, fines: [], feeRateBps: 0, feeFixedPence: 0 }).lines).toHaveLength(1);
+    const withGuests = paymentLines({ sessionPence: 600, fines: [], guests: { count: 2, unitPence: 600 } });
+    expect(withGuests.lines.map((l) => [l.kind, l.label, l.amount_pence])).toEqual([
+      ['session', 'Session fee', 600], ['guest', 'Guests (2 × £6.00)', 1200], ['fee', 'Booking fee', 48],
+    ]);
+    expect(withGuests.host_receives_pence).toBe(1800);
+    expect(paymentLines({ sessionPence: 0, fines: [], guests: { count: 1, unitPence: 600 } }).lines[0]).toMatchObject({ kind: 'guest', label: 'Guest' });
     // with the 50p minimum
     expect(paymentLines({ sessionPence: 900, fines: [], feeMinPence: 50 }).booking_fee_pence).toBe(50);
   });

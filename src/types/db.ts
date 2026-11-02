@@ -170,7 +170,8 @@ export interface Notification {
 
 export interface Payment {
   id: string;
-  kind: 'session' | 'fine';
+  kind: 'session' | 'fine' | 'guest';
+  guest_count: number;
   session_id: string;
   payer_id: string;
   amount_pence: number;

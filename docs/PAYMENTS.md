@@ -37,6 +37,15 @@ Per-group setting (off by default): first fine (£1), cap (£8), on-time session
   payment** for owed fines (`payments.kind = 'fine'`). Everything is notified and audited.
 * Players see their level, next fine and owed amount on the session page and the group's Fines tab.
 
+## Guests
+
+* The player who brings a guest pays for them: their bill is `price × (1 + confirmed guests)`, itemised
+  on Stripe Checkout, in one payment. The host's own guests are free.
+* Guests added after the player has paid (or authorised upfront) go on a separate **guest fee** bill
+  (`payments.kind = 'guest'`), charged straight away. Guests that drop out before payment come off the bill.
+* A player who drops out takes their guests with them. Cash from the host covers the guest fee too.
+* Unpaid guest fees count towards "settle up before playing".
+
 ## Unpaid bills
 
 * **Settle up before playing** (group setting, on by default): a player with an unpaid bill from an
