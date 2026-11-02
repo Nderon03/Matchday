@@ -35,3 +35,17 @@ npx eas-cli@latest device:create          # iPhone: register each test device
 npx eas-cli@latest build --profile preview --platform android
 npx eas-cli@latest build --profile preview --platform ios
 ```
+
+## Over-the-air updates (EAS Update)
+
+Builds include `expo-updates` on the channel named after their profile (`preview`, `production`).
+Screen and logic changes reach installed apps without a reinstall:
+
+```bash
+npx eas-cli@latest update --channel preview --environment preview --message "What changed"
+```
+
+Phones download it in the background and switch to it the next time the app comes back to the
+foreground. The runtime version uses the **fingerprint** policy: if native code changes (new native
+package, permission, icon, app name), the update won't be sent to old builds and you need a new
+`eas build` instead.

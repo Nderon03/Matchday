@@ -11,6 +11,7 @@ import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { queryClient } from '@/lib/queryClient';
 import { routeForNotification } from '@/lib/notifications';
+import { useOtaUpdates } from '@/hooks/useOtaUpdates';
 import { Button, ConfirmProvider, Text, ToastProvider } from '@/components/ui';
 import { space } from '@/theme/tokens';
 
@@ -18,6 +19,7 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 function ThemedStack() {
   const { colors, scheme } = useTheme();
+  useOtaUpdates();
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = Notifications.addNotificationResponseReceivedListener((res) => {
