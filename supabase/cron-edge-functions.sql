@@ -4,6 +4,10 @@
 create extension if not exists pg_net;
 create extension if not exists pg_cron;
 
+-- safe to re-run: clear any earlier copies first
+select cron.unschedule(jobname) from cron.job where jobname in ('matchday-send-notifications', 'matchday-payments-cron');
+delete from vault.secrets where name in ('matchday_project_url', 'matchday_cron_secret');
+
 select vault.create_secret('https://<project-ref>.supabase.co', 'matchday_project_url');
 select vault.create_secret('<long-random-cron-secret>', 'matchday_cron_secret'); -- same value as the CRON_SECRET function secret
 
