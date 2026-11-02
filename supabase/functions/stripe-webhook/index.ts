@@ -6,8 +6,14 @@ import { accountFlagsFromEvent, patchFromEvent, shouldTransition, verifyStripeSi
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
   const payload = await req.text();
-  const secret = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? '';
-  const verified = await verifyStripeSignature(payload, req.headers.get('stripe-signature'), secret);
+  // One secret per Stripe webhook destination (e.g. "your account" and "connected accounts"), comma-separated.
+  const secrets = (Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  const header = req.headers.get('stripe-signature');
+  let verified: Awaited<ReturnType<typeof verifyStripeSignature>> = { ok: false, reason: 'missing_secret' };
+  for (const secret of secrets) {
+    verified = await verifyStripeSignature(payload, header, secret);
+    if (verified.ok) break;
+  }
   if (!verified.ok) return json({ error: verified.reason }, 400);
 
   const event = JSON.parse(payload) as StripeEventLike;
