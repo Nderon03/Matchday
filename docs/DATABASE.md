@@ -99,13 +99,13 @@ Adjustments relative to the original brief:
 | Sessions | `create_session`, `update_session`, `cancel_session`, `invite_to_session`, `add_co_host`, `respond_to_session`, `check_in`, `set_attendance_verification`, `add_session_player`, `start_session`, `complete_session` |
 | Templates | `save_session_as_template`, `create_session_from_template`, `duplicate_session` |
 | Fixtures | `add_fixture`, `delete_fixture`, `save_lineup`, `record_fixture_score`, `get_player_strengths`, `get_recent_pairings` |
-
-**Line-up visibility:** `team_players` rows are visible to session managers always, and to other viewers only once the fixture's line-up is confirmed (`lineup_confirmed_at`), the fixture is played, or the session has kicked off (`lineup_visible`). Confirming notifies every confirmed player; re-confirming changed teams sends "Line-ups updated".
 | Goals | `submit_goals`, `review_goal_submission`, `bulk_approve_goals`, `host_record_goals` |
 | Voting | `get_voting_state`, `cast_motm_vote`, `submit_ratings`, `close_voting`, `get_motm_tally`, `finalise_session` |
 | Stats | `get_home_dashboard`, `get_pending_tasks`, `get_player_profile`, `get_head_to_head`, `get_leaderboard`, `get_group_records`, `get_wrapped`, `correct_session`, `reconcile_session` |
 | Payments | `get_session_payment_statuses`, `get_payment_summary`, `record_cash_payment`, `mark_host_confirmed` |
 | Moderation | `report_content`, `resolve_report`, `delete_comment` |
+
+**Line-up visibility:** `team_players` rows are visible to session managers always, and to other viewers only once the fixture's line-up is confirmed (`lineup_confirmed_at`), the fixture is played, or the session has kicked off (`lineup_visible`). Confirming notifies every confirmed player; re-confirming changed teams sends "Line-ups updated".
 
 ## Tests
 
