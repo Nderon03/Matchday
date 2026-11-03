@@ -32,7 +32,7 @@ Copy each destination's **signing secret** (`whsec_…`), then (comma-separated,
 
 ## 4. Turn on email confirmation
 Supabase → **Authentication → Sign In / Providers → Email** → **Confirm email: ON** → Save.
-(Optional) **Authentication → Emails → Templates**: change subjects to e.g. "Confirm your MATCHDAY account".
+**Authentication → Emails → Templates → Confirm signup**: subject `Confirm your MATCHDAY account`, body = `supabase/templates/confirm-signup.html` (already done for Reset password).
 
 ## 5. Production Android build
 1. Check `google-services.json` contains `com.matchdayonline.app` (`findstr matchdayonline google-services.json`).

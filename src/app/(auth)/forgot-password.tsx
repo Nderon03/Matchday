@@ -26,7 +26,7 @@ export default function ForgotPassword() {
       <Header title="Reset password" />
       <View style={{ gap: space.lg }}>
         {sent ? (
-          <Text tone="muted">If an account exists for {email}, a reset link is on its way. Open it on this device to choose a new password.</Text>
+          <Text tone="muted">If an account exists for {email}, a reset link is on its way. You can open it on any device — check your junk folder if it doesn’t arrive in a minute.</Text>
         ) : (
           <>
             <Text tone="muted">Enter your email and we’ll send you a link to reset your password.</Text>
