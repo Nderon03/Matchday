@@ -6,12 +6,12 @@ Play Console → your app → **Dashboard** → *Set up your app*. Each item bel
 ---
 
 ## 1. Privacy policy
-`https://matchday-online.netlify.app/legal/privacy` (change to your own domain later)
+`https://matchdayapp.org/legal/privacy`
 
 ## 2. App access
 **All or some functionality in my app is restricted** → add instructions:
 - Name: `Reviewer account`
-- Username / email and password: a test account you create **after switch-over** (e.g. `review@<your domain>`), already onboarded, in a group with a past session so reviewers see stats.
+- Username / email and password: a test account you create **after switch-over** (e.g. `matchdayenquiries+review@hotmail.com`), already onboarded, in a group with a past session so reviewers see stats.
 - Instructions:
   > Sign in with the account above. The app organises casual football: open the group "MATCHDAY Review FC" to see sessions, line-ups, results and stats. Payments go to the host's Stripe account and are only needed to join paid sessions; no payment is required to review the app.
 
@@ -38,7 +38,7 @@ Expected result: a low age rating with a "Users interact" notice.
 
 ## 7. Data safety
 **Does your app collect or share user data?** Yes, collects. **Shared with third parties:** No (Supabase, Stripe, Expo, Sentry and Resend are *service providers*, which Google doesn't count as sharing).
-**Is all data encrypted in transit?** Yes. **Can users request deletion?** Yes → URL `https://matchday-online.netlify.app/legal/delete-account`.
+**Is all data encrypted in transit?** Yes. **Can users request deletion?** Yes → URL `https://matchdayapp.org/legal/delete-account`.
 
 | Data type (Play's names) | Collected | Required? | Purposes |
 |---|---|---|---|
@@ -70,7 +70,7 @@ Data processed ephemerally? **No** for all of the above.
 ## Store settings
 - **App category:** Sports
 - **Tags:** Sports, Football (soccer), Team management, Social
-- **Contact email:** `matchdayenquiries@hotmail.com` · **Website:** `https://matchday-online.netlify.app`
+- **Contact email:** `matchdayenquiries@hotmail.com` · **Website:** `https://matchdayapp.org`
 - **Countries:** **United Kingdom only** (Production → Countries/regions). Keeps it simple and avoids EU trader-address display.
 
 ## Main store listing
