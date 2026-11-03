@@ -24,7 +24,7 @@ Stripe (live) → **Developers → Webhooks → Add destination**. Endpoint URL 
 **Destination B – "Connected accounts"** events: `account.updated`
 
 Copy each destination's **signing secret** (`whsec_…`), then (comma-separated, no spaces):
-`npx supabase@latest secrets set STRIPE_WEBHOOK_SECRET=whsec_A,whsec_B`
+`npx supabase@latest secrets set "STRIPE_WEBHOOK_SECRET=whsec_A,whsec_B"` (keep the quotes: in PowerShell an unquoted comma splits the value)
 
 ## 3. Wipe all test data
 1. Supabase → **SQL Editor** → paste `supabase/scripts/wipe-test-data.sql` → **Run** → counts must be 0.
