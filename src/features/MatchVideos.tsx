@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Card, IconButton, Input, Row, SectionTitle, Sheet, Text, useConfirm } from '@/components/ui';
@@ -19,6 +19,8 @@ export function MatchVideos({ detail: d, now }: { detail: SessionDetail; now: nu
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
+  const { width } = useWindowDimensions();
+  const wide = width >= 720; // laptops/tablets: two tiles per row instead of one huge thumbnail
   const s = d.session;
   const kickedOff = s.status !== 'scheduled' || new Date(s.starts_at).getTime() <= now;
   const canAdd = d.isManager && s.status !== 'cancelled' && kickedOff && d.videos.length < 5;
@@ -28,8 +30,9 @@ export function MatchVideos({ detail: d, now }: { detail: SessionDetail; now: nu
   return (
     <View style={{ gap: space.sm }}>
       <SectionTitle title={d.videos.length ? 'Watch the game' : 'Match video'} action={canAdd ? 'Add video' : undefined} onAction={() => { setUrl(''); setTitle(''); setOpen(true); }} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
       {d.videos.map((v) => (
-        <Card key={v.id} padded={false}>
+        <Card key={v.id} padded={false} style={{ width: wide ? '48.5%' : '100%' }}>
           <Pressable onPress={() => Linking.openURL(youtubeWatchUrl(v.video_id))} accessibilityRole="link" accessibilityLabel={`Watch ${v.title ?? 'match video'} on YouTube`}>
             <View>
               <Image source={{ uri: youtubeThumbnail(v.video_id) }} style={{ width: '100%', aspectRatio: 16 / 9, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, backgroundColor: colors.surfaceAlt }} contentFit="cover" />
@@ -53,6 +56,7 @@ export function MatchVideos({ detail: d, now }: { detail: SessionDetail; now: nu
           </Row>
         </Card>
       ))}
+      </View>
       {!d.videos.length && <Text variant="small" tone="muted">Filmed the game? Add the YouTube link and the squad can watch it back here.</Text>}
 
       <Sheet visible={open} onClose={() => setOpen(false)} title="Add a match video">

@@ -21,6 +21,7 @@ const base = `http://localhost:${server.address().port}`;
 await mkdir(OUT, { recursive: true });
 
 const ME = '11111111-1111-4111-8111-111111111111';
+const LEGAL_VERSION = (await readFile(join(process.cwd(), 'src/legal/content.ts'), 'utf8')).match(/LEGAL_VERSION = '([^']+)'/)[1];
 const names = ['Sam Carter', 'Alex Reid', 'Jordan Pike', 'Chris Obi', 'Danny Shaw', 'Leo Marsh', 'Ravi Patel', 'Tom Wells', 'Nico Ferri', 'Ben Hale'];
 const people = names.map((n, i) => ({ id: i === 0 ? ME : `2222222${i}-2222-4222-8222-22222222222${i}`, username: n.split(' ')[0].toLowerCase() + i, display_name: n, avatar_url: null, position: ['GK', 'DEF', 'MID', 'FWD', 'ANY'][i % 5] }));
 const SID = '33333333-3333-4333-8333-333333333333';
@@ -48,7 +49,9 @@ const home = {
   groups: [{ id: GID, name: 'Wednesday Football', logo_url: null, my_rank: 2, leader: { display_name: 'Alex Reid', value: 7.6 } }],
 };
 const table = {
-  profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z' }],
+  profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z', terms_version: LEGAL_VERSION, terms_accepted_at: '2026-11-01T00:00:00Z' }],
+  session_videos: [{ id: 'v1', session_id: SID, video_id: 'dQw4w9WgXcQ', title: 'Game 1', added_by: ME, created_at: kickoff }],
+  payments: [],
   session_guests: [{ id: 'g1111111-1111-4111-8111-111111111111', session_id: SID, name: 'Dave', added_by: people[1].id, status: 'confirmed', created_at: kickoff },
                    { id: 'g2222222-2222-4222-8222-222222222222', session_id: SID, name: 'Marco', added_by: people[2].id, status: 'pending', created_at: kickoff }],
   sessions: [session], session_attendance: attendance, session_invitations: [], fixtures, session_hosts: [], goal_submissions: [], player_goals: [],
@@ -62,6 +65,8 @@ const rpcs = {
   get_session_payment_statuses: people.slice(1, 9).map((p, i) => ({ user_id: p.id, status: ['paid', 'authorised', 'unpaid', 'paid', 'failed', 'paid', 'pending', 'paid'][i], method: 'card' })),
   get_player_strengths: people.slice(0, 9).map((p, i) => ({ user_id: p.id, position: p.position, group_rating: 6 + (i % 4) * 0.5, career_rating: 6.5, form: 7, games: 10, gk_games: i === 0 ? 5 : 0 })),
   get_recent_pairings: [], get_leaderboard: lb,
+  get_payment_summary: { price_pence: 600, payment_mode: 'upfront', host_confirmed_at: null, collected_pence: 1800, authorised_pence: 1200, outstanding_pence: 1800, paid_count: 3, unpaid_count: 2, failed_count: 1, refunded_count: 0,
+    players: people.slice(1, 7).map((p, i) => ({ user_id: p.id, username: p.username, display_name: p.display_name, avatar_url: null, status: ['paid', 'authorised', 'unpaid', 'paid', 'failed', 'paid'][i], amount_pence: i === 1 ? 1200 : 600, method: i === 3 ? 'cash' : 'card', paid_at: null, payment_id: `p${i}`, guest_count: i === 1 ? 1 : 0, fines_pence: i === 2 ? 100 : 0, refunded: 0, guest_payment_id: i === 0 ? 'gp0' : null, guest_status: i === 0 ? 'unpaid' : null, guest_amount_pence: i === 0 ? 600 : null, guest_bill_count: i === 0 ? 1 : null })) },
   get_player_profile: { profile: table.profiles[0], can_view_stats: true, is_self: true, is_friend: false, friend_request: null, friends_count: 18,
     stats: { sessions: 42, fixtures: 96, wins: 51, draws: 12, losses: 33, goals: 61, assists: 22, motm: 9, rating: 7.2, rated_sessions: 38, highest_rating: 9.1, win_pct: 53.1, current_win_streak: 2, best_win_streak: 7, current_unbeaten: 4, best_unbeaten: 11 },
     form: [7.1, 6.8, 8.2, 7.4, 7.9].map((r, i) => ({ session_id: `s${i}`, rating: r, played_at: new Date(Date.now() - (5 - i) * 7 * 86400_000).toISOString() })),
@@ -97,6 +102,10 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   for (const [name, path, expected] of [
     ['home', '/', 'Next up'], ['session', `/session/${SID}`, 'Host controls'], ['lineup', `/session/${SID}/lineup`, 'Balance teams'],
     ['leagues', '/leagues', 'My groups'], ['profile', '/profile', 'Achievements'], ['create', '/create', 'New session'],
+    ['payments', `/session/${SID}/payments`, 'Host dashboard'], ['settings', '/settings', 'Terms of Use'],
+    ['notifications', '/notifications', 'Notifications'], ['privacy', '/legal/privacy', 'Privacy Policy'],
+    ['terms', '/legal/terms', 'Terms of Use'], ['delete', '/legal/delete-account', 'Delete your account'],
+    ['done-redirect', `/done?kind=paid&session=${SID}`, 'Host dashboard'],
   ]) {
     await page.goto(base + path, { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
@@ -119,9 +128,10 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       const text0 = await page.locator('body').innerText();
       if (!/Guest request: Marco/i.test(text0)) failures.push(`${vpName}: guest request not shown`);
       if (!/Dave/.test(text0)) failures.push(`${vpName}: guest not in squad`);
-      await page.getByRole('button', { name: 'Withdraw' }).first().click();
+      if (!/Watch the game/i.test(text0)) failures.push(`${vpName}: match videos section missing`);
+      await page.getByRole('button', { name: 'Can’t make it' }).first().click();
       await page.waitForTimeout(400);
-      if (!(await page.locator('body').innerText()).includes('Withdraw from this session?')) failures.push(`${vpName}: in-app confirm sheet did not open`);
+      if (!(await page.locator('body').innerText()).includes('Can’t make it anymore?')) failures.push(`${vpName}: in-app confirm sheet did not open`);
       await page.screenshot({ path: join(OUT, `auth-${vpName}-confirm-sheet.png`) });
       await page.getByRole('button', { name: 'Cancel' }).last().click();
       await page.waitForTimeout(300);

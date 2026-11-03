@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 import { Link, router } from 'expo-router';
 import { Button, Header, Input, Screen, Text } from '@/components/ui';
+import { env } from '@/lib/env';
 import { supabase } from '@/lib/supabase';
 import { signInSchema, fieldErrors } from '@/domain/validation';
 import { friendlyAuthError, signInWithProvider } from '@/features/auth';
@@ -43,11 +44,14 @@ export default function SignIn() {
         <Link href="/forgot-password" style={{ alignSelf: 'center' }}>
           <Text tone="primary" variant="smallStrong">Forgot your password?</Text>
         </Link>
-        <View style={{ gap: space.sm, marginTop: space.md }}>
-          <Text variant="caption" tone="faint" align="center">OR</Text>
-          <Button title="Continue with Google" variant="outline" icon="logo-google" onPress={() => oauth('google')} />
-          <Button title="Continue with Apple" variant="outline" icon="logo-apple" onPress={() => oauth('apple')} />
-        </View>
+        {/* social sign-in only appears once the provider is set up in Supabase (EXPO_PUBLIC_OAUTH_PROVIDERS) */}
+        {env.oauthProviders.length > 0 && (
+          <View style={{ gap: space.sm, marginTop: space.md }}>
+            <Text variant="caption" tone="faint" align="center">OR</Text>
+            {env.oauthProviders.includes('google') && <Button title="Continue with Google" variant="outline" icon="logo-google" onPress={() => oauth('google')} />}
+            {env.oauthProviders.includes('apple') && <Button title="Continue with Apple" variant="outline" icon="logo-apple" onPress={() => oauth('apple')} />}
+          </View>
+        )}
         <Text variant="small" tone="muted" align="center">
           New to MATCHDAY? <Text variant="smallStrong" tone="primary" onPress={() => router.replace('/sign-up')}>Create an account</Text>
         </Text>
