@@ -4,7 +4,7 @@ Do these in order, in one sitting. After step 3 the app takes **real money** and
 Everything else (domain, email, Sentry, Play Console setup, Stripe verification) is already done.
 
 ## 0. Before you start
-- [ ] Supabase → **Billing** → upgrade the organisation to **Pro** (no pausing after quiet weeks, daily backups).
+- [ ] Supabase plan: staying on **Free** for now (weekly backups via GitHub, see `docs/BACKUPS.md`). Upgrade to **Pro** once real money flows every week or before the public launch: no pausing after a quiet week, daily backups.
 - [ ] Laptop: `git pull` then `npm install`.
 - [ ] Have ready: Stripe dashboard (live), Supabase dashboard, your reviewer email + password (from Play Console → App access).
 
