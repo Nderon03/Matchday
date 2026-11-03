@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { AccessibilityInfo, useColorScheme } from 'react-native';
+import { AccessibilityInfo, Platform, useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dark, light, type ThemeColors } from './tokens';
 
@@ -40,6 +40,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       },
     };
   }, [preference, system, reduceMotion]);
+
+  // Browsers paint autofilled fields white/yellow; keep them in the app's colours (web only).
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const c = value.colors;
+    let el = document.getElementById('matchday-autofill') as HTMLStyleElement | null;
+    if (!el) {
+      el = document.createElement('style');
+      el.id = 'matchday-autofill';
+      document.head.appendChild(el);
+    }
+    el.textContent = `
+      input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active,
+      textarea:-webkit-autofill, select:-webkit-autofill {
+        -webkit-box-shadow: 0 0 0 1000px ${c.surfaceAlt} inset !important;
+        box-shadow: 0 0 0 1000px ${c.surfaceAlt} inset !important;
+        -webkit-text-fill-color: ${c.text} !important;
+        caret-color: ${c.text};
+        transition: background-color 9999s ease-out 0s;
+      }
+      input:autofill { background-color: ${c.surfaceAlt} !important; color: ${c.text} !important; }`;
+  }, [value.colors]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
