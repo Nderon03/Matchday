@@ -45,7 +45,7 @@ export default function SignUp() {
           <View style={{ alignItems: 'center', gap: space.md, paddingVertical: space.lg }}>
             <Ionicons name="mail-unread-outline" size={44} color={colors.primary} />
             <Text variant="h3" align="center">Check your inbox</Text>
-            <Text tone="muted" align="center">We sent a verification link to {sentTo}. Open it on this device to finish setting up your account.</Text>
+            <Text tone="muted" align="center">We sent a verification link to {sentTo}. Open it on any device (check junk if it’s not there in a minute), then sign in.</Text>
             <Button title="Resend email" variant="secondary" onPress={async () => {
               const { error } = await supabase.auth.resend({ type: 'signup', email: sentTo, options: { emailRedirectTo: authRedirectUrl() } });
               setErrors(error ? { _: friendlyAuthError(error) } : { _: 'Sent again.' });
