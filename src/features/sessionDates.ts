@@ -30,14 +30,14 @@ export function dayLabel(d: Date, today = new Date()) {
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-/** Days for a month calendar (Monday first): leading/trailing nulls pad the grid to whole weeks. */
+/** Days for a month calendar (Monday first), always 6 weeks (42 cells) so the calendar never changes size. */
 export function monthGrid(year: number, month: number): (Date | null)[] {
   const first = new Date(year, month, 1);
   const lead = (first.getDay() + 6) % 7; // Monday = 0
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells: (Date | null)[] = Array.from({ length: lead }, () => null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
-  while (cells.length % 7) cells.push(null);
+  while (cells.length < 42) cells.push(null);
   return cells;
 }
 

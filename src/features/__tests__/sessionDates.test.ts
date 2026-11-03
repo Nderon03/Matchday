@@ -1,9 +1,10 @@
 import { monthGrid, sameDay, nextDays } from '../sessionDates';
 
 describe('monthGrid', () => {
-  it('starts weeks on Monday and pads to whole weeks', () => {
+  it('starts weeks on Monday and is always six weeks long', () => {
     const nov = monthGrid(2026, 10); // 1 November 2026 is a Sunday
-    expect(nov.length % 7).toBe(0);
+    expect(nov).toHaveLength(42);
+    expect(monthGrid(2027, 1)).toHaveLength(42); // February 2027 fits in four weeks
     expect(nov.slice(0, 6).every((d) => d === null)).toBe(true);
     expect(nov[6]?.getDate()).toBe(1);
     expect(nov.filter(Boolean)).toHaveLength(30);
