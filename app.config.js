@@ -5,6 +5,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const APP_ID = 'com.matchdayonline.app';
+
 module.exports = ({ config }) => {
   const local = path.resolve('google-services.json');
   const googleServicesFile = process.env.GOOGLE_SERVICES_JSON || (fs.existsSync(local) ? './google-services.json' : undefined);
@@ -18,8 +20,12 @@ module.exports = ({ config }) => {
     ...(projectId ? { updates: { ...config.updates, url: `https://u.expo.dev/${projectId}` } } : {}),
     // crash reporting; source-map upload runs only when SENTRY_AUTH_TOKEN is set for the build
     plugins: [...(config.plugins ?? []), ['@sentry/react-native/expo', { organization: 'nderon', project: 'matchday', url: 'https://sentry.io/' }]],
+    // Store IDs (permanent once published). app.matchday.* was already taken on Google Play,
+    // so both platforms use com.matchdayonline.app.
+    ios: { ...config.ios, bundleIdentifier: APP_ID },
     android: {
       ...config.android,
+      package: APP_ID,
       ...(googleServicesFile ? { googleServicesFile } : {}),
     },
   };

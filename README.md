@@ -202,7 +202,7 @@ npx eas-cli@latest build --profile production --platform android    # Play Store
 ```
 
 Set `EXPO_PUBLIC_*` variables per profile in EAS (`eas env:create`) so production builds point at the
-production Supabase project. Package id: `app.matchday.android` (change in `app.json`).
+production Supabase project. Package id: `com.matchdayonline.app` (set in `app.config.js`; permanent once published).
 
 ## iOS build
 
@@ -218,7 +218,7 @@ npx eas-cli@latest build --profile production --platform ios
 npx eas-cli@latest submit --platform ios
 ```
 
-Requires an Apple Developer account. Bundle id: `app.matchday.ios`. Add your web domain to
+Requires an Apple Developer account. Bundle id: `com.matchdayonline.app` (set in `app.config.js`). Add your web domain to
 `ios.associatedDomains` if you want universal links for invites.
 
 ## Web deployment

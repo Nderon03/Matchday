@@ -19,7 +19,7 @@ visibility **Plain text**:
 
 ## Push notifications
 
-* **Android:** Firebase project → add an Android app with package `app.matchday.android` → download
+* **Android:** Firebase project → add an Android app with package `com.matchdayonline.app` → download
   `google-services.json` into the project root (or upload it as an EAS *file* variable named `GOOGLE_SERVICES_JSON`).
   Then Firebase → Project settings → Service accounts → *Generate new private key*, and upload that JSON with
   `eas credentials` → Android → Google Service Account → *FCM V1*.
