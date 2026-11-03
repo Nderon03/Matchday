@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import type { Session } from '@supabase/supabase-js';
 import { router } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { startRecovery } from '@/lib/recovery';
 import { supabase } from '@/lib/supabase';
 import { q } from '@/lib/api';
 import type { Profile } from '@/types/db';
@@ -30,7 +31,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }).catch(() => setInitialising(false));
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
-      if (event === 'PASSWORD_RECOVERY') router.replace('/reset-password');
+      if (event === 'PASSWORD_RECOVERY') {
+        startRecovery();
+        router.replace('/reset-password');
+      }
       if (event === 'SIGNED_OUT') qc.clear();
     });
     return () => sub.subscription.unsubscribe();

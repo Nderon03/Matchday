@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { router } from 'expo-router';
 import { Button, Header, Input, Screen, Text, useToast } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+import { finishRecovery } from '@/lib/recovery';
 import { passwordSchema } from '@/domain/validation';
 import { friendlyAuthError } from '@/features/auth';
 import { space } from '@/theme/tokens';
@@ -21,6 +22,7 @@ export default function ResetPassword() {
     const { error: e } = await supabase.auth.updateUser({ password });
     setBusy(false);
     if (e) return setError(friendlyAuthError(e));
+    finishRecovery();
     toast.success('Password updated');
     router.replace('/');
   };

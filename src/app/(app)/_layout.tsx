@@ -11,6 +11,7 @@ import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { KickedNotice } from '@/features/KickedNotice';
 import { TermsUpdatePrompt } from '@/features/LegalAgreement';
 import { setCrashUser } from '@/lib/sentry';
+import { isRecovering } from '@/lib/recovery';
 import { useLiveRefresh } from '@/hooks/useLiveRefresh';
 
 export default function AppLayout() {
@@ -36,6 +37,8 @@ export default function AppLayout() {
     return <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center' }}><Loading /></View>;
   }
   if (!session) return <Redirect href="/welcome" />;
+  // arrived from a password-reset link: choose the new password first
+  if (isRecovering()) return <Redirect href="/reset-password" />;
   if (profile && !profile.onboarded && pathname !== '/onboarding') return <Redirect href="/onboarding" />;
   return (
     <>

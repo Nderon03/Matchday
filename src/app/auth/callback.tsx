@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, Loading, Text } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+import { isRecovering, startRecovery } from '@/lib/recovery';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 
@@ -20,12 +21,16 @@ export default function AuthCallback() {
   const [error, setError] = useState<string | null>(params.error_description ?? null);
   useEffect(() => {
     (async () => {
+      if (params.type === 'recovery') startRecovery();
       if (params.token_hash && OTP_TYPES.includes(params.type as OtpType)) {
         const { error: e } = await supabase.auth.verifyOtp({ token_hash: params.token_hash, type: params.type as OtpType });
         if (e) return setError(/expired|invalid/i.test(e.message) ? 'This link has expired or was already used. Request a new one.' : e.message);
       } else if (params.code) {
-        const { error: e } = await supabase.auth.exchangeCodeForSession(params.code);
-        if (e) {
+        const { data: ex, error: e } = await supabase.auth.exchangeCodeForSession(params.code);
+        if ((ex as { redirectType?: string | null } | null)?.redirectType === 'recovery') startRecovery();
+        // on the web the client may already have used the code itself; that's fine if we're signed in
+        const { data: already } = await supabase.auth.getSession();
+        if (e && !already.session) {
           return setError(/verifier/i.test(e.message)
             ? 'Open the link on the same device and browser you used to request it, or request a new one.'
             : /expired/i.test(e.message) ? 'This link has expired. Request a new one.' : e.message);
@@ -33,7 +38,7 @@ export default function AuthCallback() {
       }
       const { data } = await supabase.auth.getSession();
       if (!data.session) return setError((prev) => prev ?? 'This link is invalid or has expired.');
-      router.replace(params.type === 'recovery' ? '/reset-password' : '/');
+      router.replace(isRecovering() ? '/reset-password' : '/');
     })();
   }, [params.code, params.token_hash, params.type]);
   return (
