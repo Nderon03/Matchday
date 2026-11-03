@@ -2,8 +2,8 @@
  * Create / edit session form. Optimised for speed: sensible defaults, chips instead of
  * pickers, prefill from templates, duplicates and groups.
  */
-import React, { useMemo, useState } from 'react';
-import { ScrollView, Switch, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { ScrollView, Switch, View, type ScrollViewInstance } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Card, Chip, Input, Row, SectionTitle, Segmented, Stepper, Text, useToast } from '@/components/ui';
@@ -13,7 +13,8 @@ import { supabase } from '@/lib/supabase';
 import { q, rpc } from '@/lib/api';
 import { fieldErrors, sessionSchema } from '@/domain/validation';
 import { formatPence, poundsToPence } from '@/domain/format';
-import { combine, dayLabel, isValidTime, nextDays } from '@/features/sessionDates';
+import { combine, dayLabel, isValidTime, nextDays, sameDay } from '@/features/sessionDates';
+import { DatePickerSheet } from '@/features/DatePickerSheet';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { toggleIn } from '@/domain/sets';
@@ -52,6 +53,8 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
   const [name, setName] = useState(initial?.name ?? '');
   const [groupId, setGroupId] = useState<string | null>(initial?.group_id ?? null);
   const [date, setDate] = useState<Date>(startDefault ?? nextDays(2)[1]);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const daysRef = useRef<ScrollViewInstance>(null);
   const [time, setTime] = useState(startDefault ? `${String(startDefault.getHours()).padStart(2, '0')}:${String(startDefault.getMinutes()).padStart(2, '0')}` : '19:00');
   const [duration, setDuration] = useState(initial?.duration_minutes ?? 60);
   const [format, setFormat] = useState(initial?.format_size ?? 5);
@@ -140,7 +143,8 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
     }
   };
 
-  const days = nextDays(28);
+  const days = nextDays(14);
+  const pickedLater = !days.some((d) => sameDay(d, date));
 
   return (
     <View style={{ gap: space.xl }}>
@@ -158,9 +162,12 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
 
       <View style={{ gap: space.sm }}>
         <SectionTitle title="When" />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-          {days.map((d) => <Chip key={d.toDateString()} label={dayLabel(d)} selected={d.toDateString() === date.toDateString()} onPress={() => setDate(d)} />)}
+        <ScrollView ref={daysRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
+          {pickedLater && <Chip label={dayLabel(date)} selected onPress={() => setCalendarOpen(true)} />}
+          {days.map((d) => <Chip key={d.toDateString()} label={dayLabel(d)} selected={sameDay(d, date)} onPress={() => setDate(d)} />)}
+          <Chip label="📅 Pick a date" onPress={() => setCalendarOpen(true)} />
         </ScrollView>
+        {calendarOpen && <DatePickerSheet visible value={date} onClose={() => setCalendarOpen(false)} onPick={(d) => { setDate(d); setTimeout(() => daysRef.current?.scrollTo({ x: 0, animated: true }), 60); }} />}
         {!!errors.starts_at && <Text variant="caption" tone="danger">{errors.starts_at}</Text>}
         <Row gap={space.sm} wrap>
           {['18:00', '19:00', '20:00', '21:00'].map((t) => <Chip key={t} label={t} selected={time === t} onPress={() => setTime(t)} />)}

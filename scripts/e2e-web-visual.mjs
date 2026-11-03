@@ -117,6 +117,23 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.waitForTimeout(300);
       if ((await page.locator('body').innerText()).includes('The host removed you from')) failures.push(`${vpName}: removal notice did not dismiss`);
     }
+    if (name === 'create') {
+      await page.goto(base + '/session/new', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(600);
+      await page.getByText('📅 Pick a date').first().click();
+      await page.waitForTimeout(400);
+      const t = await page.locator('body').innerText();
+      if (!/Pick a date/.test(t) || !/Mon/.test(t)) failures.push(`${vpName}: calendar did not open`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-calendar.png`) });
+      await page.getByRole('button', { name: 'Next month' }).click();
+      await page.waitForTimeout(200);
+      await page.getByRole('button', { name: /^(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day 15 / }).first().click();
+      await page.waitForTimeout(900);
+      if (!/15 /.test(await page.locator('body').innerText())) failures.push(`${vpName}: picked date not shown as a chip`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-calendar-picked.png`) });
+      await page.goto(base + path, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+    }
     if (name === 'leagues') {
       await page.getByText('Leaderboards').first().click();
       await page.waitForTimeout(500);

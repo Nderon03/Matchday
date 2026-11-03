@@ -78,17 +78,19 @@ export function Button({ title, variant = 'primary', size = 'md', icon, iconRigh
 }
 
 export function IconButton({
-  icon, onPress, label, size = 40, tone = 'default', badge,
-}: { icon: keyof typeof Ionicons.glyphMap; onPress?: () => void; label: string; size?: number; tone?: 'default' | 'primary' | 'danger'; badge?: number }) {
+  icon, onPress, label, size = 40, tone = 'default', badge, disabled,
+}: { icon: keyof typeof Ionicons.glyphMap; onPress?: () => void; label: string; size?: number; tone?: 'default' | 'primary' | 'danger'; badge?: number; disabled?: boolean }) {
   const { colors } = useTheme();
   const color = tone === 'primary' ? colors.primary : tone === 'danger' ? colors.danger : colors.text;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
       hitSlop={6}
+      disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.icon, { width: size, height: size, backgroundColor: colors.surfaceAlt, opacity: pressed ? 0.7 : 1 }]}
+      style={({ pressed }) => [styles.icon, { width: size, height: size, backgroundColor: colors.surfaceAlt, opacity: disabled ? 0.35 : pressed ? 0.7 : 1 }]}
     >
       <Ionicons name={icon} size={size * 0.5} color={color} />
       {!!badge && badge > 0 && (
