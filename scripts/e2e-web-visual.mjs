@@ -28,7 +28,7 @@ const SID = '33333333-3333-4333-8333-333333333333';
 const FID = '44444444-4444-4444-8444-444444444444';
 const GID = '55555555-5555-4555-8555-555555555555';
 const kickoff = (() => { const d = new Date(Date.now() + 86400_000); d.setHours(19, 0, 0, 0); return d.toISOString(); })();
-const session = { id: SID, group_id: GID, host_id: ME, name: 'Wednesday Football', starts_at: kickoff, duration_minutes: 60, venue: 'Riverside Sports Centre, Pitch 2', location: 'London', format_size: 5, max_attendance: 10, visibility: 'group', description: 'Bring both bibs.', payment_mode: 'upfront', price_pence: 600, currency: 'gbp', mode: 'single', motm_mode: 'session', status: 'scheduled', rsvp_deadline: null, voting_closes_at: null, template_id: null, host_confirmed_at: null };
+const session = { id: SID, group_id: GID, host_id: ME, name: 'Wednesday Football', starts_at: kickoff, duration_minutes: 60, venue: 'Riverside Sports Centre, Pitch 2', location: 'London', postcode: 'NW7 2EU', latitude: 51.6142, longitude: -0.2447, format_size: 5, max_attendance: 10, visibility: 'group', description: 'Bring both bibs.', payment_mode: 'upfront', price_pence: 600, currency: 'gbp', mode: 'single', motm_mode: 'session', status: 'scheduled', rsvp_deadline: null, voting_closes_at: null, template_id: null, host_confirmed_at: null };
 const team = (side, ids) => ({ id: `t${side}`, fixture_id: FID, side, name: side === 'A' ? 'Bibs' : 'Non-bibs', colour: side === 'A' ? '#22C55E' : '#F5F5F5', score: null,
   players: ids.map((uid, i) => ({ fixture_team_id: `t${side}`, fixture_id: FID, user_id: uid, position: ['GK', 'DEF', 'DEF', 'MID', 'FWD'][i] ?? 'ANY', is_goalkeeper: i === 0, is_substitute: false, sort_order: i })) });
 const fixtures = [{ id: FID, session_id: SID, number: 1, played: false, lineup_confirmed_at: kickoff, teams: [team('A', people.slice(0, 5).map((p) => p.id)), team('B', people.slice(5, 9).map((p) => p.id))] }];
@@ -138,6 +138,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     let body = [];
     const m = url.pathname.match(/\/rest\/v1\/(rpc\/)?([a-z_]+)/);
     if (m && m[1] && m[2] === 'mark_notifications_read') table.notifications.forEach((n) => { n.read_at = new Date().toISOString(); });
+    if (url.pathname.endsWith('/functions/v1/session-weather')) body = { weather: { at: kickoff, temp_c: 10, wind_mph: 11, precip_mm: 0.6, symbol: 'lightrain', summary: 'Light rain', icon: 'rainy-outline' } };
     if (m && m[1]) body = rpcs[m[2]] ?? null;
     else if (m) body = table[m[2]] ?? [];
     if (single && Array.isArray(body)) body = body[0] ?? null;
@@ -196,6 +197,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       if (!/Guest request: Marco/i.test(text0)) failures.push(`${vpName}: guest request not shown`);
       if (!/Dave/.test(text0)) failures.push(`${vpName}: guest not in squad`);
       if (!/Watch the game/i.test(text0)) failures.push(`${vpName}: match videos section missing`);
+      if (!/10°C · Light rain/.test(text0)) failures.push(`${vpName}: kick-off weather missing`);
       await page.getByRole('button', { name: 'Can’t make it' }).first().click();
       await page.waitForTimeout(400);
       if (!(await page.locator('body').innerText()).includes('Can’t make it anymore?')) failures.push(`${vpName}: in-app confirm sheet did not open`);

@@ -27,6 +27,7 @@ import { downloadIcs, googleCalendarUrl, type CalendarEvent } from '@/features/c
 import { appLink } from '@/lib/links';
 import type { RsvpStatus } from '@/types/db';
 import { haptics } from '@/lib/haptics';
+import { KickoffWeather } from '@/features/KickoffWeather';
 
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -171,6 +172,7 @@ export default function SessionScreen() {
                 </Text>
               </Row>
             )}
+            <KickoffWeather sessionId={s.id} startsAt={s.starts_at} hasPlace={s.latitude != null} active={['scheduled', 'in_progress'].includes(s.status)} />
             <Row gap={8}><Ionicons name="people-outline" size={17} color={colors.textMuted} /><Text>{groups.confirmed.length + guestsIn.length}/{s.max_attendance} confirmed{guestsIn.length ? ` (incl. ${guestsIn.length} guest${guestsIn.length > 1 ? 's' : ''})` : ''}{groups.waitlisted.length ? ` · ${groups.waitlisted.length} waiting` : ''}</Text></Row>
             {s.payment_mode !== 'free' && (
               <Row gap={8} style={{ alignItems: 'flex-start' }}>

@@ -3,8 +3,8 @@
  * Bump LEGAL_VERSION when the Terms or Privacy Policy change materially: users accept the version
  * during onboarding and it is recorded on their profile.
  */
-export const LEGAL_VERSION = '2026-11-02.2';
-export const LEGAL_UPDATED = '2 November 2026';
+export const LEGAL_VERSION = '2026-11-04.1';
+export const LEGAL_UPDATED = '4 November 2026';
 export const OPERATOR = 'Nderon Beqiri';
 export const CONTACT_EMAIL = 'matchdayenquiries@hotmail.com';
 
@@ -76,6 +76,7 @@ export const PRIVACY: LegalDoc = {
         'Resend — sending emails.',
         'YouTube (Google) — match videos are hosted on YouTube; video thumbnails load from YouTube and playing a video opens YouTube, which applies its own privacy policy.',
         'Sentry — crash and error reports so we can fix problems.',
+        'MET Norway (api.met.no) — the kick-off weather forecast. Only the venue’s map coordinates are sent, nothing about you.',
         'postcodes.io — turns the postcodes and place names typed into MATCHDAY (for a session venue or a search) into map coordinates. Only the text typed is sent; we never use your device’s location.',
       ],
     },
