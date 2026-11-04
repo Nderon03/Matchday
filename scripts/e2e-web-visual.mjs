@@ -23,12 +23,12 @@ await mkdir(OUT, { recursive: true });
 const ME = '11111111-1111-4111-8111-111111111111';
 const LEGAL_VERSION = (await readFile(join(process.cwd(), 'src/legal/content.ts'), 'utf8')).match(/LEGAL_VERSION = '([^']+)'/)[1];
 const names = ['Sam Carter', 'Alex Reid', 'Jordan Pike', 'Chris Obi', 'Danny Shaw', 'Leo Marsh', 'Ravi Patel', 'Tom Wells', 'Nico Ferri', 'Ben Hale'];
-const people = names.map((n, i) => ({ id: i === 0 ? ME : `2222222${i}-2222-4222-8222-22222222222${i}`, username: n.split(' ')[0].toLowerCase() + i, display_name: n, avatar_url: null, position: ['GK', 'DEF', 'MID', 'FWD', 'ANY'][i % 5] }));
+const people = names.map((n, i) => ({ id: i === 0 ? ME : `2222222${i}-2222-4222-8222-22222222222${i}`, username: n.split(' ')[0].toLowerCase(), display_name: n, avatar_url: null, position: ['GK', 'DEF', 'MID', 'FWD', 'ANY'][i % 5] }));
 const SID = '33333333-3333-4333-8333-333333333333';
 const FID = '44444444-4444-4444-8444-444444444444';
 const GID = '55555555-5555-4555-8555-555555555555';
-const kickoff = new Date(Date.now() + 26 * 3600_000).toISOString();
-const session = { id: SID, group_id: GID, host_id: ME, name: 'Wednesday Football', starts_at: kickoff, duration_minutes: 60, venue: 'Powerleague Shoreditch', location: 'London E1', format_size: 5, max_attendance: 10, visibility: 'group', description: 'Bring both bibs.', payment_mode: 'upfront', price_pence: 600, currency: 'gbp', mode: 'single', motm_mode: 'session', status: 'scheduled', rsvp_deadline: null, voting_closes_at: null, template_id: null, host_confirmed_at: null };
+const kickoff = (() => { const d = new Date(Date.now() + 86400_000); d.setHours(19, 0, 0, 0); return d.toISOString(); })();
+const session = { id: SID, group_id: GID, host_id: ME, name: 'Wednesday Football', starts_at: kickoff, duration_minutes: 60, venue: 'Riverside Sports Centre, Pitch 2', location: 'London', format_size: 5, max_attendance: 10, visibility: 'group', description: 'Bring both bibs.', payment_mode: 'upfront', price_pence: 600, currency: 'gbp', mode: 'single', motm_mode: 'session', status: 'scheduled', rsvp_deadline: null, voting_closes_at: null, template_id: null, host_confirmed_at: null };
 const team = (side, ids) => ({ id: `t${side}`, fixture_id: FID, side, name: side === 'A' ? 'Bibs' : 'Non-bibs', colour: side === 'A' ? '#22C55E' : '#F5F5F5', score: null,
   players: ids.map((uid, i) => ({ fixture_team_id: `t${side}`, fixture_id: FID, user_id: uid, position: ['GK', 'DEF', 'DEF', 'MID', 'FWD'][i] ?? 'ANY', is_goalkeeper: i === 0, is_substitute: false, sort_order: i })) });
 const fixtures = [{ id: FID, session_id: SID, number: 1, played: false, lineup_confirmed_at: kickoff, teams: [team('A', people.slice(0, 5).map((p) => p.id)), team('B', people.slice(5, 9).map((p) => p.id))] }];
@@ -78,7 +78,9 @@ const rpcs = {
 const browser = await chromium.launch();
 const failures = [];
 for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, desktop: { width: 1366, height: 900 } })) {
-  const page = await browser.newPage({ viewport: vp });
+  // STORE_SHOTS=1 also saves crisp phone-sized captures for the Play Store screenshots
+  const store = process.env.STORE_SHOTS === '1' && vpName === 'phone';
+  const page = await browser.newPage({ viewport: vp, deviceScaleFactor: store ? 2 : 1 });
   table.notifications.forEach((n) => { n.read_at = null; });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -159,6 +161,12 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     if (nested) failures.push(`${vpName} ${path}: ${nested} interactive element(s) nested inside a button (invalid HTML)`);
     const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
     if (scrollW > vp.width + 1) failures.push(`${vpName} ${path}: horizontal overflow (${scrollW}px)`);
+    if (store && ['home', 'session', 'lineup', 'leagues', 'profile', 'payments'].includes(name)) {
+      await mkdir(join(OUT, 'store-raw'), { recursive: true });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForTimeout(200);
+      await page.screenshot({ path: join(OUT, 'store-raw', `${name}.png`) });
+    }
     await page.screenshot({ path: join(OUT, `auth-${vpName}-${name}.png`), fullPage: vpName === 'phone' });
   }
   if (errors.length) failures.push(`${vpName}: runtime errors:\n  ${[...new Set(errors)].join('\n  ')}`);

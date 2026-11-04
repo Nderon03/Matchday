@@ -193,7 +193,7 @@ describe('late fines', () => {
 describe('booking fee settings', () => {
   it('are readable by everyone and writable by no client', async () => {
     const u = await db.createUser(uniq('fee'));
-    expect(await db.as(null, `select booking_fee_min_pence from app_settings`)).toEqual([{ booking_fee_min_pence: 50 }]);
+    expect(await db.as(null, `select booking_fee_min_pence from app_settings`)).toEqual([{ booking_fee_min_pence: 60 }]);
     expect(await db.as(u, `select booking_fee_rate_bps, booking_fee_fixed_pence from app_settings`)).toEqual([{ booking_fee_rate_bps: 150, booking_fee_fixed_pence: 20 }]);
     await expect(db.as(u, `update app_settings set booking_fee_min_pence = 0`)).rejects.toThrow(/permission denied/);
   });

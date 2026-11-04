@@ -115,4 +115,4 @@ Data processed ephemerally? **No** for all of the above.
 ## Graphics
 - **App icon (512×512):** `assets/store/play-icon-512.png`
 - **Feature graphic (1024×500):** `assets/store/feature-graphic-1024x500.png`
-- **Phone screenshots (2–8, at least 1080px tall):** take on your phone after switch-over, using real-looking groups: home, session page, line-up pitch, results/stats, leaderboard, payment screen.
+- **Phone screenshots (1080×1920):** `assets/store/screenshots/01-home.png` … `06-payments.png` (regenerate with `STORE_SHOTS=1 node scripts/e2e-web-visual.mjs` then `node scripts/generate-store-screenshots.mjs <raw dir>`).

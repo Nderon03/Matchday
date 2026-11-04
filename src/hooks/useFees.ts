@@ -16,7 +16,7 @@ export function useFees(): FeeConfig {
   return q.data ?? DEFAULT_FEES;
 }
 
-/** "£9.50" + "incl. 50p booking fee" for a host price, using the live fee settings. */
+/** "£9.50" + "incl. 60p booking fee" for a host price, using the live fee settings. */
 export function usePriceLabel() {
   const fees = useFees();
   return (hostPence: number) => {

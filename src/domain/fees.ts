@@ -10,7 +10,7 @@ export interface FeeConfig {
   minPence: number;
 }
 
-export const DEFAULT_FEES: FeeConfig = { rateBps: 150, fixedPence: 20, minPence: 50 };
+export const DEFAULT_FEES: FeeConfig = { rateBps: 150, fixedPence: 20, minPence: 60 };
 
 export function bookingFee(amountPence: number, cfg: FeeConfig = DEFAULT_FEES): number {
   if (amountPence <= 0) return 0;

@@ -25,7 +25,7 @@ Deno.serve(handler(async (req) => {
   const { data: fees } = await admin.from('app_settings').select('*').maybeSingle();
   const FEE_RATE_BPS = fees?.booking_fee_rate_bps ?? 150;
   const FEE_FIXED_PENCE = fees?.booking_fee_fixed_pence ?? 20;
-  const FEE_MIN_PENCE = fees?.booking_fee_min_pence ?? 50;
+  const FEE_MIN_PENCE = fees?.booking_fee_min_pence ?? 60;
 
   const { data: s } = await admin.from('sessions').select('*').eq('id', body.session_id).maybeSingle();
   if (!s) throw new HttpError(404, 'not_found', 'Session could not be found.');

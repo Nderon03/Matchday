@@ -2,10 +2,11 @@ import { bookingFee, playerPrice } from '../fees';
 import { bookingFee as serverBookingFee } from '../../../supabase/functions/_shared/payments-core';
 
 describe('booking fee', () => {
-  it('is at least 50p and rises only when card costs would be higher', () => {
-    expect(bookingFee(300)).toBe(50);
-    expect(bookingFee(900)).toBe(50);
-    expect(bookingFee(2000)).toBe(51); // (30 + 20) / 0.985 = 50.8 → 51p
+  it('is at least 60p and rises only when card costs would be higher', () => {
+    expect(bookingFee(300)).toBe(60);
+    expect(bookingFee(900)).toBe(60);
+    expect(bookingFee(2000)).toBe(60); // card cost (30 + 20) / 0.985 = 51p, under the 60p minimum
+    expect(bookingFee(3000)).toBe(66); // (45 + 20) / 0.985 = 65.99 → 66p
     expect(bookingFee(5000)).toBe(97);
     expect(bookingFee(0)).toBe(0);
   });
@@ -16,11 +17,11 @@ describe('booking fee', () => {
     }
   });
   it('shows the all-in price for any host price', () => {
-    expect(playerPrice(750)).toEqual({ hostPence: 750, feePence: 50, totalPence: 800 });
+    expect(playerPrice(750)).toEqual({ hostPence: 750, feePence: 60, totalPence: 810 });
     expect(playerPrice(0)).toEqual({ hostPence: 0, feePence: 0, totalPence: 0 });
   });
   it('matches the server calculation', () => {
-    for (const amount of [100, 900, 2000, 5000]) expect(serverBookingFee(amount, 150, 20, 50)).toBe(bookingFee(amount));
+    for (const amount of [100, 900, 2000, 5000]) expect(serverBookingFee(amount, 150, 20, 60)).toBe(bookingFee(amount));
   });
   it('can be switched off', () => {
     expect(bookingFee(900, { rateBps: 0, fixedPence: 0, minPence: 0 })).toBe(0);
