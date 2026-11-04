@@ -6,6 +6,7 @@ import { Avatar, Text } from '@/components/ui';
 import { POSITION_LABEL, rating } from '@/domain/format';
 import { cardStyle } from '@/domain/achievements';
 import { Ionicons } from '@expo/vector-icons';
+import { ClubShield, Flag } from './Identity';
 
 export interface PlayerCardData {
   display_name: string;
@@ -17,6 +18,8 @@ export interface PlayerCardData {
   achievements?: number;
   /** card style id unlocked with medal points */
   card_style?: string | null;
+  nationality?: string | null;
+  supported_club?: string | null;
 }
 
 /** Shareable branded player card, in the player's chosen card style. */
@@ -53,6 +56,12 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
           <View style={{ alignItems: 'center' }}>
             <Text variant="display" color="#F4F6F8" style={{ fontSize: 44, lineHeight: 48 }}>{rating(s?.rating)}</Text>
             <Text variant="overline" color={st.accent}>{data.position === 'ANY' ? 'ALL' : data.position}</Text>
+            {(!!data.nationality || !!data.supported_club) && (
+              <View style={{ alignItems: 'center', gap: 6, marginTop: 6 }}>
+                <Flag code={data.nationality} height={14} />
+                {!!data.supported_club && <ClubShield club={data.supported_club} size={24} />}
+              </View>
+            )}
           </View>
           <Avatar uri={data.avatar_url} name={data.display_name} size={84} ring={st.accent} />
           <View style={{ flex: 1 }}>

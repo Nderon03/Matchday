@@ -49,7 +49,7 @@ const home = {
   groups: [{ id: GID, name: 'Wednesday Football', logo_url: null, my_rank: 2, leader: { display_name: 'Alex Reid', value: 7.6 } }],
 };
 const table = {
-  profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z', terms_version: LEGAL_VERSION, terms_accepted_at: '2026-11-01T00:00:00Z', card_style: 'gold' }],
+  profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z', terms_version: LEGAL_VERSION, terms_accepted_at: '2026-11-01T00:00:00Z', card_style: 'gold', nationality: 'XK', supported_club: 'arsenal' }],
   session_videos: [{ id: 'v1', session_id: SID, video_id: 'dQw4w9WgXcQ', title: 'Game 1', added_by: ME, created_at: kickoff }],
   payments: [],
   session_guests: [{ id: 'g1111111-1111-4111-8111-111111111111', session_id: SID, name: 'Dave', added_by: people[1].id, status: 'confirmed', created_at: kickoff },
@@ -154,6 +154,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['session-new', '/session/new', 'Postcode'],
     ['done-redirect', `/done?kind=paid&session=${SID}`, 'Host dashboard'],
     ['achievements', '/achievements', 'Hall of Fame'],
+    ['edit-profile', '/settings/profile', 'Club you support'],
   ]) {
     await page.goto(base + path, { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);

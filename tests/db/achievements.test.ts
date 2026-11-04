@@ -131,3 +131,18 @@ describe('after-match reveal and personal bests', () => {
     expect(await db.rpc(u, 'get_personal_bests', { p_user: u })).not.toBeNull();
   });
 });
+
+describe('nationality and club', () => {
+  it('accepts real countries and clubs only, and only the player can set theirs', async () => {
+    const u = await db.createUser(uniq('nc'));
+    const other = await db.createUser(uniq('nd'));
+    await db.as(u, `update profiles set nationality = 'XK', supported_club = 'arsenal' where id = $1`, [u]);
+    expect((await db.admin(`select nationality, supported_club from profiles where id = $1`, [u]))[0]).toEqual({ nationality: 'XK', supported_club: 'arsenal' });
+    await db.as(u, `update profiles set nationality = 'GB-SCT', supported_club = null where id = $1`, [u]);
+    await expect(db.as(u, `update profiles set supported_club = 'my-mates-fc' where id = $1`, [u])).rejects.toThrow(/supported_club_check/);
+    await expect(db.as(u, `update profiles set nationality = 'ZZ' where id = $1`, [u])).rejects.toThrow(/nationality_check/);
+    expect(await db.as(other, `update profiles set nationality = 'FR' where id = $1 returning id`, [u])).toHaveLength(0);
+    // everyone signed in can see them (they're shown on the card)
+    expect((await db.as(other, `select nationality from profiles where id = $1`, [u]))[0].nationality).toBe('GB-SCT');
+  });
+});

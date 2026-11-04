@@ -28,8 +28,8 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   const [reportOpen, setReportOpen] = useState(false);
   const [reason, setReason] = useState('');
   const bests = useQuery({ queryKey: ['player', userId, 'bests'], queryFn: () => rpc<PersonalBests | null>('get_personal_bests', { p_user: userId }) });
-  // card style lives on the profile row (readable by everyone who can see the profile)
-  const style = useQuery({ queryKey: ['player', userId, 'card_style'], queryFn: () => q<{ card_style: string } | null>(supabase.from('profiles').select('card_style').eq('id', userId).maybeSingle()) });
+  // card style, flag and club live on the profile row (readable by everyone signed in)
+  const style = useQuery({ queryKey: ['player', userId, 'card'], queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null } | null>(supabase.from('profiles').select('card_style, nationality, supported_club').eq('id', userId).maybeSingle()) });
 
   if (profile.isLoading) return <View style={{ gap: space.md }}><Skeleton height={220} /><Skeleton height={100} /><Skeleton height={100} /></View>;
   if (!profile.data) return <ErrorState error={profile.error} onRetry={profile.refetch} />;
@@ -52,7 +52,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
 
   return (
     <View style={{ gap: space.lg }}>
-      <PlayerCard ref={cardRef} data={{ ...p, stats: s ? { ...s, rating: s.rating } : null, achievements: points, card_style: style.data?.card_style }} />
+      <PlayerCard ref={cardRef} data={{ ...p, stats: s ? { ...s, rating: s.rating } : null, achievements: points, card_style: style.data?.card_style, nationality: style.data?.nationality, supported_club: style.data?.supported_club }} />
 
       <Row gap={space.sm} wrap>
         {d.is_self ? (

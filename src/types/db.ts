@@ -25,6 +25,9 @@ export interface Profile {
   onboarded: boolean;
   terms_version?: string | null;
   terms_accepted_at?: string | null;
+  nationality?: string | null;
+  supported_club?: string | null;
+  card_style?: string | null;
   created_at: string;
 }
 

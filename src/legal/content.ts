@@ -30,7 +30,7 @@ export const PRIVACY: LegalDoc = {
     {
       heading: 'What we collect',
       bullets: [
-        'Account details: email address, password (stored securely by our authentication provider, never readable by us), username, display name, and if you add them, a profile photo, bio and preferred position.',
+        'Account details: email address, password (stored securely by our authentication provider, never readable by us), username, display name, and if you add them, a profile photo, bio, preferred position, nationality and the club you support (both optional and shown on your player card).',
         'Football activity: groups you join, sessions you are invited to or attend, RSVPs, check-ins, line-ups, scores, goals and assists, Man of the Match votes, player ratings, achievements and the statistics calculated from them.',
         'Social features: friends, friend requests, blocks, comments, reactions and reports you make.',
         'Match videos: links to YouTube videos that hosts add to a session (we store only the YouTube link, not the video).',
