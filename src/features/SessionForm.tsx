@@ -199,7 +199,8 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
       <View style={{ gap: space.md }}>
         <SectionTitle title="Where" />
         <Input label="Venue" value={venue} onChangeText={setVenue} placeholder="Powerleague Shoreditch, Pitch 3" icon="business-outline" />
-        <Input label="Address / area" value={location} onChangeText={setLocation} placeholder="Braithwaite St, London E1" icon="location-outline" />
+        <Input label="Address / area" value={location} onChangeText={setLocation} placeholder="Braithwaite St, London E1" icon="location-outline"
+          hint={visibility === 'public' ? 'Players search “Find a game” by venue and area, and get a Directions link.' : 'Players get a Directions link to this address.'} />
       </View>
 
       <View style={{ gap: space.sm }}>

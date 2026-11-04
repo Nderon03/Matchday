@@ -112,6 +112,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['notifications', '/notifications', 'Notifications'], ['privacy', '/legal/privacy', 'Privacy Policy'],
     ['terms', '/legal/terms', 'Terms of Use'], ['delete', '/legal/delete-account', 'Delete your account'],
     ['find', '/session/find', 'Find a game'],
+    ['group-new', '/group/new', 'Who can join'],
     ['done-redirect', `/done?kind=paid&session=${SID}`, 'Host dashboard'],
   ]) {
     await page.goto(base + path, { waitUntil: 'networkidle' });

@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { View, type HostInstance } from 'react-native';
+import { Linking, View, type HostInstance } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -133,7 +133,17 @@ export default function SessionScreen() {
           </Row>
           <View style={{ gap: 6 }}>
             <Row gap={8}><Ionicons name="time-outline" size={17} color={colors.textMuted} /><Text>{formatKickoff(s.starts_at)} · {s.duration_minutes} min</Text></Row>
-            {(s.venue || s.location) && <Row gap={8}><Ionicons name="location-outline" size={17} color={colors.textMuted} /><Text style={{ flex: 1 }}>{[s.venue, s.location].filter(Boolean).join(' · ')}</Text></Row>}
+            {(s.venue || s.location) && (
+              <Row gap={8}>
+                <Ionicons name="location-outline" size={17} color={colors.textMuted} />
+                <Text style={{ flex: 1 }}>{[s.venue, s.location].filter(Boolean).join(' · ')}</Text>
+                {/* opens Google Maps (app or website) searching the venue the host typed */}
+                <Text variant="smallStrong" tone="primary" accessibilityRole="link"
+                  onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([s.venue, s.location].filter(Boolean).join(', '))}`)}>
+                  Directions
+                </Text>
+              </Row>
+            )}
             <Row gap={8}><Ionicons name="people-outline" size={17} color={colors.textMuted} /><Text>{groups.confirmed.length + guestsIn.length}/{s.max_attendance} confirmed{guestsIn.length ? ` (incl. ${guestsIn.length} guest${guestsIn.length > 1 ? 's' : ''})` : ''}{groups.waitlisted.length ? ` · ${groups.waitlisted.length} waiting` : ''}</Text></Row>
             {s.payment_mode !== 'free' && (
               <Row gap={8} style={{ alignItems: 'flex-start' }}>

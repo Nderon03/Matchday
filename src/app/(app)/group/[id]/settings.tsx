@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Avatar, Badge, Button, Card, Chip, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Segmented, Stepper, Text, useConfirm, useToast } from '@/components/ui';
 import { keys, useGroup, type GroupDetail } from '@/hooks/queries';
 import { removeGroupMember } from '@/features/removePlayer';
+import { GroupAccessPicker, accessOf, accessToSettings } from '@/features/GroupAccess';
 import { formatPence } from '@/domain/format';
 import { useAction } from '@/hooks/useAction';
 import { useAuth } from '@/providers/AuthProvider';
@@ -63,26 +64,34 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
       </Row>
       <Input label="Name" value={form.name} onChangeText={(v) => setForm({ ...form, name: v })} />
       <Input label="Description" value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} multiline />
-      <Input label="Location" value={form.location} onChangeText={(v) => setForm({ ...form, location: v })} />
-      <Input label="Rules" value={form.rules} onChangeText={(v) => setForm({ ...form, rules: v })} multiline />
-      <SectionTitle title="Visibility & joining" />
-      <Segmented value={form.visibility} onChange={(v) => setForm({ ...form, visibility: v })} options={[{ value: 'private', label: 'Private' }, { value: 'public', label: 'Public' }]} />
-      <Segmented value={form.join_policy} onChange={(v) => setForm({ ...form, join_policy: v })} options={[{ value: 'open', label: 'Open' }, { value: 'request', label: 'Request' }, { value: 'invite_only', label: 'Invite only' }]} />
+      <Input label="Area" value={form.location} onChangeText={(v) => setForm({ ...form, location: v })} placeholder="e.g. Mill Hill, London" hint="Helps people find the group in Discover." />
+      <Input label="Rules" value={form.rules} onChangeText={(v) => setForm({ ...form, rules: v })} multiline hint="Shown to members on the group page, e.g. pay before kick-off." />
+      <SectionTitle title="Who can join" />
+      <GroupAccessPicker value={accessOf(form)} onChange={(a) => setForm({ ...form, ...accessToSettings(a) })} />
       {!!cfg && (
         <>
           <SectionTitle title="Statistics" />
           <Card>
             <View style={{ gap: space.lg }}>
               <Row style={{ justifyContent: 'space-between' }}>
-                <Text style={{ flex: 1 }}>Track assists</Text>
-                <Switch value={cfg.track_assists} onValueChange={(v) => setCfg({ ...cfg, track_assists: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} />
+                <View style={{ flex: 1 }}>
+                  <Text>Track assists</Text>
+                  <Text variant="caption" tone="muted">Players can claim assists as well as goals, and assists appear on leaderboards.</Text>
+                </View>
+                <Switch value={cfg.track_assists} onValueChange={(v) => setCfg({ ...cfg, track_assists: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Track assists" />
               </Row>
               <Row style={{ justifyContent: 'space-between' }}>
-                <View style={{ flex: 1 }}><Text>Min. appearances for % tables</Text></View>
+                <View style={{ flex: 1 }}>
+                  <Text>Games needed for average tables</Text>
+                  <Text variant="caption" tone="muted">How many games someone must play to appear in win %, rating and per-game tables, so one lucky game doesn’t top them.</Text>
+                </View>
                 <Stepper value={cfg.leaderboard_min_appearances} onChange={(v) => setCfg({ ...cfg, leaderboard_min_appearances: v })} min={1} max={100} label="Minimum appearances" />
               </Row>
               <Row style={{ justifyContent: 'space-between' }}>
-                <View style={{ flex: 1 }}><Text>Default voting window (hours)</Text></View>
+                <View style={{ flex: 1 }}>
+                  <Text>Voting window (hours)</Text>
+                  <Text variant="caption" tone="muted">How long players have after full time to vote for MOTM and rate each other.</Text>
+                </View>
                 <Stepper value={cfg.voting_window_hours} onChange={(v) => setCfg({ ...cfg, voting_window_hours: v })} min={1} max={336} label="Voting window hours" />
               </Row>
               <View style={{ gap: space.sm }}>
@@ -94,7 +103,8 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
                 <Text variant="caption" tone="muted">Automatic scales with attendance (40% of other players, between 2 and 5).</Text>
               </View>
               <View style={{ gap: space.sm }}>
-                <Text>Default MOTM</Text>
+                <Text>Man of the Match</Text>
+                <Text variant="caption" tone="muted">One MOTM for the whole session, or one per game when you play several games in a session.</Text>
                 <Segmented value={cfg.default_motm_mode} onChange={(v) => setCfg({ ...cfg, default_motm_mode: v })} options={[{ value: 'session', label: 'Per session' }, { value: 'fixture', label: 'Per game' }]} />
               </View>
             </View>
@@ -154,6 +164,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
       <Button title="Save changes" size="lg" loading={busy === 'save'} onPress={save} />
 
       <SectionTitle title="Members & roles" />
+      <Text variant="caption" tone="muted">Owner: full control. Admin: manage settings, members, sessions and fines. Moderator: remove comments and handle reports. Member: play and invite friends.</Text>
       <Card padded={false}>
         {members.map((m, i) => (
           <View key={m.user_id} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, gap: space.sm }}>

@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, Header, Input, Screen, SectionTitle, Segmented, Text, useToast } from '@/components/ui';
+import { Button, Header, Input, Screen, SectionTitle, Text, useToast } from '@/components/ui';
 import { rpc } from '@/lib/api';
 import { fieldErrors, groupSchema } from '@/domain/validation';
 import { space } from '@/theme/tokens';
-import type { GroupJoinPolicy, GroupVisibility } from '@/types/db';
+import { GroupAccessPicker, accessToSettings, type GroupAccess } from '@/features/GroupAccess';
 
 export default function NewGroup() {
   const toast = useToast();
@@ -15,8 +15,8 @@ export default function NewGroup() {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [rules, setRules] = useState('');
-  const [visibility, setVisibility] = useState<GroupVisibility>('private');
-  const [joinPolicy, setJoinPolicy] = useState<GroupJoinPolicy>('request');
+  const [access, setAccess] = useState<GroupAccess>('invite');
+  const { visibility, join_policy: joinPolicy } = accessToSettings(access);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -41,15 +41,12 @@ export default function NewGroup() {
       <Header title="New group" />
       <Input label="Group name" value={name} onChangeText={setName} placeholder="Wednesday Football" error={errors.name} maxLength={60} />
       <Input label="Description" value={description} onChangeText={setDescription} multiline placeholder="Weekly 7-a-side for friends from work." maxLength={1000} />
-      <Input label="Location (optional)" value={location} onChangeText={setLocation} placeholder="Hackney, London" icon="location-outline" />
+      <Input label="Area (optional)" value={location} onChangeText={setLocation} placeholder="e.g. Mill Hill, London" icon="location-outline"
+        hint="Helps people find the group when searching Discover." />
       <View style={{ gap: space.sm }}>
-        <SectionTitle title="Visibility" />
-        <Segmented value={visibility} onChange={setVisibility} options={[{ value: 'private', label: 'Private' }, { value: 'public', label: 'Public' }]} />
-        <Text variant="caption" tone="muted">{visibility === 'public' ? 'Anyone can find the group and see its tables.' : 'Only members can see the group.'}</Text>
-      </View>
-      <View style={{ gap: space.sm }}>
-        <SectionTitle title="How people join" />
-        <Segmented value={joinPolicy} onChange={setJoinPolicy} options={[{ value: 'open', label: 'Open' }, { value: 'request', label: 'Request' }, { value: 'invite_only', label: 'Invite only' }]} />
+        <SectionTitle title="Who can join" />
+        <GroupAccessPicker value={access} onChange={setAccess} />
+        <Text variant="caption" tone="faint">You can change this later in the group’s settings.</Text>
       </View>
       <Input label="Group rules (optional)" value={rules} onChangeText={setRules} multiline placeholder="Pay before kick-off. No slide tackles." maxLength={4000} />
       <Button title="Create group" size="lg" loading={busy} onPress={submit} />
