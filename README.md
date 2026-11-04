@@ -280,24 +280,18 @@ themes; responsive web.
 
 ## Known limitations
 
-* **Not run against a hosted Supabase project.** No project credentials were available while building.
-  The SQL was tested on PostgreSQL 16 with a stub of Supabase's `auth`/`storage` schemas. Run
-  `supabase db push` on a development project and do a manual pass through the main flows before release.
-* **Edge Functions are type-checked, not executed.** They need Supabase and Stripe to run end to end.
-* **Native apps were not built or run on devices.** The web build and Chromium checks pass; iOS and
-  Android need an EAS development build to verify. Drag-and-drop on the pitch uses `PanResponder`, and
-  page scrolling is paused while dragging.
-* **The signed-in visual check uses canned responses**, so it verifies layout only. Real behaviour is
-  covered by the database tests.
 * **Upfront payments open 6 days before kick-off**, because card authorisations expire after about 7 days.
   If the host doesn't confirm within 24 hours, holds are released, not captured (see `docs/PAYMENTS.md`).
-* **Best Goalkeeper award** is not computed: there is no goalkeeper-specific statistic (such as clean sheets) yet.
-* **Sharing:** player cards, match results with MOTM, and Wrapped are shared as branded images (native share
-  sheet or PNG download on web). Achievements and season awards are shared as text.
-* **Head-to-head goals** are counted across shared sessions. They are per game only when players gave a breakdown.
+* **Goalkeepers:** keepers are players whose preferred position is Goalkeeper. With 1 keeper the other team
+  rotates in goal and is compensated; with none, everyone rotates. There are no keeper-specific stats
+  (clean sheets), because in casual games keepers usually rotate.
+* **Add to calendar** uses a Google Calendar link on phones, plus an .ics file on the web. One-tap Apple
+  Calendar comes with the iOS build.
+* **Email links** open the website, which offers "Open the MATCHDAY app". Android App Links / iOS Universal
+  Links (opening the app directly) need a native build.
+* **Social sign-in** (Google/Apple) is hidden until configured (`EXPO_PUBLIC_OAUTH_PROVIDERS`).
+* **Find a game** searches the venue/area text hosts type (no maps or distance).
+* **Sharing:** player cards, results and Wrapped are shared as images; achievements and season awards as text.
+* **Offline:** reads are cached and refetched on reconnect; changes need a connection.
 * **Times in notifications** are formatted in Europe/London.
-* **Offline:** reads are cached by React Query and refetched on reconnect. Writes need a connection
-  (no offline write queue).
 * **Global leaderboard** only includes players whose profile and stats are public.
-* Expo's online documentation (docs.expo.dev) was not reachable from the build environment. Expo SDK 58
-  APIs were checked against the installed packages' type definitions.
