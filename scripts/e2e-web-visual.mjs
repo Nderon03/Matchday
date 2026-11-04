@@ -94,7 +94,7 @@ const reveal = {
 };
 const rpcs = {
   get_match_reveals: [],
-  get_reliability: Object.fromEntries(people.map((p, i) => [p.id, { attended: 20, no_shows: i === 3 ? 4 : 0, late_drops: i === 3 ? 2 : 1, pct: i === 3 ? 77 : 95 }])),
+  get_reliability: Object.fromEntries(people.map((p, i) => [p.id, i === 0 ? { attended: 20, no_shows: 0, late_drops: 0, pct: 100 } : { attended: 20, no_shows: i === 3 ? 4 : 0, late_drops: i === 3 ? 2 : 1, pct: i === 3 ? 77 : 95 }])),
   get_month_candidates: {
     sessions: 4,
     players: people.slice(0, 8).map((p, i) => ({ user_id: p.id, display_name: p.display_name, username: p.username, avatar_url: null, position: p.position,
@@ -157,7 +157,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   });
   for (const [name, path, expected] of [
     ['home', '/', 'Next up'], ['session', `/session/${SID}`, 'Host controls'], ['lineup', `/session/${SID}/lineup`, 'Balance teams'],
-    ['leagues', '/leagues', 'My groups'], ['profile', '/profile', '95% reliable'], ['create', '/create', 'New session'],
+    ['leagues', '/leagues', 'My groups'], ['profile', '/profile', '100% RELIABLE'], ['create', '/create', 'New session'],
     ['payments', `/session/${SID}/payments`, 'Host dashboard'], ['settings', '/settings', 'Terms of Use'],
     ['notifications', '/notifications', 'Notifications'], ['privacy', '/legal/privacy', 'Privacy Policy'],
     ['terms', '/legal/terms', 'Terms of Use'], ['delete', '/legal/delete-account', 'Delete your account'],

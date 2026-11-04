@@ -55,7 +55,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
 
   return (
     <View style={{ gap: space.lg }}>
-      <PlayerCard ref={cardRef} data={{ ...p, stats: s ? { ...s, rating: s.rating } : null, achievements: points, card_style: style.data?.card_style, nationality: style.data?.nationality, supported_club: style.data?.supported_club }} />
+      <PlayerCard ref={cardRef} data={{ ...p, stats: s ? { ...s, rating: s.rating } : null, achievements: points, card_style: style.data?.card_style, nationality: style.data?.nationality, supported_club: style.data?.supported_club, reliability: reliability.data?.[userId] ?? null }} />
 
       <Row gap={space.sm} wrap>
         {d.is_self ? (

@@ -20,6 +20,45 @@ export interface PlayerCardData {
   card_style?: string | null;
   nationality?: string | null;
   supported_club?: string | null;
+  /** turned-up rate, once known (5+ commitments) */
+  reliability?: { pct: number | null; attended: number } | null;
+}
+
+/** 100% earns its own mark, but only after enough games for it to mean something. */
+export const PERFECT_RELIABILITY_GAMES = 10;
+
+function ReliabilityMark({ r, accent, muted }: { r: PlayerCardData['reliability']; accent: string; muted: string }) {
+  if (!r || r.pct === null || r.pct < 90) return null;
+  if (r.pct === 100 && r.attended >= PERFECT_RELIABILITY_GAMES) {
+    return (
+      <View accessible accessibilityLabel={`100% reliable over ${r.attended} games`} style={{ marginTop: 6, alignSelf: 'flex-start' }}>
+        <View style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#F5C542' }}>
+          <Svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
+            <Defs>
+              <LinearGradient id="perfect" x1="0" y1="0" x2="1" y2="0">
+                <Stop offset="0" stopColor="#3A2A06" />
+                <Stop offset="0.5" stopColor="#6B4E0E" />
+                <Stop offset="1" stopColor="#3A2A06" />
+              </LinearGradient>
+            </Defs>
+            <Rect width="100%" height="100%" fill="url(#perfect)" />
+          </Svg>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 7, paddingVertical: 3 }}>
+            <Ionicons name="shield-checkmark" size={13} color="#F5C542" />
+            <Text numberOfLines={1} style={{ fontSize: 10, lineHeight: 13, fontWeight: '800', letterSpacing: 0.8, color: '#FDE68A' }}>100% RELIABLE</Text>
+            <Ionicons name="star" size={9} color="#F5C542" />
+          </View>
+        </View>
+        <Text variant="caption" color="#E9D9A6" numberOfLines={1} style={{ marginTop: 2, fontSize: 10 }}>Always turns up</Text>
+      </View>
+    );
+  }
+  return (
+    <View accessible accessibilityLabel={`${r.pct}% reliable`} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+      <Ionicons name="shield-checkmark" size={12} color={accent} />
+      <Text variant="caption" color={muted}>Reliable · {r.pct}%</Text>
+    </View>
+  );
 }
 
 /** Shareable branded player card, in the player's chosen card style. */
@@ -68,6 +107,7 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
             <Text variant="h2" color="#F4F6F8" numberOfLines={1}>{data.display_name}</Text>
             <Text variant="small" color={st.muted} numberOfLines={1}>@{data.username}</Text>
             <Text variant="caption" color={st.muted}>{POSITION_LABEL[data.position] ?? data.position}</Text>
+            <ReliabilityMark r={data.reliability} accent={st.accent} muted={st.muted} />
           </View>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: space.md }}>
