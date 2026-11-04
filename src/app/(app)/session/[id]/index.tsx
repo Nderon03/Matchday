@@ -320,11 +320,19 @@ export default function SessionScreen() {
             data={{
               name: s.name, date: s.starts_at, formatSize: s.format_size,
               fixtures: d.fixtures.map((f) => ({ number: f.number, a: f.teams[0]?.name ?? 'A', b: f.teams[1]?.name ?? 'B', scoreA: f.teams[0]?.score ?? null, scoreB: f.teams[1]?.score ?? null })),
+              groupName: d.group?.name ?? null,
               motm: d.motm.filter((m) => !m.fixture_id).map((m) => nameOf(m.user_id)),
-              topScorers: [...d.approvedGoals].filter((g) => g.goals > 0).sort((a, b) => b.goals - a.goals).slice(0, 3).map((g) => ({ name: nameOf(g.user_id), goals: g.goals })),
+              topScorers: [...d.approvedGoals].filter((g) => g.goals > 0).sort((a, b) => b.goals - a.goals).slice(0, 4).map((g) => ({ name: nameOf(g.user_id), goals: g.goals })),
+              topAssists: [...d.approvedGoals].filter((g) => g.assists > 0).sort((a, b) => b.assists - a.assists).slice(0, 3).map((g) => ({ name: nameOf(g.user_id), assists: g.assists })),
+              me: (() => {
+                const st = d.stats.find((x: any) => x.user_id === userId);
+                if (!st) return null;
+                const mine = d.approvedGoals.find((g) => g.user_id === userId);
+                return { rating: st.rating_eligible && st.rating_avg !== null ? Number(st.rating_avg) : null, goals: mine?.goals ?? 0, assists: mine?.assists ?? 0, motm: !!st.motm };
+              })(),
             }}
           />
-          <Button title="Share result" icon="share-social-outline" variant="secondary" size="sm"
+          <Button title="Share match report" icon="share-social-outline" size="sm"
             onPress={() => shareViewAsImage(resultRef, `matchday-${s.id}`, `${s.name}: ${d.fixtures.map((f) => `${f.teams[0]?.score}-${f.teams[1]?.score}`).join(', ')} on MATCHDAY`).catch(() => undefined)} />
           <SectionTitle title="Man of the Match" />
           {d.motm.length ? d.motm.filter((m) => !m.fixture_id).map((m) => (

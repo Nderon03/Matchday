@@ -118,7 +118,7 @@ export function MatchRevealCard({ r, onDone }: { r: MatchReveal; onDone: () => v
           )}
 
           <View style={{ flexDirection: 'row', gap: space.sm, alignSelf: 'stretch' }}>
-            <Button title="See the match" variant="secondary" style={{ flex: 1 }} onPress={() => { onDone(); router.push(`/session/${r.session_id}`); }} />
+            <Button title="Match report" variant="secondary" style={{ flex: 1 }} onPress={() => { onDone(); router.push(`/session/${r.session_id}`); }} />
             <Button title="Done" style={{ flex: 1 }} onPress={onDone} />
           </View>
         </Animated.View>

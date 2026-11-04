@@ -223,6 +223,25 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     }
     await page.screenshot({ path: join(OUT, `auth-${vpName}-${name}.png`), fullPage: vpName === 'phone' });
   }
+  // finalised session: the shareable match report
+  {
+    const saved = { status: session.status, fixtures: JSON.stringify(fixtures), t: { ...table } };
+    session.status = 'finalised';
+    fixtures[0].played = true; fixtures[0].teams[0].score = 7; fixtures[0].teams[1].score = 5;
+    table.motm_awards = [{ user_id: people[2].id, fixture_id: null, votes: 6, shared: false }];
+    table.player_goals = [{ user_id: ME, fixture_id: FID, goals: 2, assists: 1 }, { user_id: people[2].id, fixture_id: FID, goals: 3, assists: 0 }, { user_id: people[6].id, fixture_id: FID, goals: 1, assists: 2 }];
+    table.session_player_statistics = [{ user_id: ME, rating_avg: '8.20', rating_eligible: true, goals: 2, motm: false }];
+    await page.goto(base + `/session/${SID}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    const rt = await page.locator('body').innerText();
+    if (!rt.includes('Share match report') || !rt.includes('matchdayapp.org') || !/8\.2 rating · 2 goals · 1 assist/.test(rt)) failures.push(`${vpName}: match report card incomplete`);
+    await page.getByText('matchdayapp.org').first().locator('xpath=../../..').screenshot({ path: join(OUT, `auth-${vpName}-match-report.png`) }).catch(() => undefined);
+    session.status = saved.status;
+    fixtures.splice(0, fixtures.length, ...JSON.parse(saved.fixtures));
+    for (const k of Object.keys(table)) if (!(k in saved.t)) delete table[k];
+    Object.assign(table, saved.t);
+  }
+
   // after a finalised game: the match reveal comes first, then medal level-ups
   rpcs.get_match_reveals = [reveal];
   await page.evaluate((uid) => localStorage.setItem(`matchday.achievementsSeen.${uid}`, new Date(Date.now() - 3 * 86400_000).toISOString()), ME);
