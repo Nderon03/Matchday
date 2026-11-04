@@ -1,6 +1,6 @@
 import { lineupOps, arrangeOutfield } from '../lineup';
 import { decideMotm } from '../motm';
-import { newlyUnlocked, ACHIEVEMENTS, CATEGORIES, TIERS, rarityLabel } from '../achievements';
+import { CARD_STYLES, MAX_POINTS, TRACKS, cardStyle, medalPoints, parseCode, qualifyingCodes, rarityLabel, trackProgress } from '../achievements';
 import { rank, formatValue } from '../leaderboard';
 import { validateGoalClaim, sessionSchema, signUpSchema, fieldErrors } from '../validation';
 import { formatPence, poundsToPence, timeUntil, formatKickoff } from '../format';
@@ -28,29 +28,34 @@ describe('MOTM', () => {
 });
 
 describe('achievements', () => {
-  const base = { sessions: 0, goals: 0, assists: 0, motm: 0, bestWinStreak: 0, bestUnbeaten: 0, bestWeekStreak: 0, maxGoalsInSession: 0, seasonChampion: false };
-  it('unlocks on thresholds', () => {
-    expect(newlyUnlocked({ ...base, sessions: 1, goals: 3, maxGoalsInSession: 3 }, [])).toEqual(['first_match', 'first_goal', 'hat_trick']);
-    expect(newlyUnlocked({ ...base, sessions: 50, motm: 10, goals: 100, bestWinStreak: 5, bestUnbeaten: 10, seasonChampion: true }, []))
-      .toEqual(expect.arrayContaining(['apps_50', 'motm_10', 'goals_100', 'win_streak_5', 'unbeaten_10', 'season_champion']));
+  it('reaches levels on thresholds', () => {
+    expect(trackProgress(0, [1, 10, 25, 50, 100])).toEqual({ level: 0, next: 1, prev: 0 });
+    expect(trackProgress(14, [1, 10, 25, 50, 100])).toEqual({ level: 2, next: 25, prev: 10 });
+    expect(trackProgress(250, [1, 10, 25, 50, 100])).toEqual({ level: 5, next: null, prev: 100 });
   });
-  it('never awards twice', () => expect(newlyUnlocked({ ...base, sessions: 2 }, ['first_match'])).toEqual([]));
-  it('progress caps at target', () => {
-    const apps = ACHIEVEMENTS.find((a) => a.code === 'apps_50')!;
-    expect(apps.progress({ ...base, sessions: 70 })).toEqual([50, 50]);
+  it('qualifies for every level reached', () => {
+    expect(qualifyingCodes({ apps: 12, goals: 1, haul: 3, season_champion: 1 }))
+      .toEqual(['apps_l1', 'apps_l2', 'goals_l1', 'haul_l1', 'haul_l2', 'season_champion']);
   });
-  it('new football achievements: assists, weeks in a row', () => {
-    expect(newlyUnlocked({ ...base, sessions: 10, assists: 25, bestWeekStreak: 5 }, ['first_match']))
-      .toEqual(['apps_10', 'weeks_5', 'first_assist', 'assists_25']);
+  it('parses codes', () => {
+    expect(parseCode('goals_l3')).toEqual({ track: 'goals', level: 3 });
+    expect(parseCode('season_champion')).toEqual({ track: 'season_champion', level: 5 });
+  });
+  it('medal points use the best level per track', () => {
+    expect(medalPoints(['apps_l1', 'apps_l2', 'goals_l1', 'weeks_l3', 'season_champion'])).toBe(6);
+    expect(medalPoints(TRACKS.map((t) => `${t.track}_l5`))).toBe(MAX_POINTS);
+  });
+  it('card styles get harder, and Hall of Fame needs Legend everywhere', () => {
+    const pts = CARD_STYLES.map((c) => c.points);
+    expect([...pts].sort((a, b) => a - b)).toEqual(pts);
+    expect(cardStyle('hall_of_fame').points).toBe(MAX_POINTS);
+    expect(cardStyle('nonsense').id).toBe('classic');
   });
   it('rarity only shows with enough players', () => {
     expect(rarityLabel(1, 5)).toBeNull();
     expect(rarityLabel(3, 50)).toBe('6% of players');
     expect(rarityLabel(1, 400)).toBe('Under 1% of players');
     expect(rarityLabel(0, 40)).toBe('No one yet');
-  });
-  it('every achievement has a tier and category', () => {
-    for (const a of ACHIEVEMENTS) { expect(TIERS[a.tier]).toBeDefined(); expect(CATEGORIES).toContain(a.category); }
   });
 });
 

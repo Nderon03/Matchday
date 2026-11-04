@@ -10,8 +10,8 @@ import { usePlayerProfile, keys } from '@/hooks/queries';
 import { useAction } from '@/hooks/useAction';
 import { rpc, q } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
-import { shareText, shareViewAsImage } from '@/lib/share';
-import { ACHIEVEMENTS, TIERS, tierOf } from '@/domain/achievements';
+import { shareViewAsImage } from '@/lib/share';
+import { SEASON_CHAMPION, TRACKS, levelInfo, medalPoints, parseCode } from '@/domain/achievements';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
 import { formatDate, formatKickoff, POSITION_LABEL, rating } from '@/domain/format';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -27,14 +27,18 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   const cardRef = useRef<HostInstance>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reason, setReason] = useState('');
-  const catalogue = useQuery({ queryKey: ['achievements'], queryFn: () => q<any[]>(supabase.from('achievements').select('*').order('sort_order')), staleTime: Infinity });
+  // card style lives on the profile row (readable by everyone who can see the profile)
+  const style = useQuery({ queryKey: ['player', userId, 'card_style'], queryFn: () => q<{ card_style: string } | null>(supabase.from('profiles').select('card_style').eq('id', userId).maybeSingle()) });
 
   if (profile.isLoading) return <View style={{ gap: space.md }}><Skeleton height={220} /><Skeleton height={100} /><Skeleton height={100} /></View>;
   if (!profile.data) return <ErrorState error={profile.error} onRetry={profile.refetch} />;
   const d = profile.data;
   const p = d.profile;
   const s = d.stats;
-  const unlocked = new Set((d.achievements ?? []).map((a: any) => a.code));
+  const unlocked = new Set<string>((d.achievements ?? []).map((a: any) => a.code));
+  const points = medalPoints(unlocked);
+  const best: Record<string, number> = {};
+  unlocked.forEach((c) => { const { track, level } = parseCode(c); best[track] = Math.max(best[track] ?? 0, level); });
 
   const share = async () => {
     try {
@@ -47,7 +51,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
 
   return (
     <View style={{ gap: space.lg }}>
-      <PlayerCard ref={cardRef} data={{ ...p, stats: s ? { ...s, rating: s.rating } : null, achievements: d.achievements?.length ?? 0 }} />
+      <PlayerCard ref={cardRef} data={{ ...p, stats: s ? { ...s, rating: s.rating } : null, achievements: points, card_style: style.data?.card_style }} />
 
       <Row gap={space.sm} wrap>
         {d.is_self ? (
@@ -145,25 +149,27 @@ export function PlayerProfileView({ userId }: { userId: string }) {
 
       {!!d.can_view_stats && (
         <>
-          <SectionTitle title={`Achievements · ${unlocked.size}/${(catalogue.data ?? ACHIEVEMENTS).length}`} action={d.is_self ? 'See all' : undefined} onAction={d.is_self ? () => router.push('/achievements') : undefined} />
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
-            {(catalogue.data ?? ACHIEVEMENTS).map((a: any) => {
-              const on = unlocked.has(a.code);
-              const when = d.achievements?.find((x: any) => x.code === a.code)?.unlocked_at;
-              return (
-                <Card key={a.code} style={{ width: '48%', flexGrow: 1, opacity: on ? 1 : 0.55 }} accessibilityLabel={`${a.name}, ${TIERS[tierOf(a.code)].label}${on ? ', unlocked' : ', locked'}`}
-                  onPress={on ? () => shareText(`${p.display_name} unlocked “${a.name}” on MATCHDAY 🏆`).catch(() => undefined) : undefined}>
-                  <Row gap={space.sm}>
-                    <AchievementBadge icon={a.icon} tier={tierOf(a.code)} unlocked={on} size={40} shine={false} />
-                    <View style={{ flex: 1 }}>
-                      <Text variant="smallStrong">{a.name}</Text>
-                      <Text variant="caption" tone="muted" numberOfLines={2}>{!!on && when ? formatDate(when) : a.description}</Text>
-                    </View>
-                  </Row>
-                </Card>
-              );
-            })}
-          </View>
+          <SectionTitle title={`Medals · ${points} pts`} action={d.is_self ? 'See all' : undefined} onAction={d.is_self ? () => router.push('/achievements') : undefined} />
+          <Card>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: space.md }}>
+              {TRACKS.map((t) => {
+                const lvl = best[t.track] ?? 0;
+                return (
+                  <View key={t.track} style={{ width: '25%', alignItems: 'center', gap: 4 }} accessible accessibilityLabel={`${t.name}: ${lvl ? levelInfo(lvl).label : 'not started'}`}>
+                    <AchievementBadge icon={t.icon} level={lvl} size={44} animate={false} />
+                    <Text variant="caption" align="center" numberOfLines={1} tone={lvl ? 'default' : 'faint'}>{t.name}</Text>
+                    <Text variant="caption" align="center" style={{ color: lvl ? levelInfo(lvl).colour : colors.textFaint, marginTop: -4 }}>{lvl ? levelInfo(lvl).label : '–'}</Text>
+                  </View>
+                );
+              })}
+            </View>
+            {unlocked.has(SEASON_CHAMPION.code) && (
+              <Row gap={space.sm} style={{ marginTop: space.md, justifyContent: 'center' }}>
+                <Ionicons name="ribbon" size={16} color={colors.gold} />
+                <Text variant="smallStrong" tone="gold">Season Champion</Text>
+              </Row>
+            )}
+          </Card>
         </>
       )}
 

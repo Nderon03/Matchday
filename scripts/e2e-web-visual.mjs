@@ -45,11 +45,11 @@ const home = {
           { kind: 'payment', session_id: SID, title: 'Sunday League Prep', subtitle: '£5 due', due_at: null, count: 1 }],
   recent_results: [{ session_id: SID, name: 'Tuesday 6-a-side', played_at: new Date(Date.now() - 86400_000).toISOString(), wins: 2, draws: 1, losses: 1, goals: 3, rating_avg: 7.8, rating_eligible: true, motm: true }],
   career: { sessions: 42, goals: 61, motm: 9, rating: 7.24 },
-  achievements: [{ code: 'hat_trick', name: 'Hat-trick Hero', icon: 'flame' }, { code: 'first_motm', name: 'First MOTM', icon: 'star' }],
+  achievements: [{ code: 'haul_l3', name: 'Big Game', icon: 'flash' }, { code: 'goals_l4', name: 'Goals', icon: 'football' }],
   groups: [{ id: GID, name: 'Wednesday Football', logo_url: null, my_rank: 2, leader: { display_name: 'Alex Reid', value: 7.6 } }],
 };
 const table = {
-  profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z', terms_version: LEGAL_VERSION, terms_accepted_at: '2026-11-01T00:00:00Z' }],
+  profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z', terms_version: LEGAL_VERSION, terms_accepted_at: '2026-11-01T00:00:00Z', card_style: 'gold' }],
   session_videos: [{ id: 'v1', session_id: SID, video_id: 'dQw4w9WgXcQ', title: 'Game 1', added_by: ME, created_at: kickoff }],
   payments: [],
   session_guests: [{ id: 'g1111111-1111-4111-8111-111111111111', session_id: SID, name: 'Dave', added_by: people[1].id, status: 'confirmed', created_at: kickoff },
@@ -61,22 +61,30 @@ const table = {
   achievements: [], friendships: [], friend_requests: [], user_blocks: [], session_templates: [], user_preferences: [{ user_id: ME, profile_visibility: 'public', show_stats: true, push_enabled: true, email_enabled: true, notification_prefs: {}, theme: 'dark' }],
 };
 const ago = (days) => new Date(Date.now() - days * 86400_000).toISOString();
+// tracks: [track, name, icon, targets, value, levels unlocked, days ago of the newest level]
+const TRACKS = [
+  ['apps', 'Appearances', 'shirt', [1, 10, 25, 50, 100], 42, 3, 60],
+  ['goals', 'Goals', 'football', [1, 10, 25, 50, 100], 61, 4, 20],
+  ['assists', 'Assists', 'git-merge', [1, 10, 25, 50, 100], 18, 2, 40],
+  ['motm', 'Man of the Match', 'star', [1, 5, 10, 25, 50], 9, 2, 30],
+  ['weeks', 'Ever-present', 'flame', [3, 5, 10, 20, 40], 9, 2, 25],
+  ['wins', 'Win Streak', 'trending-up', [3, 5, 7, 10, 15], 4, 1, 90],
+  ['unbeaten', 'Unbeaten Run', 'shield-checkmark', [5, 10, 15, 20, 30], 3, 0, 0],
+  ['haul', 'Big Game', 'flash', [2, 3, 4, 5, 6], 4, 3, 1],
+];
+const LV = ['bronze', 'silver', 'gold', 'platinum', 'legend'];
 const myAchievements = {
   players: 140,
+  points: 17,
+  card_style: 'gold',
   streak: { current: 6, best: 9 },
   items: [
-    ['first_match', 'First Match', 'Play your first verified session.', 'shirt', 'common', 'Playing', 1, 1, ago(200), 140],
-    ['apps_10', 'Regular', 'Play 10 verified sessions.', 'people', 'common', 'Playing', 10, 10, ago(120), 61],
-    ['apps_50', '50 Appearances', 'Play 50 verified sessions.', 'medal', 'rare', 'Playing', 50, 42, null, 9],
-    ['weeks_5', 'Never Misses', 'Play 5 weeks in a row.', 'calendar', 'common', 'Playing', 5, 5, ago(30), 33],
-    ['weeks_20', 'Ever-present', 'Play 20 weeks in a row.', 'flame', 'epic', 'Playing', 20, 9, null, 2],
-    ['first_goal', 'First Goal', 'Score your first approved goal.', 'football', 'common', 'Scoring', 1, 1, ago(190), 98],
-    ['hat_trick', 'Hat-trick Hero', 'Score 3 or more goals in a single session.', 'flash', 'rare', 'Scoring', 3, 3, ago(1), 12],
-    ['goals_100', 'Century', 'Score 100 approved goals.', 'rocket', 'epic', 'Scoring', 100, 61, null, 0],
-    ['first_motm', 'First MOTM', 'Win Man of the Match for the first time.', 'star', 'common', 'Awards', 1, 1, ago(150), 70],
-    ['season_champion', 'Season Champion', 'Be named Player of the Season.', 'ribbon', 'legendary', 'Awards', 1, 1, ago(2), 3],
-    ['win_streak_5', 'Five in a Row', 'Win 5 consecutive games.', 'trending-up', 'rare', 'Form', 5, 3, null, 15],
-  ].map(([code, name, description, icon, tier, category, target, progress, unlocked_at, holders]) => ({ code, name, description, icon, tier, category, target, progress, unlocked_at, holders })),
+    ...TRACKS.flatMap(([track, name, icon, targets, value, levels, days]) => targets.map((target, i) => ({
+      code: `${track}_l${i + 1}`, name, description: `Reach ${target}.`, icon, tier: LV[i], track, level: i + 1, target, value,
+      unlocked_at: i < levels ? ago(i === levels - 1 ? days : days + 60) : null, holders: Math.max(0, 120 - i * 30),
+    }))),
+    { code: 'season_champion', name: 'Season Champion', description: 'Be named Player of the Season.', icon: 'ribbon', tier: 'legend', track: 'season_champion', level: null, target: 1, value: 1, unlocked_at: ago(2), holders: 3 },
+  ],
 };
 const rpcs = {
   get_my_achievements: myAchievements,
@@ -94,7 +102,7 @@ const rpcs = {
     stats: { sessions: 42, fixtures: 96, wins: 51, draws: 12, losses: 33, goals: 61, assists: 22, motm: 9, rating: 7.2, rated_sessions: 38, highest_rating: 9.1, win_pct: 53.1, current_win_streak: 2, best_win_streak: 7, current_unbeaten: 4, best_unbeaten: 11 },
     form: [7.1, 6.8, 8.2, 7.4, 7.9].map((r, i) => ({ session_id: `s${i}`, rating: r, played_at: new Date(Date.now() - (5 - i) * 7 * 86400_000).toISOString() })),
     rating_history: [6.2, 6.8, 7.0, 6.5, 7.4, 7.1, 6.8, 8.2, 7.4, 7.9].map((r, i) => ({ session_id: `h${i}`, rating: r, played_at: new Date(Date.now() - (10 - i) * 7 * 86400_000).toISOString() })),
-    recent_results: home.recent_results, achievements: [{ code: 'first_match', name: 'First Match', icon: 'shirt', description: '', unlocked_at: '2026-01-07T00:00:00Z' }, { code: 'hat_trick', name: 'Hat-trick Hero', icon: 'flame', description: '', unlocked_at: '2026-03-01T00:00:00Z' }],
+    recent_results: home.recent_results, achievements: ['apps_l1', 'apps_l2', 'apps_l3', 'goals_l1', 'goals_l2', 'goals_l3', 'goals_l4', 'haul_l1', 'haul_l2', 'haul_l3', 'motm_l1', 'motm_l2', 'weeks_l1', 'weeks_l2', 'assists_l1', 'assists_l2', 'wins_l1', 'season_champion'].map((code) => ({ code, name: code, icon: 'star', description: '', unlocked_at: '2026-03-01T00:00:00Z' })),
     groups: [{ id: GID, name: 'Wednesday Football', logo_url: null, role: 'owner' }], teammates: people.slice(1, 4).map((p, i) => ({ user_id: p.id, username: p.username, display_name: p.display_name, avatar_url: null, games: 30 - i * 6, wins: 16 - i * 3 })) },
 };
 
@@ -126,7 +134,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   });
   for (const [name, path, expected] of [
     ['home', '/', 'Next up'], ['session', `/session/${SID}`, 'Host controls'], ['lineup', `/session/${SID}/lineup`, 'Balance teams'],
-    ['leagues', '/leagues', 'My groups'], ['profile', '/profile', 'Achievements'], ['create', '/create', 'New session'],
+    ['leagues', '/leagues', 'My groups'], ['profile', '/profile', 'Medals · 17 pts'], ['create', '/create', 'New session'],
     ['payments', `/session/${SID}/payments`, 'Host dashboard'], ['settings', '/settings', 'Terms of Use'],
     ['notifications', '/notifications', 'Notifications'], ['privacy', '/legal/privacy', 'Privacy Policy'],
     ['terms', '/legal/terms', 'Terms of Use'], ['delete', '/legal/delete-account', 'Delete your account'],
@@ -134,7 +142,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['group-new', '/group/new', 'Who can join'],
     ['session-new', '/session/new', 'Postcode'],
     ['done-redirect', `/done?kind=paid&session=${SID}`, 'Host dashboard'],
-    ['achievements', '/achievements', 'Ever-present'],
+    ['achievements', '/achievements', 'Hall of Fame'],
   ]) {
     await page.goto(base + path, { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
@@ -202,15 +210,15 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   await page.goto(base + '/achievements', { waitUntil: 'networkidle' });
   await page.waitForTimeout(1200);
   let ct = await page.locator('body').innerText();
-  if (!/Achievement unlocked/i.test(ct) || !ct.includes('Season Champion') || !ct.includes('Next (1 more)')) failures.push(`${vpName}: unlock celebration not shown`);
+  if (!ct.includes('Season Champion') || !ct.includes('Next (1 more)')) failures.push(`${vpName}: unlock celebration not shown`);
   await page.screenshot({ path: join(OUT, `auth-${vpName}-celebration.png`) });
   await page.getByRole('button', { name: /Next \(1 more\)/ }).click();
   await page.waitForTimeout(900);
   ct = await page.locator('body').innerText();
-  if (!ct.includes('Hat-trick Hero') || !/Achievement unlocked/i.test(ct)) failures.push(`${vpName}: second unlock not shown`);
+  if (!ct.includes('Big Game') || !/Level up · Gold/i.test(ct)) failures.push(`${vpName}: second unlock not shown`);
   await page.getByRole('button', { name: 'Nice' }).click();
   await page.waitForTimeout(500);
-  if (/Achievement unlocked/i.test(await page.locator('body').innerText())) failures.push(`${vpName}: celebration did not close`);
+  if (/Level up ·/i.test(await page.locator('body').innerText())) failures.push(`${vpName}: celebration did not close`);
   if (errors.length) failures.push(`${vpName}: runtime errors:\n  ${[...new Set(errors)].join('\n  ')}`);
   await page.close();
 }

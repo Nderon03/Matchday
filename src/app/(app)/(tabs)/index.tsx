@@ -8,7 +8,7 @@ import { FeedItemCard } from '@/components/football/FeedItem';
 import { useFeed, useFriends, useHome, useMyAchievements } from '@/hooks/queries';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
 import { StreakFlame } from '@/components/football/Streak';
-import { tierOf } from '@/domain/achievements';
+import { levelInfo, parseCode } from '@/domain/achievements';
 import { GetStarted } from '@/features/GetStarted';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -173,8 +173,11 @@ export default function Home() {
                 {d.achievements.map((a: any) => (
                   <Card key={a.code} style={{ flexGrow: 1, minWidth: 140 }} onPress={() => router.push('/achievements')} accessibilityLabel={a.name}>
                     <Row gap={space.sm}>
-                      <AchievementBadge icon={a.icon} tier={tierOf(a.code)} unlocked size={36} shine={false} />
-                      <Text variant="smallStrong" style={{ flexShrink: 1 }}>{a.name}</Text>
+                      <AchievementBadge icon={a.icon} level={parseCode(a.code).level} size={36} animate={false} />
+                      <View style={{ flexShrink: 1 }}>
+                        <Text variant="smallStrong" numberOfLines={1}>{a.name}</Text>
+                        {a.code !== 'season_champion' && <Text variant="caption" style={{ color: levelInfo(parseCode(a.code).level).colour }}>{levelInfo(parseCode(a.code).level).label}</Text>}
+                      </View>
                     </Row>
                   </Card>
                 ))}

@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button, Text } from '@/components/ui';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
-import { TIERS, rarityLabel } from '@/domain/achievements';
+import { CARD_STYLES, SEASON_CHAMPION, levelInfo, medalPoints, rarityLabel, type CardStyle } from '@/domain/achievements';
 import { useMyAchievements, type MyAchievement } from '@/hooks/queries';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -24,6 +24,7 @@ export function AchievementCelebration() {
   const { userId } = useAuth();
   const mine = useMyAchievements();
   const [seen, setSeen] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!userId) return;
@@ -40,21 +41,45 @@ export function AchievementCelebration() {
     return () => { alive = false; };
   }, [userId]);
 
-  const queue = useMemo(() => (seen && mine.data
-    ? mine.data.items.filter((i) => i.unlocked_at && i.unlocked_at > seen).sort((a, b) => a.unlocked_at!.localeCompare(b.unlocked_at!))
-    : []), [seen, mine.data]);
+  const fresh = useMemo(() => (seen && mine.data ? mine.data.items.filter((i) => i.unlocked_at && i.unlocked_at > seen) : []), [seen, mine.data]);
+  // one celebration per medal: several levels at once show as the highest
+  const queue = useMemo(() => {
+    const best = new Map<string, MyAchievement>();
+    for (const i of fresh) {
+      if (dismissed.has(i.code)) continue;
+      const cur = best.get(i.track);
+      if (!cur || (i.level ?? 5) > (cur.level ?? 5)) best.set(i.track, i);
+    }
+    return [...best.values()].sort((a, b) => a.unlocked_at!.localeCompare(b.unlocked_at!) || (a.level ?? 5) - (b.level ?? 5));
+  }, [fresh, dismissed]);
+  // card styles that these unlocks pushed the player into
+  const newStyles = useMemo(() => {
+    if (!mine.data || !seen) return [];
+    const before = medalPoints(mine.data.items.filter((i) => i.unlocked_at && i.unlocked_at <= seen).map((i) => i.code));
+    return CARD_STYLES.filter((c) => c.points > before && c.points <= mine.data!.points);
+  }, [mine.data, seen]);
 
   if (!userId || !queue.length || !mine.data) return null;
-  const next = (item: MyAchievement) => {
-    setSeen(item.unlocked_at!);
-    AsyncStorage.setItem(seenKey(userId), item.unlocked_at!).catch(() => undefined);
+  const done = (item: MyAchievement) => {
+    const next = new Set(dismissed);
+    fresh.filter((i) => i.track === item.track).forEach((i) => next.add(i.code));
+    setDismissed(next);
+    if (fresh.every((i) => next.has(i.code))) {
+      const latest = fresh.reduce((m, i) => (i.unlocked_at! > m ? i.unlocked_at! : m), seen!);
+      setSeen(latest);
+      setDismissed(new Set());
+      AsyncStorage.setItem(seenKey(userId), latest).catch(() => undefined);
+    }
   };
-  return <Celebration key={queue[0].code} item={queue[0]} more={queue.length - 1} players={mine.data.players} onDone={next} />;
+  const last = queue.length === 1;
+  return <Celebration key={queue[0].code} item={queue[0]} more={queue.length - 1} players={mine.data.players} newStyle={last ? newStyles[newStyles.length - 1] ?? null : null} onDone={done} />;
 }
 
-function Celebration({ item, more, players, onDone }: { item: MyAchievement; more: number; players: number; onDone: (i: MyAchievement) => void }) {
+function Celebration({ item, more, players, newStyle, onDone }: { item: MyAchievement; more: number; players: number; newStyle: CardStyle | null; onDone: (i: MyAchievement) => void }) {
   const { colors, reduceMotion } = useTheme();
-  const tier = TIERS[item.tier];
+  const isChampion = item.code === SEASON_CHAMPION.code;
+  const level = isChampion ? 5 : item.level ?? 1;
+  const tier = levelInfo(level);
   const rarity = rarityLabel(item.holders, players);
   const [card] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
   const [badge] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
@@ -73,6 +98,8 @@ function Celebration({ item, more, players, onDone }: { item: MyAchievement; mor
   }, [card, badge, text, reduceMotion]);
 
   const done = () => onDone(item);
+  const headline = isChampion ? 'Season Champion' : level > 1 ? `Level up · ${tier.label}` : `New medal · ${tier.label}`;
+  const shareLine = isChampion ? 'I was named Player of the Season on MATCHDAY 🏆' : `I reached ${tier.label} in ${item.name} on MATCHDAY 🏅`;
   return (
     <Modal visible transparent animationType="fade" onRequestClose={done} statusBarTranslucent>
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={done} accessibilityLabel="Close" />
@@ -88,18 +115,25 @@ function Celebration({ item, more, players, onDone }: { item: MyAchievement; mor
               { scale: badge.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) },
               { rotate: badge.interpolate({ inputRange: [0, 1], outputRange: ['-25deg', '0deg'] }) },
             ], opacity: badge.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 1, 1] }) }}>
-              <AchievementBadge icon={item.icon} tier={item.tier} unlocked size={104} />
+              <AchievementBadge icon={item.icon} level={level} size={104} />
             </Animated.View>
           </View>
           <Animated.View style={{ alignItems: 'center', gap: space.xs, opacity: text, transform: [{ translateY: text.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
-            <Text variant="overline" style={{ color: tier.colour }}>{tier.label} · Achievement unlocked</Text>
+            <Text variant="overline" style={{ color: tier.colour }}>{headline}</Text>
             <Text variant="h2" align="center" accessibilityRole="header">{item.name}</Text>
             <Text tone="muted" align="center">{item.description}</Text>
             {!!rarity && <Text variant="caption" tone="faint" align="center">{rarity} have this</Text>}
           </Animated.View>
+          {!!newStyle && (
+            <Pressable onPress={() => { done(); router.push('/achievements'); }} accessibilityRole="button"
+              style={{ alignSelf: 'stretch', borderRadius: radius.md, borderWidth: 1, borderColor: newStyle.border ?? colors.border, backgroundColor: newStyle.to, padding: space.md }}>
+              <Text variant="smallStrong" color={newStyle.accent} align="center">New player card unlocked: {newStyle.name}</Text>
+              <Text variant="caption" color={newStyle.muted} align="center">Tap to try it on</Text>
+            </Pressable>
+          )}
           <View style={{ flexDirection: 'row', gap: space.sm, alignSelf: 'stretch', marginTop: space.sm }}>
             <Button title="Share" variant="secondary" icon="share-outline" style={{ flex: 1 }}
-              onPress={() => shareText(`I just unlocked “${item.name}” on MATCHDAY 🏆`).catch(() => undefined)} />
+              onPress={() => shareText(shareLine).catch(() => undefined)} />
             <Button title={more ? `Next (${more} more)` : 'Nice'} style={{ flex: 1 }} onPress={done} />
           </View>
           <Text variant="small" tone="primary" onPress={() => { done(); router.push('/achievements'); }}>See all achievements</Text>

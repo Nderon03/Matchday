@@ -37,11 +37,10 @@ export function useHome() {
 }
 
 export interface MyAchievement {
-  code: string; name: string; description: string; icon: string;
-  tier: import('@/domain/achievements').AchievementTier; category: string;
-  target: number; progress: number; unlocked_at: string | null; holders: number;
+  code: string; name: string; description: string; icon: string; tier: string;
+  track: string; level: number | null; target: number; value: number; unlocked_at: string | null; holders: number;
 }
-export interface MyAchievements { players: number; streak: { current: number; best: number }; items: MyAchievement[] }
+export interface MyAchievements { players: number; points: number; card_style: string; streak: { current: number; best: number }; items: MyAchievement[] }
 /** The signed-in player's achievements with progress and rarity, plus their weekly streak. */
 export function useMyAchievements() {
   const { userId } = useAuth();

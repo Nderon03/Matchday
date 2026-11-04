@@ -1,71 +1,81 @@
-/** Achievement definitions (mirrored in the SQL catalogue, migration 28). */
-export interface AchievementInput {
-  sessions: number;
-  goals: number;
-  assists: number;
-  motm: number;
-  bestWinStreak: number;
-  bestUnbeaten: number;
-  bestWeekStreak: number;
-  maxGoalsInSession: number;
-  seasonChampion: boolean;
-}
+/**
+ * Achievements are tracks with five levels (Bronze → Legend), mirrored in the SQL catalogue
+ * (migration 29). Codes are `<track>_l<level>`, plus the one-off `season_champion`.
+ */
+export type Level = 0 | 1 | 2 | 3 | 4 | 5;
 
-export type AchievementTier = 'common' | 'rare' | 'epic' | 'legendary';
-export type AchievementCategory = 'Playing' | 'Scoring' | 'Playmaking' | 'Awards' | 'Form';
+export const LEVELS: { label: string; colour: string }[] = [
+  { label: 'Bronze', colour: '#D08A4E' },
+  { label: 'Silver', colour: '#C7CED8' },
+  { label: 'Gold', colour: '#F5B014' },
+  { label: 'Platinum', colour: '#67E8F9' },
+  { label: 'Legend', colour: '#C084FC' },
+];
+export const levelInfo = (level: number) => LEVELS[Math.max(1, Math.min(5, level)) - 1];
 
-export interface AchievementDef {
-  code: string;
-  name: string;
-  description: string;
-  icon: string;
-  tier: AchievementTier;
-  category: AchievementCategory;
-  check: (i: AchievementInput) => boolean;
-  progress: (i: AchievementInput) => [number, number];
-}
+export interface TrackDef { track: string; name: string; icon: string; targets: number[]; unit: (n: number) => string }
 
-type Numeric = Exclude<keyof AchievementInput, 'seasonChampion'>;
-
-const def = (code: string, name: string, description: string, icon: string, tier: AchievementTier, category: AchievementCategory, field: Numeric, target: number): AchievementDef => ({
-  code, name, description, icon, tier, category,
-  check: (i) => i[field] >= target,
-  progress: (i) => [Math.min(i[field], target), target],
-});
-
-export const ACHIEVEMENTS: AchievementDef[] = [
-  def('first_match', 'First Match', 'Play your first verified session.', 'shirt', 'common', 'Playing', 'sessions', 1),
-  def('apps_10', 'Regular', 'Play 10 verified sessions.', 'people', 'common', 'Playing', 'sessions', 10),
-  def('apps_50', '50 Appearances', 'Play 50 verified sessions.', 'medal', 'rare', 'Playing', 'sessions', 50),
-  def('apps_100', 'Club Legend', 'Play 100 verified sessions.', 'shield', 'epic', 'Playing', 'sessions', 100),
-  def('weeks_5', 'Never Misses', 'Play 5 weeks in a row.', 'calendar', 'common', 'Playing', 'bestWeekStreak', 5),
-  def('weeks_20', 'Ever-present', 'Play 20 weeks in a row.', 'flame', 'epic', 'Playing', 'bestWeekStreak', 20),
-  def('first_goal', 'First Goal', 'Score your first approved goal.', 'football', 'common', 'Scoring', 'goals', 1),
-  def('hat_trick', 'Hat-trick Hero', 'Score 3 or more goals in a single session.', 'flash', 'rare', 'Scoring', 'maxGoalsInSession', 3),
-  def('goals_25', 'Goal Machine', 'Score 25 approved goals.', 'locate', 'rare', 'Scoring', 'goals', 25),
-  def('goals_100', 'Century', 'Score 100 approved goals.', 'rocket', 'epic', 'Scoring', 'goals', 100),
-  def('first_assist', 'First Assist', 'Set up your first approved goal.', 'git-merge', 'common', 'Playmaking', 'assists', 1),
-  def('assists_25', 'Playmaker', 'Make 25 approved assists.', 'compass', 'rare', 'Playmaking', 'assists', 25),
-  def('first_motm', 'First MOTM', 'Win Man of the Match for the first time.', 'star', 'common', 'Awards', 'motm', 1),
-  def('motm_10', '10 MOTM Awards', 'Win Man of the Match 10 times.', 'trophy', 'epic', 'Awards', 'motm', 10),
-  {
-    code: 'season_champion', name: 'Season Champion', description: 'Be named Player of the Season.', icon: 'ribbon', tier: 'legendary', category: 'Awards',
-    check: (i) => i.seasonChampion, progress: (i) => [i.seasonChampion ? 1 : 0, 1],
-  },
-  def('win_streak_5', 'Five in a Row', 'Win 5 consecutive games.', 'trending-up', 'rare', 'Form', 'bestWinStreak', 5),
-  def('unbeaten_10', 'Unbeaten Run', 'Go 10 consecutive games without defeat.', 'shield-checkmark', 'epic', 'Form', 'bestUnbeaten', 10),
+export const TRACKS: TrackDef[] = [
+  { track: 'apps', name: 'Appearances', icon: 'shirt', targets: [1, 10, 25, 50, 100], unit: (n) => `${n} ${n === 1 ? 'game' : 'games'}` },
+  { track: 'goals', name: 'Goals', icon: 'football', targets: [1, 10, 25, 50, 100], unit: (n) => `${n} ${n === 1 ? 'goal' : 'goals'}` },
+  { track: 'assists', name: 'Assists', icon: 'git-merge', targets: [1, 10, 25, 50, 100], unit: (n) => `${n} ${n === 1 ? 'assist' : 'assists'}` },
+  { track: 'motm', name: 'Man of the Match', icon: 'star', targets: [1, 5, 10, 25, 50], unit: (n) => `${n} ${n === 1 ? 'award' : 'awards'}` },
+  { track: 'weeks', name: 'Ever-present', icon: 'flame', targets: [3, 5, 10, 20, 40], unit: (n) => `${n} weeks in a row` },
+  { track: 'wins', name: 'Win Streak', icon: 'trending-up', targets: [3, 5, 7, 10, 15], unit: (n) => `${n} wins in a row` },
+  { track: 'unbeaten', name: 'Unbeaten Run', icon: 'shield-checkmark', targets: [5, 10, 15, 20, 30], unit: (n) => `${n} unbeaten` },
+  { track: 'haul', name: 'Big Game', icon: 'flash', targets: [2, 3, 4, 5, 6], unit: (n) => `${n} goals in a game` },
 ];
 
-export const CATEGORIES: AchievementCategory[] = ['Playing', 'Scoring', 'Playmaking', 'Awards', 'Form'];
+export const SEASON_CHAMPION = { code: 'season_champion', name: 'Season Champion', icon: 'ribbon' };
 
-export const TIERS: Record<AchievementTier, { label: string; colour: string }> = {
-  common: { label: 'Common', colour: '#94A3B8' },
-  rare: { label: 'Rare', colour: '#38BDF8' },
-  epic: { label: 'Epic', colour: '#A78BFA' },
-  legendary: { label: 'Legendary', colour: '#F5B014' },
-};
+/** Track and level from a code ("goals_l3" → goals, 3). Season Champion counts as a Legend medal. */
+export function parseCode(code: string): { track: string; level: Level } {
+  const m = /^(.+)_l([1-5])$/.exec(code);
+  if (m) return { track: m[1], level: Number(m[2]) as Level };
+  return { track: code, level: code === SEASON_CHAMPION.code ? 5 : 1 };
+}
 
-export const tierOf = (code: string): AchievementTier => ACHIEVEMENTS.find((a) => a.code === code)?.tier ?? 'common';
+/** Level reached for a value, and what the next level needs. */
+export function trackProgress(value: number, targets: number[]): { level: Level; next: number | null; prev: number } {
+  let level = 0;
+  while (level < targets.length && value >= targets[level]) level++;
+  return { level: level as Level, next: level < targets.length ? targets[level] : null, prev: level ? targets[level - 1] : 0 };
+}
+
+/** Codes a player qualifies for given their track values. */
+export function qualifyingCodes(values: Record<string, number>): string[] {
+  const out: string[] = [];
+  for (const t of TRACKS) t.targets.forEach((target, i) => { if ((values[t.track] ?? 0) >= target) out.push(`${t.track}_l${i + 1}`); });
+  if ((values.season_champion ?? 0) > 0) out.push(SEASON_CHAMPION.code);
+  return out;
+}
+
+/** Medal points: the best level in each track (Bronze 1 … Legend 5). Season Champion doesn't count. */
+export function medalPoints(unlockedCodes: Iterable<string>): number {
+  const best: Record<string, number> = {};
+  for (const c of unlockedCodes) {
+    if (c === SEASON_CHAMPION.code) continue;
+    const { track, level } = parseCode(c);
+    best[track] = Math.max(best[track] ?? 0, level);
+  }
+  return Object.values(best).reduce((a, b) => a + b, 0);
+}
+export const MAX_POINTS = TRACKS.length * 5;
+
+export type CardStyleId = 'classic' | 'silver' | 'gold' | 'platinum' | 'hall_of_fame';
+export interface CardStyle {
+  id: CardStyleId; name: string; points: number;
+  from: string; to: string; accent: string; muted: string; border: string | null; label?: string;
+}
+/** Player card / profile banner styles, unlocked by medal points (checked again on the server). */
+export const CARD_STYLES: CardStyle[] = [
+  { id: 'classic', name: 'Classic', points: 0, from: '#123D26', to: '#0A0F0C', accent: '#22C55E', muted: '#9FB3A8', border: null },
+  { id: 'silver', name: 'Silver', points: 8, from: '#2B323B', to: '#0D1013', accent: '#DCE2EA', muted: '#A3ADB9', border: '#C7CED8' },
+  { id: 'gold', name: 'Gold', points: 16, from: '#43320A', to: '#120D03', accent: '#F5B014', muted: '#C9B07A', border: '#F5B014' },
+  { id: 'platinum', name: 'Platinum', points: 26, from: '#0F3A44', to: '#061316', accent: '#67E8F9', muted: '#93C5CF', border: '#67E8F9' },
+  { id: 'hall_of_fame', name: 'Hall of Fame', points: MAX_POINTS, from: '#1E1606', to: '#000000', accent: '#F5C542', muted: '#BFA668', border: '#F5C542', label: 'HALL OF FAME' },
+];
+export const cardStyle = (id?: string | null) => CARD_STYLES.find((s) => s.id === id) ?? CARD_STYLES[0];
 
 /** "6% of players" style rarity; null when there are too few players for it to mean anything. */
 export function rarityLabel(holders: number, players: number): string | null {
@@ -74,10 +84,4 @@ export function rarityLabel(holders: number, players: number): string | null {
   if (pct === 0) return 'No one yet';
   if (pct < 1) return 'Under 1% of players';
   return `${Math.round(pct)}% of players`;
-}
-
-/** Codes newly unlocked given what the player already holds (non-repeatable, no duplicates). */
-export function newlyUnlocked(input: AchievementInput, alreadyHeld: Iterable<string>): string[] {
-  const held = new Set(alreadyHeld);
-  return ACHIEVEMENTS.filter((a) => a.check(input) && !held.has(a.code)).map((a) => a.code);
 }
