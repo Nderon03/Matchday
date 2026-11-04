@@ -95,3 +95,39 @@ describe('achievements', () => {
     expect((await db.admin(`select card_style from profiles where id = $1`, [u]))[0].card_style).toBe('silver');
   });
 });
+
+describe('after-match reveal and personal bests', () => {
+  it('lists recently finalised games with the bests from before each game', async () => {
+    const u = await db.createUser(uniq('rv'));
+    const host = await db.createUser(uniq('rh'));
+    const mk = async (weeksAgo: number, goals: number, assists: number, rating: number | null, motm = false, finalisedDaysAgo = 1) => {
+      const sid = await db.rpc<string>(host, 'create_session', { p: { name: `Game ${weeksAgo}`, starts_at: new Date(Date.now() + DAY).toISOString(), format_size: 5 } });
+      await db.admin(`update sessions set status = 'finalised', finalised_at = now() - make_interval(days => $2) where id = $1`, [sid, finalisedDaysAgo]);
+      await db.admin(
+        `insert into session_player_statistics (session_id, user_id, played_at, fixtures_played, wins, goals, assists, rating_avg, rating_eligible, motm)
+         values ($1, $2, $3, 2, 1, $4, $5, $6, $7, $8)`,
+        [sid, u, mondayNoon(weeksAgo), goals, assists, rating, rating !== null, motm],
+      );
+      return sid;
+    };
+    await mk(5, 1, 0, 7.0, false, 30); // old: not in the reveal list
+    await mk(4, 2, 1, 7.4, false, 30);
+    await mk(3, 0, 0, 6.8, false, 30);
+    const latest = await mk(0, 3, 2, 8.1, true, 0);
+    const reveals = await db.rpc<any[]>(u, 'get_match_reveals');
+    expect(reveals).toHaveLength(1);
+    expect(reveals[0]).toMatchObject({ session_id: latest, goals: 3, assists: 2, motm: true, prev_max_goals: 2, prev_max_assists: 1, prev_rated: 3 });
+    expect(Number(reveals[0].prev_best_rating)).toBe(7.4);
+
+    const pb = await db.rpc<any>(u, 'get_personal_bests', { p_user: u });
+    expect(pb.most_goals).toMatchObject({ value: 3, session_id: latest });
+    expect(Number(pb.best_rating.value)).toBe(8.1);
+    expect(pb.best_weeks).toBe(3); // weeks 3, 4 and 5 ago in a row
+
+    // private profiles keep their bests to themselves
+    const other = await db.createUser(uniq('ro'));
+    await db.admin(`update user_preferences set profile_visibility = 'private', show_stats = false where user_id = $1`, [u]);
+    expect(await db.rpc(other, 'get_personal_bests', { p_user: u })).toBeNull();
+    expect(await db.rpc(u, 'get_personal_bests', { p_user: u })).not.toBeNull();
+  });
+});

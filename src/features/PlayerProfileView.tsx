@@ -27,6 +27,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   const cardRef = useRef<HostInstance>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reason, setReason] = useState('');
+  const bests = useQuery({ queryKey: ['player', userId, 'bests'], queryFn: () => rpc<PersonalBests | null>('get_personal_bests', { p_user: userId }) });
   // card style lives on the profile row (readable by everyone who can see the profile)
   const style = useQuery({ queryKey: ['player', userId, 'card_style'], queryFn: () => q<{ card_style: string } | null>(supabase.from('profiles').select('card_style').eq('id', userId).maybeSingle()) });
 
@@ -173,6 +174,8 @@ export function PlayerProfileView({ userId }: { userId: string }) {
         </>
       )}
 
+      {!!d.can_view_stats && !!bests.data && <PersonalBestsCard b={bests.data} linkable={!!d.is_self} />}
+
       {!d.is_self && (
         <Row gap={space.sm} wrap style={{ marginTop: space.lg }}>
           {!!d.is_friend && <Button title="Remove friend" size="sm" variant="ghost" onPress={() => run('remove', () => rpc('remove_friend', { p_user: userId }), 'Friend removed')} />}
@@ -191,5 +194,42 @@ export function PlayerProfileView({ userId }: { userId: string }) {
       </Sheet>
       {Platform.OS === 'web' && <View style={{ height: space.xl }} />}
     </View>
+  );
+}
+
+interface Best { value: number | string; session_id: string; name: string; played_at: string }
+interface PersonalBests { best_rating: Best | null; most_goals: Best | null; most_assists: Best | null; best_win_streak: number; best_unbeaten: number; best_weeks: number }
+
+/** Records worth remembering. Rows only appear once there's something to show. */
+function PersonalBestsCard({ b, linkable }: { b: PersonalBests; linkable: boolean }) {
+  const { colors } = useTheme();
+  const rows: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string; best?: Best | null }[] = [];
+  if (b.best_rating) rows.push({ icon: 'trending-up', label: 'Best rating', value: Number(b.best_rating.value).toFixed(1), best: b.best_rating });
+  if (b.most_goals) rows.push({ icon: 'football', label: 'Most goals in a game', value: String(b.most_goals.value), best: b.most_goals });
+  if (b.most_assists) rows.push({ icon: 'git-merge', label: 'Most assists in a game', value: String(b.most_assists.value), best: b.most_assists });
+  if (b.best_win_streak > 1) rows.push({ icon: 'flash', label: 'Longest winning run', value: `${b.best_win_streak} games` });
+  if (b.best_unbeaten > 1) rows.push({ icon: 'shield-checkmark', label: 'Longest unbeaten run', value: `${b.best_unbeaten} games` });
+  if (b.best_weeks > 1) rows.push({ icon: 'flame', label: 'Most weeks in a row', value: `${b.best_weeks} weeks` });
+  if (!rows.length) return null;
+  return (
+    <>
+      <SectionTitle title="Personal bests" />
+      <Card padded={false}>
+        {rows.map((r, i) => (
+          <Row key={r.label} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
+            <Ionicons name={r.icon} size={18} color={colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text variant="smallStrong">{r.label}</Text>
+              {!!r.best && (
+                <Text variant="caption" tone="muted" numberOfLines={1} onPress={linkable ? () => router.push(`/session/${r.best!.session_id}`) : undefined}>
+                  {r.best.name} · {formatDate(r.best.played_at)}
+                </Text>
+              )}
+            </View>
+            <Text variant="statSmall">{r.value}</Text>
+          </Row>
+        ))}
+      </Card>
+    </>
   );
 }

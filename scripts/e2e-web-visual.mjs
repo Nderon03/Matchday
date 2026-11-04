@@ -86,7 +86,18 @@ const myAchievements = {
     { code: 'season_champion', name: 'Season Champion', description: 'Be named Player of the Season.', icon: 'ribbon', tier: 'legend', track: 'season_champion', level: null, target: 1, value: 1, unlocked_at: ago(2), holders: 3 },
   ],
 };
+const reveal = {
+  session_id: SID, name: 'Wednesday Football', played_at: ago(1), finalised_at: ago(0.5), group_name: 'Wednesday Football',
+  fixtures_played: 4, wins: 3, draws: 0, losses: 1, goals: 3, assists: 1, rating_avg: '8.40', rating_eligible: true,
+  motm: true, motm_shared: false, prev_max_goals: 2, prev_max_assists: 2, prev_best_rating: '8.10', prev_rated: 12,
+};
 const rpcs = {
+  get_match_reveals: [],
+  get_personal_bests: {
+    best_rating: { value: '8.60', session_id: SID, name: 'Tuesday 6-a-side', played_at: ago(40) },
+    most_goals: { value: 4, session_id: SID, name: 'Wednesday Football', played_at: ago(12) },
+    most_assists: null, best_win_streak: 6, best_unbeaten: 9, best_weeks: 9,
+  },
   get_my_achievements: myAchievements,
   get_home_dashboard: home, get_pending_tasks: home.tasks, is_session_manager: true,
   get_session_payment_statuses: people.slice(1, 9).map((p, i) => ({ user_id: p.id, status: ['paid', 'authorised', 'unpaid', 'paid', 'failed', 'paid', 'pending', 'paid'][i], method: 'card' })),
@@ -134,7 +145,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   });
   for (const [name, path, expected] of [
     ['home', '/', 'Next up'], ['session', `/session/${SID}`, 'Host controls'], ['lineup', `/session/${SID}/lineup`, 'Balance teams'],
-    ['leagues', '/leagues', 'My groups'], ['profile', '/profile', 'Medals · 17 pts'], ['create', '/create', 'New session'],
+    ['leagues', '/leagues', 'My groups'], ['profile', '/profile', 'Most goals in a game'], ['create', '/create', 'New session'],
     ['payments', `/session/${SID}/payments`, 'Host dashboard'], ['settings', '/settings', 'Terms of Use'],
     ['notifications', '/notifications', 'Notifications'], ['privacy', '/legal/privacy', 'Privacy Policy'],
     ['terms', '/legal/terms', 'Terms of Use'], ['delete', '/legal/delete-account', 'Delete your account'],
@@ -205,11 +216,18 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     }
     await page.screenshot({ path: join(OUT, `auth-${vpName}-${name}.png`), fullPage: vpName === 'phone' });
   }
-  // unlock celebration: pretend the player last saw an achievement 3 days ago
+  // after a finalised game: the match reveal comes first, then medal level-ups
+  rpcs.get_match_reveals = [reveal];
   await page.evaluate((uid) => localStorage.setItem(`matchday.achievementsSeen.${uid}`, new Date(Date.now() - 3 * 86400_000).toISOString()), ME);
   await page.goto(base + '/achievements', { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(1800);
   let ct = await page.locator('body').innerText();
+  if (!/Your match/i.test(ct) || !ct.includes('Man of the Match') || !ct.includes('3 goals') || !ct.includes('8.4') || ct.includes('Level up')) failures.push(`${vpName}: match reveal not shown first`);
+  if (ct.includes('assists') && ct.includes('The most you’ve set up')) failures.push(`${vpName}: equalled assists shown as a record`);
+  await page.screenshot({ path: join(OUT, `auth-${vpName}-match-reveal.png`) });
+  await page.getByRole('button', { name: 'Done' }).click();
+  await page.waitForTimeout(1200);
+  ct = await page.locator('body').innerText();
   if (!ct.includes('Season Champion') || !ct.includes('Next (1 more)')) failures.push(`${vpName}: unlock celebration not shown`);
   await page.screenshot({ path: join(OUT, `auth-${vpName}-celebration.png`) });
   await page.getByRole('button', { name: /Next \(1 more\)/ }).click();
@@ -219,6 +237,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   await page.getByRole('button', { name: 'Nice' }).click();
   await page.waitForTimeout(500);
   if (/Level up ·/i.test(await page.locator('body').innerText())) failures.push(`${vpName}: celebration did not close`);
+  rpcs.get_match_reveals = [];
   if (errors.length) failures.push(`${vpName}: runtime errors:\n  ${[...new Set(errors)].join('\n  ')}`);
   await page.close();
 }
