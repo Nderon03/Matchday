@@ -121,6 +121,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     if (name === 'home') {
       const t = await page.locator('body').innerText();
       if (!t.includes('The host removed you from Sunday Kickabout') || !t.includes('Too many no-shows')) failures.push(`${vpName}: removal notice not shown`);
+      if (t.includes('Add a profile photo')) failures.push(`${vpName}: get started checklist shown to an established player`);
       await page.screenshot({ path: join(OUT, `auth-${vpName}-kicked-notice.png`) });
       await page.getByRole('button', { name: 'OK' }).last().click();
       await page.waitForTimeout(300);

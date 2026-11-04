@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar, Badge, Button, Card, EmptyState, ErrorState, IconButton, Row, Screen, SectionTitle, Skeleton, StatTile, Text } from '@/components/ui';
 import { TaskCard } from '@/components/football/TaskCard';
 import { FeedItemCard } from '@/components/football/FeedItem';
-import { useFeed, useHome } from '@/hooks/queries';
+import { useFeed, useFriends, useHome } from '@/hooks/queries';
+import { GetStarted } from '@/features/GetStarted';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
@@ -19,7 +20,8 @@ function greeting() {
 }
 
 export default function Home() {
-  const { profile } = useAuth();
+  const { profile, userId } = useAuth();
+  const friends = useFriends();
   const { colors } = useTheme();
   const { isWide } = useLayout();
   const home = useHome();
@@ -56,6 +58,18 @@ export default function Home() {
 
       {!!d && (
         <>
+          {!!userId && !!friends.data && (career?.sessions ?? 0) < 3 && (
+            <GetStarted
+              userId={userId}
+              progress={{
+                photo: !!profile?.avatar_url,
+                group: d.groups.length > 0,
+                friends: friends.data.friends.length > 0 || friends.data.outgoing.length > 0,
+                game: !!next || (career?.sessions ?? 0) > 0,
+              }}
+            />
+          )}
+
           {d.tasks.length > 0 && (
             <View style={{ gap: space.sm }}>
               <SectionTitle title={`To do · ${d.tasks.length}`} action={d.tasks.length > 3 ? 'See all' : undefined} onAction={() => router.push('/tasks')} />
