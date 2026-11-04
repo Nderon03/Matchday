@@ -53,3 +53,35 @@ it('discovers public groups by words in any order', async () => {
   expect(found).toEqual([{ id: g, members: 1 }]);
   expect(await db.as(me, `select id from public.search_public_groups($1)`, [`${tag} powerleague`])).toHaveLength(1);
 });
+
+describe('postcodes and distance', () => {
+  it('every session needs a valid UK postcode', async () => {
+    const host = await db.createUser(uniq('ph'));
+    const base = { name: 'Postcode FC', starts_at: new Date(Date.now() + 86400_000).toISOString(), format_size: 5 };
+    await expect(db.rpc(host, 'create_session', { p: { ...base, postcode: '' } })).rejects.toThrow(/postcode/i);
+    await expect(db.rpc(host, 'create_session', { p: { ...base, postcode: 'NOT A CODE', latitude: 51.6, longitude: -0.2 } })).rejects.toThrow(/postcode/i);
+    await expect(db.rpc(host, 'create_session', { p: { ...base, postcode: 'NW7 2EU' } })).rejects.toThrow(/couldn.t find/i);
+    const id = await db.rpc<string>(host, 'create_session', { p: { ...base, postcode: 'nw72eu', latitude: 51.6142, longitude: -0.2447 } });
+    expect((await db.admin(`select postcode from sessions where id = $1`, [id]))[0].postcode).toBe('NW7 2EU');
+    // editing can't remove it; repeating copies it
+    await expect(db.rpc(host, 'update_session', { p_session: id, p: { postcode: '' } })).rejects.toThrow(/postcode/i);
+    const copy = await db.rpc<string>(host, 'duplicate_session', { p_session: id, p_starts_at: new Date(Date.now() + 8 * 86400_000).toISOString() });
+    expect((await db.admin(`select postcode, latitude from sessions where id = $1`, [copy]))[0]).toEqual({ postcode: 'NW7 2EU', latitude: 51.6142 });
+  });
+
+  it('finds public games within a radius and reports the distance', async () => {
+    const host = await db.createUser(uniq('rh'));
+    const me = await db.createUser(uniq('rm'));
+    const tag = uniq('Rx');
+    const when = new Date(Date.now() + 86400_000).toISOString();
+    const millHill = await db.rpc<string>(host, 'create_session', { p: { name: `Mill Hill ${tag}`, starts_at: when, visibility: 'public', venue: 'Powerleague Mill Hill', postcode: 'NW7 2EU', latitude: 51.6142, longitude: -0.2447 } });
+    const brighton = await db.rpc<string>(host, 'create_session', { p: { name: `Brighton ${tag}`, starts_at: when, visibility: 'public', postcode: 'BN1 1AA', latitude: 50.8225, longitude: -0.1372 } });
+    // searching from Edgware (~2 miles from Mill Hill), 5-mile radius
+    const near = await db.as(me, `select id, round(distance_miles::numeric, 1) as mi from public.search_public_sessions($1, null, null, null, false, 40, 51.6136, -0.2750, 5)`, [tag]);
+    expect(near.map((r) => r.id)).toEqual([millHill]);
+    expect(Number(near[0].mi)).toBeGreaterThan(1);
+    expect(Number(near[0].mi)).toBeLessThan(3);
+    const wide = await db.as(me, `select id from public.search_public_sessions($1, null, null, null, false, 40, 51.6136, -0.2750, 100)`, [tag]);
+    expect(wide.map((r) => r.id).sort()).toEqual([millHill, brighton].sort());
+  });
+});

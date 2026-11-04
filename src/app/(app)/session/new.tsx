@@ -23,7 +23,7 @@ export default function NewSession() {
     const day = nextDays(2)[1];
     day.setHours(h, m, 0, 0);
     initial = {
-      name: t.name, group_id: t.group_id, starts_at: day.toISOString(), duration_minutes: t.duration_minutes, location: t.location, venue: t.venue,
+      name: t.name, group_id: t.group_id, starts_at: day.toISOString(), duration_minutes: t.duration_minutes, location: t.location, venue: t.venue, postcode: t.postcode, latitude: t.latitude, longitude: t.longitude,
       format_size: t.format_size, max_attendance: t.max_attendance ?? t.format_size * 2, visibility: t.visibility, description: t.description,
       payment_mode: t.payment_mode, price_pence: t.price_pence, invitee_ids: t.invitee_ids, template_id: t.id,
     };

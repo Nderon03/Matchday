@@ -66,8 +66,8 @@ const rpcs = {
   get_player_strengths: people.slice(0, 9).map((p, i) => ({ user_id: p.id, position: p.position, group_rating: 6 + (i % 4) * 0.5, career_rating: 6.5, form: 7, games: 10, gk_games: i === 0 ? 5 : 0 })),
   get_recent_pairings: [], get_leaderboard: lb,
   search_public_sessions: [
-    { id: SID, name: 'Thursday Night 5s', starts_at: kickoff, duration_minutes: 60, venue: 'Riverside Sports Centre, Pitch 2', location: 'Hackney', format_size: 5, max_attendance: 10, confirmed: 7, price_pence: 500, payment_mode: 'after', host_id: ME, host_name: 'Sam Carter', host_avatar: null, my_status: null },
-    { id: SID, name: 'Sunday Sevens', starts_at: kickoff, duration_minutes: 90, venue: 'Parkside Pitches', location: 'Camden', format_size: 7, max_attendance: 14, confirmed: 14, price_pence: 0, payment_mode: 'free', host_id: ME, host_name: 'Alex Reid', host_avatar: null, my_status: null },
+    { id: SID, name: 'Thursday Night 5s', starts_at: kickoff, duration_minutes: 60, venue: 'Riverside Sports Centre, Pitch 2', location: 'Hackney', format_size: 5, max_attendance: 10, confirmed: 7, price_pence: 500, payment_mode: 'after', host_id: ME, host_name: 'Sam Carter', host_avatar: null, my_status: null, postcode: 'E8 1EJ', distance_miles: 1.4 },
+    { id: SID, name: 'Sunday Sevens', starts_at: kickoff, duration_minutes: 90, venue: 'Parkside Pitches', location: 'Camden', format_size: 7, max_attendance: 14, confirmed: 14, price_pence: 0, payment_mode: 'free', host_id: ME, host_name: 'Alex Reid', host_avatar: null, my_status: null, postcode: 'NW1 7AA', distance_miles: 3.8 },
   ],
   get_payment_summary: { price_pence: 600, payment_mode: 'upfront', host_confirmed_at: null, collected_pence: 1800, authorised_pence: 1200, outstanding_pence: 1800, paid_count: 3, unpaid_count: 2, failed_count: 1, refunded_count: 0,
     players: people.slice(1, 7).map((p, i) => ({ user_id: p.id, username: p.username, display_name: p.display_name, avatar_url: null, status: ['paid', 'authorised', 'unpaid', 'paid', 'failed', 'paid'][i], amount_pence: i === 1 ? 1200 : 600, method: i === 3 ? 'cash' : 'card', paid_at: null, payment_id: `p${i}`, guest_count: i === 1 ? 1 : 0, fines_pence: i === 2 ? 100 : 0, refunded: 0, guest_payment_id: i === 0 ? 'gp0' : null, guest_status: i === 0 ? 'unpaid' : null, guest_amount_pence: i === 0 ? 600 : null, guest_bill_count: i === 0 ? 1 : null })) },
@@ -113,6 +113,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['terms', '/legal/terms', 'Terms of Use'], ['delete', '/legal/delete-account', 'Delete your account'],
     ['find', '/session/find', 'Find a game'],
     ['group-new', '/group/new', 'Who can join'],
+    ['session-new', '/session/new', 'Postcode'],
     ['done-redirect', `/done?kind=paid&session=${SID}`, 'Host dashboard'],
   ]) {
     await page.goto(base + path, { waitUntil: 'networkidle' });

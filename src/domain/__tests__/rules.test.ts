@@ -76,11 +76,14 @@ describe('validation', () => {
   it('session schema enforces paid minimum and group visibility', () => {
     const base = {
       name: 'Wednesday Football', starts_at: new Date(Date.now() + 86400_000), duration_minutes: 60, format_size: 7, max_attendance: 14,
-      visibility: 'group' as const, payment_mode: 'upfront' as const, price_pence: 50, group_id: null, invitee_ids: [],
+      visibility: 'group' as const, payment_mode: 'upfront' as const, price_pence: 50, group_id: null, invitee_ids: [], postcode: 'NW7 2EU',
     };
     const r = sessionSchema.safeParse(base);
     expect(r.success).toBe(false);
     if (!r.success) expect(Object.keys(fieldErrors(r.error)).sort()).toEqual(['price_pence', 'visibility']);
+    const noPostcode = sessionSchema.safeParse({ ...base, visibility: 'private', payment_mode: 'free', price_pence: 0, postcode: '' });
+    expect(noPostcode.success).toBe(false);
+    if (!noPostcode.success) expect(Object.keys(fieldErrors(noPostcode.error))).toEqual(['postcode']);
   });
   it('sign up validation', () => {
     expect(signUpSchema.safeParse({ email: 'x@y.com', password: 'abcdefg1', username: 'jo_123', displayName: 'Jo' }).success).toBe(true);

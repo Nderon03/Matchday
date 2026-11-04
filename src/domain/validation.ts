@@ -47,6 +47,7 @@ export const sessionSchema = z
     duration_minutes: z.number().int().min(15).max(480),
     location: z.string().trim().max(200).optional(),
     venue: z.string().trim().max(120).optional(),
+    postcode: z.string().trim().min(1, 'Add the venue’s postcode so players can find it'),
     format_size: z.number().int().min(5).max(11),
     max_attendance: z.number().int().min(2).max(60),
     visibility: z.enum(['public', 'group', 'private']),

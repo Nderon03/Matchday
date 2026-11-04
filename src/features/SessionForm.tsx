@@ -15,6 +15,7 @@ import { fieldErrors, sessionSchema } from '@/domain/validation';
 import { formatPence, poundsToPence } from '@/domain/format';
 import { combine, dayLabel, isValidTime, nextDays, sameDay } from '@/features/sessionDates';
 import { DatePickerSheet } from '@/features/DatePickerSheet';
+import { lookupPostcode, normalisePostcode, type Place } from '@/lib/postcodes';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { toggleIn } from '@/domain/sets';
@@ -29,6 +30,9 @@ export interface SessionFormInitial {
   duration_minutes?: number;
   location?: string | null;
   venue?: string | null;
+  postcode?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   format_size?: number;
   max_attendance?: number;
   visibility?: SessionVisibility;
@@ -61,6 +65,20 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
   const [maxAttendance, setMax] = useState(initial?.max_attendance ?? (initial?.format_size ?? 5) * 2);
   const [venue, setVenue] = useState(initial?.venue ?? '');
   const [location, setLocation] = useState(initial?.location ?? '');
+  const [postcode, setPostcode] = useState(initial?.postcode ?? '');
+  // the looked-up place for the postcode (coordinates let players search by distance)
+  const [place, setPlace] = useState<Place | null>(
+    initial?.postcode && initial.latitude != null && initial.longitude != null
+      ? { label: initial.postcode, postcode: initial.postcode, latitude: initial.latitude, longitude: initial.longitude } : null);
+  const [placeState, setPlaceState] = useState<'idle' | 'checking' | 'ok' | 'unknown'>(place ? 'ok' : 'idle');
+  const checkPostcode = async (value: string) => {
+    if (!normalisePostcode(value)) { setPlace(null); setPlaceState(value.trim() ? 'unknown' : 'idle'); return; }
+    setPlaceState('checking');
+    const found = await lookupPostcode(value);
+    setPlace(found);
+    setPlaceState(found ? 'ok' : 'unknown');
+    if (found?.area && !location.trim()) setLocation(found.area);
+  };
   const [visibility, setVisibility] = useState<SessionVisibility>(initial?.visibility ?? (initial?.group_id ? 'group' : 'private'));
   const [description, setDescription] = useState(initial?.description ?? '');
   const [paymentMode, setPaymentMode] = useState<PaymentMode>(initial?.payment_mode ?? 'free');
@@ -102,18 +120,24 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
     if (pricePence < 0) return setErrors({ price_pence: 'Enter an amount like 6 or 6.50' });
     const startsAt = combine(date, time);
     const payload = {
-      name, starts_at: startsAt, duration_minutes: duration, location: location || undefined, venue: venue || undefined,
+      name, starts_at: startsAt, duration_minutes: duration, location: location || undefined, venue: venue || undefined, postcode: place?.postcode ?? '',
       format_size: format, max_attendance: maxAttendance, visibility, description: description || undefined,
       payment_mode: paymentMode, price_pence: pricePence, group_id: groupId, invitee_ids: [...invitees],
     };
     const parsed = sessionSchema.safeParse(payload);
-    if (!parsed.success) return setErrors(fieldErrors(parsed.error));
+    if (!parsed.success) {
+      const errs = fieldErrors(parsed.error);
+      if (errs.postcode && postcode.trim()) errs.postcode = placeState === 'checking' ? 'Still checking the postcode…' : 'We couldn’t find that postcode. Check it and try again.';
+      return setErrors(errs);
+    }
     setErrors({});
     setBusy(true);
     try {
       const body = {
         ...payload,
         starts_at: startsAt.toISOString(),
+        latitude: place?.latitude ?? null,
+        longitude: place?.longitude ?? null,
         motm_mode: motmMode,
         template_id: initial?.template_id ?? null,
         rsvp_deadline: deadlineHours != null ? new Date(startsAt.getTime() - deadlineHours * 3600_000).toISOString() : '',
@@ -198,9 +222,15 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
 
       <View style={{ gap: space.md }}>
         <SectionTitle title="Where" />
-        <Input label="Venue" value={venue} onChangeText={setVenue} placeholder="Powerleague Shoreditch, Pitch 3" icon="business-outline" />
-        <Input label="Address / area" value={location} onChangeText={setLocation} placeholder="Braithwaite St, London E1" icon="location-outline"
-          hint={visibility === 'public' ? 'Players search “Find a game” by venue and area, and get a Directions link.' : 'Players get a Directions link to this address.'} />
+        <Input label="Venue name" value={venue} onChangeText={setVenue} placeholder="e.g. Powerleague Mill Hill, Pitch 3" icon="business-outline"
+          hint="If the pitch has a name. Leave blank for a park or school pitch." />
+        <Input label="Postcode (required)" value={postcode} autoCapitalize="characters" autoCorrect={false} maxLength={9} icon="navigate-outline" placeholder="e.g. NW7 2EU"
+          onChangeText={(v) => { setPostcode(v); if (normalisePostcode(v)) checkPostcode(v); else { setPlace(null); setPlaceState('idle'); } }}
+          onBlur={() => checkPostcode(postcode)}
+          error={errors.postcode ?? (placeState === 'unknown' ? 'We couldn’t find that postcode. Check it and try again.' : null)}
+          hint={placeState === 'checking' ? 'Checking…' : placeState === 'ok' && place ? `✓ ${place.postcode}${place.area ? ` · ${place.area}` : ''}` : 'Lets players find the game and get directions.'} />
+        <Input label="Area / address (optional)" value={location} onChangeText={setLocation} placeholder="e.g. Mill Hill, London" icon="location-outline"
+          hint={visibility === 'public' ? 'Filled in from the postcode. Players can search “Find a game” by postcode, area or venue.' : 'Filled in from the postcode. Edit it if you like.'} />
       </View>
 
       <View style={{ gap: space.sm }}>

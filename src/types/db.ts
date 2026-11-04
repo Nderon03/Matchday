@@ -86,6 +86,9 @@ export interface Session {
   duration_minutes: number;
   location: string | null;
   venue: string | null;
+  postcode?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   format_size: number;
   max_attendance: number;
   visibility: SessionVisibility;

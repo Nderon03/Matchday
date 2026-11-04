@@ -82,7 +82,7 @@ export default function SessionScreen() {
     title: s.name,
     startsAt: s.starts_at,
     durationMinutes: s.duration_minutes,
-    location: [s.venue, s.location].filter(Boolean).join(', ') || null,
+    location: [s.venue, s.location, s.postcode].filter(Boolean).join(', ') || null,
     details: `MATCHDAY · ${s.format_size}-a-side\n${appLink(`/session/${s.id}`)}`,
   };
   // web: choose Google Calendar or a calendar file (Apple/Outlook); phones: Google Calendar
@@ -156,13 +156,13 @@ export default function SessionScreen() {
                 <Text variant="smallStrong" tone="primary" accessibilityRole="button" onPress={() => addToCalendar()}>Add to calendar</Text>
               )}
             </Row>
-            {(s.venue || s.location) && (
+            {(s.venue || s.location || s.postcode) && (
               <Row gap={8}>
                 <Ionicons name="location-outline" size={17} color={colors.textMuted} />
-                <Text style={{ flex: 1 }}>{[s.venue, s.location].filter(Boolean).join(' · ')}</Text>
+                <Text style={{ flex: 1 }}>{[s.venue, s.location, s.postcode].filter(Boolean).join(' · ')}</Text>
                 {/* opens Google Maps (app or website) searching the venue the host typed */}
                 <Text variant="smallStrong" tone="primary" accessibilityRole="link"
-                  onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([s.venue, s.location].filter(Boolean).join(', '))}`)}>
+                  onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([s.venue, s.postcode ?? s.location].filter(Boolean).join(', '))}`)}>
                   Directions
                 </Text>
               </Row>

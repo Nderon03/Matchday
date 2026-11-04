@@ -33,6 +33,10 @@ export class Db {
     }
   }
   async rpc<T = any>(userId: string | null, fn: string, args: Record<string, unknown> = {}): Promise<T> {
+    // every session needs a postcode; tests that don't care get Mill Hill
+    if (fn === 'create_session' && args.p && typeof args.p === 'object' && !('postcode' in (args.p as object))) {
+      args = { ...args, p: { postcode: 'NW7 2EU', latitude: 51.6142, longitude: -0.2447, ...(args.p as object) } };
+    }
     const keys = Object.keys(args);
     const sql = `select public.${fn}(${keys.map((k, i) => `${k} => $${i + 1}`).join(', ')}) as result`;
     const rows = await this.as(userId, sql, keys.map((k) => normalise(args[k])));

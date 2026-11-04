@@ -42,7 +42,7 @@ export const PRIVACY: LegalDoc = {
     {
       heading: 'What we do not collect',
       bullets: [
-        'We do not track your location. Session venues are whatever the host types in.',
+        'We do not track your location. Session venues and postcodes are whatever the host types in, and searching “near” a place uses the postcode or area you type.',
         'We do not sell your data or use it for advertising.',
         'The camera is only used to scan invite QR codes, and photo access only to choose a profile photo or group logo.',
       ],
@@ -76,6 +76,7 @@ export const PRIVACY: LegalDoc = {
         'Resend — sending emails.',
         'YouTube (Google) — match videos are hosted on YouTube; video thumbnails load from YouTube and playing a video opens YouTube, which applies its own privacy policy.',
         'Sentry — crash and error reports so we can fix problems.',
+        'postcodes.io — turns the postcodes and place names typed into MATCHDAY (for a session venue or a search) into map coordinates. Only the text typed is sent; we never use your device’s location.',
       ],
     },
     {
