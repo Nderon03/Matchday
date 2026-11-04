@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { isRecovering, startRecovery } from '@/lib/recovery';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
+import { OpenAppPrompt, isMobileWeb } from '@/features/OpenAppPrompt';
 
 type OtpType = 'recovery' | 'email' | 'signup' | 'invite' | 'magiclink' | 'email_change';
 const OTP_TYPES: OtpType[] = ['recovery', 'email', 'signup', 'invite', 'magiclink', 'email_change'];
@@ -19,6 +20,7 @@ export default function AuthCallback() {
   const params = useLocalSearchParams<{ code?: string; token_hash?: string; error_description?: string; type?: string }>();
   const { colors } = useTheme();
   const [error, setError] = useState<string | null>(params.error_description ?? null);
+  const [confirmed, setConfirmed] = useState(false);
   useEffect(() => {
     (async () => {
       if (params.type === 'recovery') startRecovery();
@@ -38,9 +40,15 @@ export default function AuthCallback() {
       }
       const { data } = await supabase.auth.getSession();
       if (!data.session) return setError((prev) => prev ?? 'This link is invalid or has expired.');
-      router.replace(isRecovering() ? '/reset-password' : '/');
+      if (isRecovering()) return router.replace('/reset-password');
+      // email confirmed on a phone's browser: offer to jump back into the app
+      if (isMobileWeb() && (params.type === 'email' || params.type === 'signup')) return setConfirmed(true);
+      router.replace('/');
     })();
   }, [params.code, params.token_hash, params.type]);
+  if (confirmed && !error) {
+    return <OpenAppPrompt title="Email confirmed" message="You’re all set. Open the MATCHDAY app and sign in with your email and password." />;
+  }
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', padding: space.xxl, gap: space.md }}>
       {error ? (
