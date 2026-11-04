@@ -30,7 +30,7 @@ export default function ForgotPassword() {
         ) : (
           <>
             <Text tone="muted">Enter your email and we’ll send you a link to reset your password.</Text>
-            <Input label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" icon="mail-outline" error={error} />
+            <Input label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" placeholder="you@example.com" icon="mail-outline" error={error} />
             <Button title="Send reset link" loading={busy} onPress={submit} />
           </>
         )}

@@ -71,7 +71,7 @@ export default function EditProfile() {
       <Input label="Display name" value={displayName} onChangeText={setDisplayName} error={errors.display_name} maxLength={40} />
       <Input label="Username" value={username} onChangeText={(v) => setUsername(v.replace(/\s/g, ''))} autoCapitalize="none" icon="at"
         error={check.state === 'taken' || check.state === 'invalid' ? check.message : null} hint={check.message ?? undefined} />
-      <Input label="Bio" value={bio} onChangeText={setBio} multiline maxLength={280} error={errors.bio} placeholder="Left foot only. Always up for a game." />
+      <Input label="Bio" value={bio} onChangeText={setBio} multiline maxLength={280} error={errors.bio} placeholder="e.g. Left foot only. Always up for a game." />
       <Text variant="smallStrong" tone="muted">Preferred position</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
         {(['GK', 'DEF', 'MID', 'FWD', 'ANY'] as PlayerPosition[]).map((p) => <Chip key={p} label={POSITION_LABEL[p]} selected={position === p} onPress={() => setPosition(p)} />)}

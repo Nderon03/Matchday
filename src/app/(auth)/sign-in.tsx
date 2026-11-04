@@ -39,8 +39,8 @@ export default function SignIn() {
     <Screen edges={['top', 'bottom']} maxWidth={480}>
       <Header title="Welcome back" />
       <View style={{ gap: space.lg }}>
-        <Input label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" icon="mail-outline" error={errors.email} />
-        <Input label="Password" value={password} onChangeText={setPassword} secure autoComplete="current-password" textContentType="password" icon="lock-closed-outline" error={errors.password} onSubmitEditing={submit} returnKeyType="go" />
+        <Input label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" placeholder="you@example.com" icon="mail-outline" error={errors.email} />
+        <Input label="Password" value={password} onChangeText={setPassword} secure placeholder="Your password" autoComplete="current-password" textContentType="password" icon="lock-closed-outline" error={errors.password} onSubmitEditing={submit} returnKeyType="go" />
         {!!errors._ && <Text tone="danger" variant="small" accessibilityRole="alert">{errors._}</Text>}
         <Button title="Sign in" size="lg" loading={busy} onPress={submit} />
         <Link href="/forgot-password" style={{ alignSelf: 'center' }}>

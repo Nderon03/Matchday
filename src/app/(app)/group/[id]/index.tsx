@@ -315,7 +315,7 @@ export default function GroupScreen() {
         </ScrollView>
       </Sheet>
       <Sheet visible={seasonOpen} onClose={() => setSeasonOpen(false)} title="New season">
-        <Input label="Name" value={season.name} onChangeText={(v) => setSeason((s) => ({ ...s, name: v }))} placeholder={`Season ${seasons.length + 1} — ${new Date().getFullYear()}`} />
+        <Input label="Name" value={season.name} onChangeText={(v) => setSeason((s) => ({ ...s, name: v }))} placeholder={`e.g. Season ${seasons.length + 1} — ${new Date().getFullYear()}`} />
         <Row gap={space.sm}>
           <View style={{ flex: 1 }}><Input label="Starts (YYYY-MM-DD)" value={season.starts} onChangeText={(v) => setSeason((s) => ({ ...s, starts: v }))} /></View>
           <View style={{ flex: 1 }}><Input label="Ends (YYYY-MM-DD)" value={season.ends} onChangeText={(v) => setSeason((s) => ({ ...s, ends: v }))} /></View>

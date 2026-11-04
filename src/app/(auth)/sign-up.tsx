@@ -69,13 +69,13 @@ export default function SignUp() {
           onChangeText={(v) => set('username')(v.replace(/\s/g, ''))}
           autoCapitalize="none"
           autoCorrect={false}
-          placeholder="samcarter"
+          placeholder="e.g. samcarter"
           icon="at"
           error={errors.username ?? (check.state === 'taken' || check.state === 'invalid' ? check.message : null)}
           hint={check.state === 'available' || check.state === 'checking' ? check.message ?? undefined : 'Letters, numbers and underscores'}
         />
-        <Input label="Email" value={form.email} onChangeText={set('email')} autoCapitalize="none" keyboardType="email-address" autoComplete="email" icon="mail-outline" error={errors.email} />
-        <Input label="Password" value={form.password} onChangeText={set('password')} secure autoComplete="new-password" textContentType="newPassword" icon="lock-closed-outline" error={errors.password} hint="At least 8 characters with a letter and a number" />
+        <Input label="Email" value={form.email} onChangeText={set('email')} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" placeholder="you@example.com" icon="mail-outline" error={errors.email} />
+        <Input label="Password" value={form.password} onChangeText={set('password')} secure placeholder="Create a password" autoComplete="new-password" textContentType="newPassword" icon="lock-closed-outline" error={errors.password} hint="At least 8 characters with a letter and a number" />
         {!!errors._ && <Text tone="danger" variant="small" accessibilityRole="alert">{errors._}</Text>}
         <Button title="Create account" size="lg" loading={busy} onPress={submit} disabled={check.state === 'checking'} />
         <Text variant="caption" tone="faint" align="center">

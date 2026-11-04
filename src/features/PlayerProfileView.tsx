@@ -176,7 +176,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
 
       <Sheet visible={reportOpen} onClose={() => setReportOpen(false)} title={`Report ${p.display_name}`}>
         <Text variant="small" tone="muted">Reports are reviewed by group moderators. Tell us what happened.</Text>
-        <Input value={reason} onChangeText={setReason} multiline placeholder="Reason" maxLength={500} />
+        <Input value={reason} onChangeText={setReason} multiline placeholder="Tell us what happened" maxLength={500} />
         <Button title="Send report" disabled={reason.trim().length < 3} loading={busy === 'report'} onPress={async () => {
           const ok = await run('report', () => rpc('report_content', { p_type: 'user', p_target: userId, p_reason: reason, p_group: groupId ?? d.groups[0]?.id ?? null }), 'Report sent. Thank you.');
           if (ok !== undefined) { setReportOpen(false); setReason(''); }

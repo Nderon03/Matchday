@@ -39,8 +39,8 @@ export default function NewGroup() {
   return (
     <Screen edges={['top', 'bottom']} maxWidth={640}>
       <Header title="New group" />
-      <Input label="Group name" value={name} onChangeText={setName} placeholder="Wednesday Football" error={errors.name} maxLength={60} />
-      <Input label="Description" value={description} onChangeText={setDescription} multiline placeholder="Weekly 7-a-side for friends from work." maxLength={1000} />
+      <Input label="Group name" value={name} onChangeText={setName} placeholder="e.g. Wednesday Football" error={errors.name} maxLength={60} />
+      <Input label="Description" value={description} onChangeText={setDescription} multiline placeholder="e.g. Weekly 7-a-side for friends from work" maxLength={1000} />
       <Input label="Area (optional)" value={location} onChangeText={setLocation} placeholder="e.g. Mill Hill, London" icon="location-outline"
         hint="Helps people find the group when searching Discover." />
       <View style={{ gap: space.sm }}>
@@ -48,7 +48,7 @@ export default function NewGroup() {
         <GroupAccessPicker value={access} onChange={setAccess} />
         <Text variant="caption" tone="faint">You can change this later in the group’s settings.</Text>
       </View>
-      <Input label="Group rules (optional)" value={rules} onChangeText={setRules} multiline placeholder="Pay before kick-off. No slide tackles." maxLength={4000} />
+      <Input label="Group rules (optional)" value={rules} onChangeText={setRules} multiline placeholder="e.g. Pay before kick-off. No slide tackles." maxLength={4000} />
       <Button title="Create group" size="lg" loading={busy} onPress={submit} />
     </Screen>
   );

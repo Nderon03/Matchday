@@ -32,17 +32,26 @@ export const Input = forwardRef<TextInputInstance, InputProps>(function Input({ 
           },
         ]}
       >
-        {!!icon && <Ionicons name={icon} size={18} color={colors.textFaint} style={{ marginTop: multiline ? 14 : 0 }} />}
+        {!!icon && <Ionicons name={icon} size={18} color={colors.textFaint} style={{ marginTop: multiline ? 13 : 0 }} />}
         <TextInput
           ref={ref}
           placeholderTextColor={colors.textFaint}
           secureTextEntry={hidden}
           multiline={multiline}
           accessibilityLabel={label ?? rest.placeholder}
+          // Android adds extra font padding above custom fonts, which pushes text and
+          // placeholder off-centre; a fixed height with no vertical padding keeps both level.
+          underlineColorAndroid="transparent"
+          {...rest}
           onFocus={(e) => { setFocused(true); rest.onFocus?.(e); }}
           onBlur={(e) => { setFocused(false); rest.onBlur?.(e); }}
-          style={[styles.input, { color: colors.text, fontFamily: fonts.regular, paddingTop: multiline ? 12 : 0, textAlignVertical: multiline ? 'top' : 'center' }, Platform.OS === 'web' && webNoOutline, style]}
-          {...rest}
+          style={[
+            styles.input,
+            { color: colors.text, fontFamily: fonts.regular },
+            multiline ? styles.multi : styles.single,
+            Platform.OS === 'web' && webNoOutline,
+            style,
+          ]}
         />
         {!!secure && (
           <Pressable onPress={() => setHidden((h) => !h)} accessibilityLabel={hidden ? 'Show password' : 'Hide password'} hitSlop={8}>
@@ -61,5 +70,7 @@ const webNoOutline = { outlineStyle: 'none', outlineWidth: 0 } as object;
 
 const styles = StyleSheet.create({
   box: { flexDirection: 'row', gap: space.sm, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space.md },
-  input: { flex: 1, fontSize: 15, minHeight: 46 },
+  input: { flex: 1, fontSize: 15, includeFontPadding: false, paddingHorizontal: 0, margin: 0 },
+  single: { height: 46, paddingVertical: 0, textAlignVertical: 'center' },
+  multi: { minHeight: 94, paddingTop: 12, paddingBottom: 12, lineHeight: 21, textAlignVertical: 'top' },
 });

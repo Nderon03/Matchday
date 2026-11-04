@@ -172,7 +172,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
 
   return (
     <View style={{ gap: space.xl }}>
-      <Input label="Session name" value={name} onChangeText={setName} placeholder="Wednesday Football" maxLength={60} error={errors.name} />
+      <Input label="Session name" value={name} onChangeText={setName} placeholder="e.g. Wednesday Football" maxLength={60} error={errors.name} />
 
       {!!groups.data?.length && (
         <View style={{ gap: space.sm }}>
@@ -303,7 +303,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         />
       </View>
 
-      <Input label="Notes (optional)" value={description} onChangeText={setDescription} multiline placeholder="Bring both bibs. Astro boots only." maxLength={1000} />
+      <Input label="Notes (optional)" value={description} onChangeText={setDescription} multiline placeholder="e.g. Bring both bibs. Astro boots only." maxLength={1000} />
 
       <View style={{ gap: space.sm }}>
         <SectionTitle title="Man of the Match" />
