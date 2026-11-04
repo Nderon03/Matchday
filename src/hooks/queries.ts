@@ -24,6 +24,7 @@ export const keys = {
   leaderboard: (p: object) => ['leaderboard', p] as const,
   templates: ['templates'] as const,
   prefs: ['prefs'] as const,
+  myAchievements: ['achievements', 'mine'] as const,
 };
 
 export type PublicProfile = Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'position'>;
@@ -33,6 +34,19 @@ export function useHome() {
   const { userId } = useAuth();
   useRealtimeInvalidate('home', [{ table: 'notifications', filter: `user_id=eq.${userId}` }], [keys.home], !!userId);
   return useQuery({ queryKey: keys.home, queryFn: () => rpc<any>('get_home_dashboard'), enabled: !!userId });
+}
+
+export interface MyAchievement {
+  code: string; name: string; description: string; icon: string;
+  tier: import('@/domain/achievements').AchievementTier; category: string;
+  target: number; progress: number; unlocked_at: string | null; holders: number;
+}
+export interface MyAchievements { players: number; streak: { current: number; best: number }; items: MyAchievement[] }
+/** The signed-in player's achievements with progress and rarity, plus their weekly streak. */
+export function useMyAchievements() {
+  const { userId } = useAuth();
+  useRealtimeInvalidate('achievements', [{ table: 'notifications', filter: `user_id=eq.${userId}` }], [keys.myAchievements], !!userId);
+  return useQuery({ queryKey: keys.myAchievements, queryFn: () => rpc<MyAchievements>('get_my_achievements'), enabled: !!userId });
 }
 
 export interface Task { kind: string; session_id: string; title: string; subtitle: string; due_at: string | null; count: number }

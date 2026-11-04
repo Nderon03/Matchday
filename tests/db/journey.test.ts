@@ -174,10 +174,10 @@ describe('single-match journey (5-a-side)', () => {
 
     // 19: achievements
     const ach = await db.admin(`select achievement_code from player_achievements where user_id = $1 order by 1`, [scorer]);
-    expect(ach.map((r) => r.achievement_code)).toEqual(['first_goal', 'first_match', 'first_motm', 'hat_trick']);
+    expect(ach.map((r) => r.achievement_code)).toEqual(['first_assist', 'first_goal', 'first_match', 'first_motm', 'hat_trick']);
     // re-running never duplicates
     await db.admin(`select public.award_achievements($1, $2)`, [scorer, sessionId]);
-    expect((await db.admin(`select count(*)::int n from player_achievements where user_id = $1`, [scorer]))[0].n).toBe(4);
+    expect((await db.admin(`select count(*)::int n from player_achievements where user_id = $1`, [scorer]))[0].n).toBe(5);
 
     // 20: activity feed shows the result to group members, not to outsiders
     const feed = await db.as(rest[3], `select type from activity_feed where session_id = $1`, [sessionId]);

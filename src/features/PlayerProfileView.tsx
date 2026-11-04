@@ -11,7 +11,8 @@ import { useAction } from '@/hooks/useAction';
 import { rpc, q } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { shareText, shareViewAsImage } from '@/lib/share';
-import { ACHIEVEMENTS } from '@/domain/achievements';
+import { ACHIEVEMENTS, TIERS, tierOf } from '@/domain/achievements';
+import { AchievementBadge } from '@/components/football/AchievementBadge';
 import { formatDate, formatKickoff, POSITION_LABEL, rating } from '@/domain/format';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
@@ -144,16 +145,16 @@ export function PlayerProfileView({ userId }: { userId: string }) {
 
       {!!d.can_view_stats && (
         <>
-          <SectionTitle title={`Achievements · ${unlocked.size}/${ACHIEVEMENTS.length}`} />
+          <SectionTitle title={`Achievements · ${unlocked.size}/${(catalogue.data ?? ACHIEVEMENTS).length}`} action={d.is_self ? 'See all' : undefined} onAction={d.is_self ? () => router.push('/achievements') : undefined} />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
             {(catalogue.data ?? ACHIEVEMENTS).map((a: any) => {
               const on = unlocked.has(a.code);
               const when = d.achievements?.find((x: any) => x.code === a.code)?.unlocked_at;
               return (
-                <Card key={a.code} style={{ width: '48%', flexGrow: 1, opacity: on ? 1 : 0.45 }} accessibilityLabel={`${a.name}${on ? ', unlocked' : ', locked'}`}
+                <Card key={a.code} style={{ width: '48%', flexGrow: 1, opacity: on ? 1 : 0.55 }} accessibilityLabel={`${a.name}, ${TIERS[tierOf(a.code)].label}${on ? ', unlocked' : ', locked'}`}
                   onPress={on ? () => shareText(`${p.display_name} unlocked “${a.name}” on MATCHDAY 🏆`).catch(() => undefined) : undefined}>
                   <Row gap={space.sm}>
-                    <Ionicons name={(on ? a.icon : 'lock-closed') as any} size={22} color={on ? colors.gold : colors.textFaint} />
+                    <AchievementBadge icon={a.icon} tier={tierOf(a.code)} unlocked={on} size={40} shine={false} />
                     <View style={{ flex: 1 }}>
                       <Text variant="smallStrong">{a.name}</Text>
                       <Text variant="caption" tone="muted" numberOfLines={2}>{!!on && when ? formatDate(when) : a.description}</Text>

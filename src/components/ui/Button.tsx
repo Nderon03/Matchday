@@ -1,6 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, View, type PressableProps, type ViewStyle } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { ActivityIndicator, Pressable, StyleSheet, View, type PressableProps, type ViewStyle } from 'react-native';
+import { haptics } from '@/lib/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
@@ -45,7 +45,7 @@ export function Button({ title, variant = 'primary', size = 'md', icon, iconRigh
       accessibilityState={{ disabled: !!isDisabled, busy: !!loading }}
       disabled={isDisabled}
       onPress={(e) => {
-        if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => undefined);
+        haptics.tap();
         onPress?.(e);
       }}
       style={({ pressed }) => [
@@ -57,6 +57,7 @@ export function Button({ title, variant = 'primary', size = 'md', icon, iconRigh
           borderColor: variant === 'outline' ? colors.borderStrong : 'transparent',
           opacity: isDisabled ? 0.5 : pressed && variant !== 'primary' ? 0.75 : 1,
           alignSelf: fullWidth ? 'stretch' : 'auto',
+          transform: [{ scale: pressed && !isDisabled ? 0.97 : 1 }],
         },
         style,
       ]}

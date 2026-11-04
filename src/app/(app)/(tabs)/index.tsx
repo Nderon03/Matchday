@@ -5,7 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar, Badge, Button, Card, EmptyState, ErrorState, IconButton, Row, Screen, SectionTitle, Skeleton, StatTile, Text } from '@/components/ui';
 import { TaskCard } from '@/components/football/TaskCard';
 import { FeedItemCard } from '@/components/football/FeedItem';
-import { useFeed, useFriends, useHome } from '@/hooks/queries';
+import { useFeed, useFriends, useHome, useMyAchievements } from '@/hooks/queries';
+import { AchievementBadge } from '@/components/football/AchievementBadge';
+import { StreakFlame } from '@/components/football/Streak';
+import { tierOf } from '@/domain/achievements';
 import { GetStarted } from '@/features/GetStarted';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -22,6 +25,8 @@ function greeting() {
 export default function Home() {
   const { profile, userId } = useAuth();
   const friends = useFriends();
+  const mine = useMyAchievements();
+  const streak = mine.data?.streak.current ?? 0;
   const { colors } = useTheme();
   const { isWide } = useLayout();
   const home = useHome();
@@ -108,6 +113,15 @@ export default function Home() {
           <View style={{ flexDirection: isWide ? 'row' : 'column', gap: space.lg }}>
             <View style={{ flex: 1, gap: space.sm }}>
               <SectionTitle title="Your career" action="Profile" onAction={() => router.navigate('/profile')} />
+              {streak >= 2 && (
+                <Card variant="alt" onPress={() => router.push('/achievements')} accessibilityLabel={`${streak}-week streak`} style={{ paddingVertical: space.sm }}>
+                  <Row gap={space.sm}>
+                    <StreakFlame active />
+                    <Text variant="smallStrong" style={{ flex: 1 }}>{streak}-week streak</Text>
+                    <Text variant="caption" tone="muted">Weeks in a row</Text>
+                  </Row>
+                </Card>
+              )}
               <Row gap={space.sm}>
                 <StatTile label="Rating" value={rating(career?.rating)} accent compact />
                 <StatTile label="Games" value={career?.sessions ?? 0} compact />
@@ -154,13 +168,13 @@ export default function Home() {
 
           {d.achievements.length > 0 && (
             <View style={{ gap: space.sm }}>
-              <SectionTitle title="Recent achievements" />
+              <SectionTitle title="Recent achievements" action="All" onAction={() => router.push('/achievements')} />
               <Row gap={space.sm} wrap>
                 {d.achievements.map((a: any) => (
-                  <Card key={a.code} style={{ flexGrow: 1, minWidth: 140 }}>
+                  <Card key={a.code} style={{ flexGrow: 1, minWidth: 140 }} onPress={() => router.push('/achievements')} accessibilityLabel={a.name}>
                     <Row gap={space.sm}>
-                      <Ionicons name={a.icon} size={20} color={colors.gold} />
-                      <Text variant="smallStrong">{a.name}</Text>
+                      <AchievementBadge icon={a.icon} tier={tierOf(a.code)} unlocked size={36} shine={false} />
+                      <Text variant="smallStrong" style={{ flexShrink: 1 }}>{a.name}</Text>
                     </Row>
                   </Card>
                 ))}

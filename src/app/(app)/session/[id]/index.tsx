@@ -26,6 +26,7 @@ import { MatchVideos } from '@/features/MatchVideos';
 import { downloadIcs, googleCalendarUrl, type CalendarEvent } from '@/features/calendar';
 import { appLink } from '@/lib/links';
 import type { RsvpStatus } from '@/types/db';
+import { haptics } from '@/lib/haptics';
 
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -92,7 +93,10 @@ export default function SessionScreen() {
   };
 
   const respond = (r: RsvpStatus) => run(`rsvp-${r}`, () => rpc<string>('respond_to_session', { p_session: id, p_response: r }),
-    (res) => (res === 'confirmed' ? 'You’re in! ⚽' : res === 'waitlisted' ? 'Session full — you’re on the waiting list' : 'Response saved'));
+    (res) => {
+      if (res === 'confirmed') haptics.success();
+      return res === 'confirmed' ? 'You’re in! ⚽' : res === 'waitlisted' ? 'Session full — you’re on the waiting list' : 'Response saved';
+    });
 
   const openFinalise = async () => {
     setFinaliseOpen(true);

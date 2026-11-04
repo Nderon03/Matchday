@@ -10,6 +10,7 @@ import { useSessionDetail } from '@/hooks/queries';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { timeUntil } from '@/domain/format';
+import { haptics } from '@/lib/haptics';
 
 interface VotingState {
   open: boolean;
@@ -61,6 +62,7 @@ export default function VoteScreen() {
       if (motm && !fixtureVoted) await rpc('cast_motm_vote', { p_session: id, p_nominee: motm, p_fixture: activeFixture });
       const payload = Object.entries(ratings).filter(([uid]) => toRate.some((p) => p.user_id === uid)).map(([user_id, score]) => ({ user_id, score }));
       if (payload.length) await rpc('submit_ratings', { p_session: id, p_ratings: payload });
+      haptics.success();
       toast.success('Thanks — your votes are in (and anonymous)');
       setMotm(null);
       setRatings({});

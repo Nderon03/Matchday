@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Linking, Platform, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Linking, Platform, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import { CONTACT_EMAIL } from '@/legal/content';
 import { reportError, sentryEnabled } from '@/lib/sentry';
+import { haptics } from '@/lib/haptics';
 
 /** Version line: app version plus which over-the-air update is running (handy when checking an update arrived). */
 function versionLabel() {
@@ -35,6 +36,8 @@ export default function Settings() {
   const [taps, setTaps] = useState(0);
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
+  const [vibration, setVibration] = useState(haptics.isEnabled());
+  useEffect(() => haptics.subscribe(setVibration), []);
 
   const setVisibility = async (v: ProfileVisibility) => {
     const { error } = await supabase.from('user_preferences').update({ profile_visibility: v, show_stats: v !== 'private' }).eq('user_id', userId!);
@@ -72,6 +75,16 @@ export default function Settings() {
 
       <SectionTitle title="Appearance" />
       <Segmented value={preference} onChange={setPreference} options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }, { value: 'system', label: 'System' }]} />
+      {Platform.OS !== 'web' && (
+        <Card padded={false} style={{ paddingHorizontal: space.lg }}>
+          <ListItem
+            title="Vibration"
+            subtitle="A light buzz on taps, votes and achievements"
+            left={icon('phone-portrait-outline')}
+            right={<Switch value={vibration} onValueChange={(v) => { haptics.setEnabled(v); if (v) haptics.tap(); }} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Vibration" />}
+          />
+        </Card>
+      )}
 
       <SectionTitle title="About" />
       <Card padded={false}>

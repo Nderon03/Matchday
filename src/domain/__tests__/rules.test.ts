@@ -1,6 +1,6 @@
 import { lineupOps, arrangeOutfield } from '../lineup';
 import { decideMotm } from '../motm';
-import { newlyUnlocked, ACHIEVEMENTS } from '../achievements';
+import { newlyUnlocked, ACHIEVEMENTS, CATEGORIES, TIERS, rarityLabel } from '../achievements';
 import { rank, formatValue } from '../leaderboard';
 import { validateGoalClaim, sessionSchema, signUpSchema, fieldErrors } from '../validation';
 import { formatPence, poundsToPence, timeUntil, formatKickoff } from '../format';
@@ -28,7 +28,7 @@ describe('MOTM', () => {
 });
 
 describe('achievements', () => {
-  const base = { sessions: 0, goals: 0, motm: 0, bestWinStreak: 0, bestUnbeaten: 0, maxGoalsInSession: 0, seasonChampion: false };
+  const base = { sessions: 0, goals: 0, assists: 0, motm: 0, bestWinStreak: 0, bestUnbeaten: 0, bestWeekStreak: 0, maxGoalsInSession: 0, seasonChampion: false };
   it('unlocks on thresholds', () => {
     expect(newlyUnlocked({ ...base, sessions: 1, goals: 3, maxGoalsInSession: 3 }, [])).toEqual(['first_match', 'first_goal', 'hat_trick']);
     expect(newlyUnlocked({ ...base, sessions: 50, motm: 10, goals: 100, bestWinStreak: 5, bestUnbeaten: 10, seasonChampion: true }, []))
@@ -38,6 +38,19 @@ describe('achievements', () => {
   it('progress caps at target', () => {
     const apps = ACHIEVEMENTS.find((a) => a.code === 'apps_50')!;
     expect(apps.progress({ ...base, sessions: 70 })).toEqual([50, 50]);
+  });
+  it('new football achievements: assists, weeks in a row', () => {
+    expect(newlyUnlocked({ ...base, sessions: 10, assists: 25, bestWeekStreak: 5 }, ['first_match']))
+      .toEqual(['apps_10', 'weeks_5', 'first_assist', 'assists_25']);
+  });
+  it('rarity only shows with enough players', () => {
+    expect(rarityLabel(1, 5)).toBeNull();
+    expect(rarityLabel(3, 50)).toBe('6% of players');
+    expect(rarityLabel(1, 400)).toBe('Under 1% of players');
+    expect(rarityLabel(0, 40)).toBe('No one yet');
+  });
+  it('every achievement has a tier and category', () => {
+    for (const a of ACHIEVEMENTS) { expect(TIERS[a.tier]).toBeDefined(); expect(CATEGORIES).toContain(a.category); }
   });
 });
 

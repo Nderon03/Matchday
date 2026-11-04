@@ -29,7 +29,7 @@ export function Card({ onPress, padded = true, variant = 'default', style, child
         accessibilityRole={Platform.OS === 'web' ? undefined : 'button'}
         accessibilityLabel={accessibilityLabel}
         onPress={onPress}
-        style={({ pressed }) => [base, { opacity: pressed ? 0.85 : 1 }, style as ViewStyle]}
+        style={({ pressed }) => [base, { opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }, style as ViewStyle]}
         {...rest}
       >
         {children}

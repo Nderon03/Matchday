@@ -9,6 +9,7 @@ import { isConfigured } from '@/lib/env';
 import { SetupRequired } from '@/features/SetupRequired';
 import { usePushRegistration } from '@/hooks/usePushRegistration';
 import { KickedNotice } from '@/features/KickedNotice';
+import { AchievementCelebration } from '@/features/AchievementCelebration';
 import { TermsUpdatePrompt } from '@/features/LegalAgreement';
 import { setCrashUser } from '@/lib/sentry';
 import { isRecovering } from '@/lib/recovery';
@@ -44,6 +45,7 @@ export default function AppLayout() {
     <>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }} />
       {!!(profile?.onboarded) && <KickedNotice />}
+      {!!(profile?.onboarded) && <AchievementCelebration />}
       <TermsUpdatePrompt />
     </>
   );

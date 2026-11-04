@@ -60,7 +60,26 @@ const table = {
   group_members: [{ role: 'owner', group: { id: GID, name: 'Wednesday Football', logo_url: null, location: 'Hackney', group_members: [{ count: 14 }] } }],
   achievements: [], friendships: [], friend_requests: [], user_blocks: [], session_templates: [], user_preferences: [{ user_id: ME, profile_visibility: 'public', show_stats: true, push_enabled: true, email_enabled: true, notification_prefs: {}, theme: 'dark' }],
 };
+const ago = (days) => new Date(Date.now() - days * 86400_000).toISOString();
+const myAchievements = {
+  players: 140,
+  streak: { current: 6, best: 9 },
+  items: [
+    ['first_match', 'First Match', 'Play your first verified session.', 'shirt', 'common', 'Playing', 1, 1, ago(200), 140],
+    ['apps_10', 'Regular', 'Play 10 verified sessions.', 'people', 'common', 'Playing', 10, 10, ago(120), 61],
+    ['apps_50', '50 Appearances', 'Play 50 verified sessions.', 'medal', 'rare', 'Playing', 50, 42, null, 9],
+    ['weeks_5', 'Never Misses', 'Play 5 weeks in a row.', 'calendar', 'common', 'Playing', 5, 5, ago(30), 33],
+    ['weeks_20', 'Ever-present', 'Play 20 weeks in a row.', 'flame', 'epic', 'Playing', 20, 9, null, 2],
+    ['first_goal', 'First Goal', 'Score your first approved goal.', 'football', 'common', 'Scoring', 1, 1, ago(190), 98],
+    ['hat_trick', 'Hat-trick Hero', 'Score 3 or more goals in a single session.', 'flash', 'rare', 'Scoring', 3, 3, ago(1), 12],
+    ['goals_100', 'Century', 'Score 100 approved goals.', 'rocket', 'epic', 'Scoring', 100, 61, null, 0],
+    ['first_motm', 'First MOTM', 'Win Man of the Match for the first time.', 'star', 'common', 'Awards', 1, 1, ago(150), 70],
+    ['season_champion', 'Season Champion', 'Be named Player of the Season.', 'ribbon', 'legendary', 'Awards', 1, 1, ago(2), 3],
+    ['win_streak_5', 'Five in a Row', 'Win 5 consecutive games.', 'trending-up', 'rare', 'Form', 5, 3, null, 15],
+  ].map(([code, name, description, icon, tier, category, target, progress, unlocked_at, holders]) => ({ code, name, description, icon, tier, category, target, progress, unlocked_at, holders })),
+};
 const rpcs = {
+  get_my_achievements: myAchievements,
   get_home_dashboard: home, get_pending_tasks: home.tasks, is_session_manager: true,
   get_session_payment_statuses: people.slice(1, 9).map((p, i) => ({ user_id: p.id, status: ['paid', 'authorised', 'unpaid', 'paid', 'failed', 'paid', 'pending', 'paid'][i], method: 'card' })),
   get_player_strengths: people.slice(0, 9).map((p, i) => ({ user_id: p.id, position: p.position, group_rating: 6 + (i % 4) * 0.5, career_rating: 6.5, form: 7, games: 10, gk_games: i === 0 ? 5 : 0 })),
@@ -115,6 +134,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['group-new', '/group/new', 'Who can join'],
     ['session-new', '/session/new', 'Postcode'],
     ['done-redirect', `/done?kind=paid&session=${SID}`, 'Host dashboard'],
+    ['achievements', '/achievements', 'Ever-present'],
   ]) {
     await page.goto(base + path, { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
@@ -177,6 +197,20 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     }
     await page.screenshot({ path: join(OUT, `auth-${vpName}-${name}.png`), fullPage: vpName === 'phone' });
   }
+  // unlock celebration: pretend the player last saw an achievement 3 days ago
+  await page.evaluate((uid) => localStorage.setItem(`matchday.achievementsSeen.${uid}`, new Date(Date.now() - 3 * 86400_000).toISOString()), ME);
+  await page.goto(base + '/achievements', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  let ct = await page.locator('body').innerText();
+  if (!/Achievement unlocked/i.test(ct) || !ct.includes('Season Champion') || !ct.includes('Next (1 more)')) failures.push(`${vpName}: unlock celebration not shown`);
+  await page.screenshot({ path: join(OUT, `auth-${vpName}-celebration.png`) });
+  await page.getByRole('button', { name: /Next \(1 more\)/ }).click();
+  await page.waitForTimeout(900);
+  ct = await page.locator('body').innerText();
+  if (!ct.includes('Hat-trick Hero') || !/Achievement unlocked/i.test(ct)) failures.push(`${vpName}: second unlock not shown`);
+  await page.getByRole('button', { name: 'Nice' }).click();
+  await page.waitForTimeout(500);
+  if (/Achievement unlocked/i.test(await page.locator('body').innerText())) failures.push(`${vpName}: celebration did not close`);
   if (errors.length) failures.push(`${vpName}: runtime errors:\n  ${[...new Set(errors)].join('\n  ')}`);
   await page.close();
 }

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Platform, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { Text } from './Text';
@@ -15,7 +15,7 @@ export function Stepper({ value, onChange, min = 0, max = 99, label, size = 'md'
   const change = (d: number) => {
     const next = Math.min(max, Math.max(min, value + d));
     if (next !== value) {
-      if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => undefined);
+      haptics.tap();
       onChange(next);
     }
   };
