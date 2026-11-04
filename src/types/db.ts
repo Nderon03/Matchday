@@ -120,6 +120,9 @@ export interface Attendance {
   replacement_for: string | null;
   removed_reason?: string | null;
   removed_at?: string | null;
+  /** a place offered from the waiting list, held until this time */
+  offer_expires_at?: string | null;
+  late_withdrawal?: boolean;
 }
 
 export interface Fixture {

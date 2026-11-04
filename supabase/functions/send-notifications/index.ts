@@ -2,6 +2,8 @@
 // Scheduled every minute via pg_cron + pg_net. In-app notifications are already persisted.
 import { adminClient, handler, json, requireCronSecret } from '../_shared/http.ts';
 import { buildExpoMessages, chunk, type QueuedNotification } from '../_shared/payments-core.ts';
+import { getSessionWeather } from '../_shared/session-weather.ts';
+import { reminderLine } from '../_shared/weather.ts';
 
 Deno.serve(handler(async (req) => {
   requireCronSecret(req);
@@ -10,6 +12,21 @@ Deno.serve(handler(async (req) => {
 
   const { data: queued } = await admin.from('notifications').select('id, user_id, title, body, data, type').eq('push_status', 'queued').order('created_at').limit(500);
   if (queued?.length) {
+    // kick-off reminders get the forecast added (one lookup per session, cached for an hour)
+    const forecasts = new Map<string, string | null>();
+    for (const n of queued.filter((x) => x.type === 'session_reminder' && x.data?.session_id && !x.data?.weather)) {
+      const sid = n.data.session_id as string;
+      if (!forecasts.has(sid)) {
+        const w = await getSessionWeather(admin, sid).catch(() => null);
+        forecasts.set(sid, w ? reminderLine(w) : null);
+      }
+      const line = forecasts.get(sid);
+      if (line) {
+        n.body = `${n.body} ${line}`;
+        n.data = { ...n.data, weather: true };
+        await admin.from('notifications').update({ body: n.body, data: n.data }).eq('id', n.id);
+      }
+    }
     const userIds = [...new Set(queued.map((n) => n.user_id))];
     const { data: tokens } = await admin.from('push_tokens').select('user_id, token').in('user_id', userIds);
     const byUser: Record<string, string[]> = {};

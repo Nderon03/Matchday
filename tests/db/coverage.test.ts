@@ -273,7 +273,7 @@ describe('waiting list and capacity', () => {
     const b = await db.createUser(uniq('b'));
     const c = await db.createUser(uniq('c'));
     for (const u of [a, b, c]) await db.befriend(host, u);
-    const sid = await db.rpc<string>(host, 'create_session', { p: { name: 'Cap FC', starts_at: new Date(Date.now() + 86400_000).toISOString(), format_size: 5, max_attendance: 2, invitee_ids: [a, b, c] } });
+    const sid = await db.rpc<string>(host, 'create_session', { p: { name: 'Cap FC', starts_at: new Date(Date.now() + 2 * 86400_000).toISOString(), format_size: 5, max_attendance: 2, invitee_ids: [a, b, c] } });
     expect(await db.rpc(a, 'respond_to_session', { p_session: sid, p_response: 'confirmed' })).toBe('confirmed');
     expect(await db.rpc(b, 'respond_to_session', { p_session: sid, p_response: 'confirmed' })).toBe('waitlisted');
     expect(await db.rpc(c, 'respond_to_session', { p_session: sid, p_response: 'confirmed' })).toBe('waitlisted');

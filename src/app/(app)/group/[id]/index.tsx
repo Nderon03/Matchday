@@ -26,6 +26,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { TeamOfMonth } from '@/features/TeamOfMonth';
+import { ReliabilityChip, useReliability } from '@/features/Reliability';
 
 type Tab = 'overview' | 'members' | 'fixtures' | 'results' | 'tables' | 'awards' | 'seasons' | 'feed' | 'records' | 'fines';
 const AWARD_LABEL: Record<string, string> = {
@@ -37,6 +38,7 @@ export default function GroupScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const group = useGroup(id);
+  const reqReliability = useReliability(group.data?.joinRequests.map((r) => r.user_id) ?? []);
   const { userId } = useAuth();
   const confirm = useConfirm();
   const balances = useGroupBalances(id, group.data?.myRole === 'owner' || group.data?.myRole === 'admin');
@@ -134,6 +136,7 @@ export default function GroupScreen() {
                     <View style={{ flex: 1 }}>
                       <Text variant="bodyStrong">{r.profile.display_name}</Text>
                       {!!r.message && <Text variant="caption" tone="muted">“{r.message}”</Text>}
+                      <ReliabilityChip r={reqReliability.data?.[r.user_id]} />
                     </View>
                     <Button title="Accept" size="sm" loading={busy === `acc-${r.id}`} onPress={() => run(`acc-${r.id}`, () => rpc('decide_join_request', { p_request: r.id, p_approve: true }), 'Member added')} />
                     <Button title="Decline" size="sm" variant="ghost" onPress={() => run(`dec-${r.id}`, () => rpc('decide_join_request', { p_request: r.id, p_approve: false }))} />

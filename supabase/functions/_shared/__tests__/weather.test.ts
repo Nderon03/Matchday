@@ -1,4 +1,4 @@
-import { describeSymbol, kickoffWeather, metQuery } from '../weather';
+import { describeSymbol, kickoffWeather, metQuery, reminderLine } from '../weather';
 
 const entry = (time: string, temp: number, symbol: string, rain?: number, six = false) => ({
   time,
@@ -27,4 +27,13 @@ describe('kick-off weather', () => {
     expect(describeSymbol('heavysnow').summary).toBe('Snow');
   });
   it('trims coordinates', () => expect(metQuery(51.614234, -0.24471)).toContain('lat=51.6142&lon=-0.2447'));
+});
+
+describe('reminder line', () => {
+  const w = { at: '', precip_mm: null, symbol: '' };
+  it('adds a tip when it matters', () => {
+    expect(reminderLine({ ...w, temp_c: 9, wind_mph: 8, summary: 'Light rain', icon: 'rainy-outline' })).toBe('🌧 9°C, light rain at kick-off. Bring a layer.');
+    expect(reminderLine({ ...w, temp_c: 2, wind_mph: 5, summary: 'Clear', icon: 'moon-outline' })).toBe('🌙 2°C, clear at kick-off. Wrap up warm.');
+    expect(reminderLine({ ...w, temp_c: 16, wind_mph: 6, summary: 'Partly cloudy', icon: 'partly-sunny-outline' })).toBe('⛅ 16°C, partly cloudy at kick-off.');
+  });
 });

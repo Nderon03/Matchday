@@ -16,6 +16,7 @@ import { AchievementBadge } from '@/components/football/AchievementBadge';
 import { formatDate, formatKickoff, POSITION_LABEL, rating } from '@/domain/format';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
+import { ReliabilityChip, useReliability } from '@/features/Reliability';
 
 export function PlayerProfileView({ userId }: { userId: string }) {
   const { colors } = useTheme();
@@ -27,6 +28,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   const cardRef = useRef<HostInstance>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reason, setReason] = useState('');
+  const reliability = useReliability([userId]);
   const links = useQuery({ queryKey: ['player', userId, 'connections'], queryFn: () => rpc<Connections | null>('get_player_connections', { p_user: userId }) });
   const bests = useQuery({ queryKey: ['player', userId, 'bests'], queryFn: () => rpc<PersonalBests | null>('get_personal_bests', { p_user: userId }) });
   // card style, flag and club live on the profile row (readable by everyone signed in)
@@ -81,6 +83,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
 
       {!!p.bio && <Text tone="muted">{p.bio}</Text>}
       <Text variant="caption" tone="faint">{POSITION_LABEL[p.position]} · Joined {formatDate(p.created_at)} · {d.friends_count} friends</Text>
+      <ReliabilityChip r={reliability.data?.[userId]} />
 
       {d.groups.length > 0 && d.can_view_stats && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>

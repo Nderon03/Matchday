@@ -94,6 +94,7 @@ const reveal = {
 };
 const rpcs = {
   get_match_reveals: [],
+  get_reliability: Object.fromEntries(people.map((p, i) => [p.id, { attended: 20, no_shows: i === 3 ? 4 : 0, late_drops: i === 3 ? 2 : 1, pct: i === 3 ? 77 : 95 }])),
   get_month_candidates: {
     sessions: 4,
     players: people.slice(0, 8).map((p, i) => ({ user_id: p.id, display_name: p.display_name, username: p.username, avatar_url: null, position: p.position,
@@ -156,7 +157,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   });
   for (const [name, path, expected] of [
     ['home', '/', 'Next up'], ['session', `/session/${SID}`, 'Host controls'], ['lineup', `/session/${SID}/lineup`, 'Balance teams'],
-    ['leagues', '/leagues', 'My groups'], ['profile', '/profile', 'Best partner'], ['create', '/create', 'New session'],
+    ['leagues', '/leagues', 'My groups'], ['profile', '/profile', '95% reliable'], ['create', '/create', 'New session'],
     ['payments', `/session/${SID}/payments`, 'Host dashboard'], ['settings', '/settings', 'Terms of Use'],
     ['notifications', '/notifications', 'Notifications'], ['privacy', '/legal/privacy', 'Privacy Policy'],
     ['terms', '/legal/terms', 'Terms of Use'], ['delete', '/legal/delete-account', 'Delete your account'],
@@ -214,6 +215,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       if (!/Dave/.test(text0)) failures.push(`${vpName}: guest not in squad`);
       if (!/Watch the game/i.test(text0)) failures.push(`${vpName}: match videos section missing`);
       if (!/10°C · Light rain/.test(text0)) failures.push(`${vpName}: kick-off weather missing`);
+      if (!/77% reliable/.test(text0) || /95% reliable/.test(text0)) failures.push(`${vpName}: host reliability warning wrong`);
       await page.getByRole('button', { name: 'Can’t make it' }).first().click();
       await page.waitForTimeout(400);
       if (!(await page.locator('body').innerText()).includes('Can’t make it anymore?')) failures.push(`${vpName}: in-app confirm sheet did not open`);
@@ -235,6 +237,20 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     }
     await page.screenshot({ path: join(OUT, `auth-${vpName}-${name}.png`), fullPage: vpName === 'phone' });
   }
+  // a place offered from the waiting list in the last 24 hours
+  {
+    const mine = attendance.find((a) => a.user_id === ME);
+    const before = { ...mine };
+    Object.assign(mine, { status: 'waitlisted', waitlisted_at: ago(1), offer_expires_at: new Date(Date.now() + 25 * 60_000).toISOString() });
+    await page.goto(base + `/session/${SID}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+    const ot = await page.locator('body').innerText();
+    if (!ot.includes('A place just opened for you') || !/in the next 2\dm/.test(ot)) failures.push(`${vpName}: waiting-list offer not shown`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-offer.png`) });
+    Object.keys(mine).forEach((k) => delete mine[k]);
+    Object.assign(mine, before);
+  }
+
   // finalised session: the shareable match report
   {
     const saved = { status: session.status, fixtures: JSON.stringify(fixtures), t: { ...table } };

@@ -75,11 +75,13 @@ describe('single-match journey (5-a-side)', () => {
     await db.befriend(host, waiter);
     await db.rpc(host, 'invite_to_session', { p_session: sessionId, p_users: [waiter] });
     expect(await db.rpc(waiter, 'respond_to_session', { p_session: sessionId, p_response: 'confirmed' })).toBe('waitlisted');
-    // a withdrawal promotes the waiting list automatically
+    // a withdrawal in the last 24 hours offers the place to the next on the waiting list, who takes it
     expect(await db.rpc(extra, 'respond_to_session', { p_session: sessionId, p_response: 'withdrawn' })).toBe('withdrawn');
-    const [w] = await db.admin(`select status from session_attendance where session_id = $1 and user_id = $2`, [sessionId, waiter]);
-    expect(w.status).toBe('confirmed');
-    expect((await db.admin(`select count(*)::int n from notifications where user_id = $1 and type = 'waitlist_promoted'`, [waiter]))[0].n).toBe(1);
+    const [w] = await db.admin(`select status, offer_expires_at from session_attendance where session_id = $1 and user_id = $2`, [sessionId, waiter]);
+    expect(w.status).toBe('waitlisted');
+    expect(w.offer_expires_at).not.toBeNull();
+    expect((await db.admin(`select count(*)::int n from notifications where user_id = $1 and type = 'waitlist_offer'`, [waiter]))[0].n).toBe(1);
+    expect(await db.rpc(waiter, 'respond_to_session', { p_session: sessionId, p_response: 'confirmed' })).toBe('confirmed');
     await db.rpc(waiter, 'respond_to_session', { p_session: sessionId, p_response: 'withdrawn' });
     await db.rpc(extra, 'respond_to_session', { p_session: sessionId, p_response: 'confirmed' });
 

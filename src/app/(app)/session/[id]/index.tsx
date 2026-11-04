@@ -28,12 +28,15 @@ import { appLink } from '@/lib/links';
 import type { RsvpStatus } from '@/types/db';
 import { haptics } from '@/lib/haptics';
 import { KickoffWeather } from '@/features/KickoffWeather';
+import { ReliabilityChip, useReliability } from '@/features/Reliability';
 
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useTheme();
   const { userId } = useAuth();
   const detail = useSessionDetail(id);
+  // hosts see a warning next to players who often drop out or don't show
+  const squadReliability = useReliability(detail.data?.isManager ? detail.data.attendance.filter((a) => ['confirmed', 'waitlisted'].includes(a.status)).map((a) => a.user_id) : []);
   const now = useNow();
   const { run, busy } = useAction([keys.session(id), keys.mySessions]);
   const [finaliseOpen, setFinaliseOpen] = useState(false);
@@ -78,6 +81,9 @@ export default function SessionScreen() {
   const votingOpen = s.status === 'completed' && !closedHere && (!s.voting_closes_at || new Date(s.voting_closes_at).getTime() > now);
   const canCheckIn = me?.status === 'confirmed' && !me.checked_in_at && ['scheduled', 'in_progress'].includes(s.status) && new Date(s.starts_at).getTime() - now < 3 * 3600_000;
   const waitPos = me?.status === 'waitlisted' ? groups.waitlisted.findIndex((w) => w.user_id === userId) + 1 : 0;
+  // a place offered to me from the waiting list (last 24 hours before kick-off)
+  const offerUntil = me?.status === 'waitlisted' && me.offer_expires_at && new Date(me.offer_expires_at).getTime() > now ? me.offer_expires_at : null;
+  const lastDay = new Date(s.starts_at).getTime() - now < 24 * 3600_000;
 
   const calendarEvent: CalendarEvent = {
     id: s.id,
@@ -206,10 +212,10 @@ export default function SessionScreen() {
 
       {/* Player actions */}
       {s.status === 'scheduled' && (
-        <Card variant={me?.status === 'confirmed' ? 'highlight' : 'default'} style={notAttending ? { borderColor: colors.danger } : undefined}>
+        <Card variant={me?.status === 'confirmed' || offerUntil ? 'highlight' : 'default'} style={notAttending ? { borderColor: colors.danger } : undefined}>
           <View style={{ gap: space.md }}>
             <Text variant="h3">
-              {me?.status === 'confirmed' ? 'You’re playing' : me?.status === 'waitlisted' ? `Waiting list · position ${waitPos}` : blocked ? 'Removed by the host' : reinvited ? 'The host invited you back — are you in?' : notAttending ? 'You’re not attending' : 'Are you in?'}
+              {me?.status === 'confirmed' ? 'You’re playing' : offerUntil ? 'A place just opened for you' : me?.status === 'waitlisted' ? `Waiting list · position ${waitPos}` : blocked ? 'Removed by the host' : reinvited ? 'The host invited you back — are you in?' : notAttending ? 'You’re not attending' : 'Are you in?'}
             </Text>
             {me?.status === 'confirmed' ? (
               <Row gap={space.sm} wrap>
@@ -217,10 +223,21 @@ export default function SessionScreen() {
                 {!!me.checked_in_at && <Badge label="Checked in" tone="success" align="center" />}
                 <Button title="Can’t make it" variant="secondary" loading={busy === 'rsvp-withdrawn'} onPress={async () => {
                   const guestsNote = myGuests.length ? ` Your guest${myGuests.length > 1 ? 's' : ''} will be removed too.` : '';
-                  if (await confirm({ title: 'Can’t make it anymore?', message: `Your place goes to the next player on the waiting list.${guestsNote} You can rejoin later if there’s space.`, confirmLabel: 'I can’t make it', destructive: true })) respond('withdrawn');
+                  const lateNote = lastDay ? ' Dropping out this close to kick-off counts against your reliability.' : '';
+                  if (await confirm({ title: 'Can’t make it anymore?', message: `Your place goes to the next player on the waiting list.${guestsNote}${lateNote} You can rejoin later if there’s space.`, confirmLabel: 'I can’t make it', destructive: true })) respond('withdrawn');
                 }} />
                 <Button title="Add a guest" icon="person-add-outline" variant="ghost" onPress={() => { setGuestName(''); setGuestOpen(true); }} />
               </Row>
+            ) : offerUntil ? (
+              <View style={{ gap: space.sm }}>
+                <Text variant="small" tone="muted">
+                  Someone dropped out. It’s yours if you tap “I’m in” in the next {timeUntil(offerUntil, now)}, then it goes to the next player.
+                </Text>
+                <Row gap={space.sm} wrap>
+                  <Button title="I’m in" icon="checkmark-circle-outline" loading={busy === 'rsvp-confirmed'} onPress={() => respond('confirmed')} />
+                  <Button title="Can’t make it" variant="secondary" loading={busy === 'rsvp-withdrawn'} onPress={() => respond('withdrawn')} />
+                </Row>
+              </View>
             ) : me?.status === 'waitlisted' ? (
               <Button title="Leave waiting list" variant="secondary" onPress={() => respond('withdrawn')} />
             ) : blocked ? null : (
@@ -456,6 +473,7 @@ export default function SessionScreen() {
               <View style={{ flex: 1 }}>
                 <Text variant="bodyStrong" onPress={() => router.push(`/player/${a.user_id}`)}>{a.profile.display_name}{a.user_id === s.host_id ? ' · host' : ''}</Text>
                 <Text variant="caption" tone="muted">@{a.profile.username}{a.checked_in_at ? ' · checked in' : ''}{a.late_arrival ? ' · late' : ''}</Text>
+                {!!d.isManager && (squadReliability.data?.[a.user_id]?.pct ?? 100) < 90 && <ReliabilityChip r={squadReliability.data?.[a.user_id]} />}
               </View>
               {a.verification === 'verified' && <Ionicons name="shield-checkmark" size={16} color={colors.primary} accessibilityLabel="Verified" />}
               {a.verification === 'absent' && <Badge label="Absent" tone="danger" />}

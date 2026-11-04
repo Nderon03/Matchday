@@ -69,3 +69,16 @@ export function kickoffWeather(timeseries: MetEntry[], kickoff: Date): KickoffWe
 
 /** Coordinates trimmed to 4 decimals, as MET requires (also improves their caching). */
 export const metQuery = (lat: number, lng: number) => `${MET_URL}?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}`;
+
+const EMOJI: Record<string, string> = {
+  'thunderstorm-outline': '⛈', 'snow-outline': '❄️', 'rainy-outline': '🌧', 'cloud-outline': '☁️',
+  'cloudy-night-outline': '☁️', 'partly-sunny-outline': '⛅', 'moon-outline': '🌙', 'sunny-outline': '☀️',
+};
+
+/** One line for the kick-off reminder, e.g. "🌧 9°C, light rain at kick-off. Bring a layer." */
+export function reminderLine(w: KickoffWeather): string {
+  const wet = /rain|sleet|snow|thunder/i.test(w.summary);
+  const cold = w.temp_c <= 5;
+  const tip = wet ? ' Bring a layer.' : cold ? ' Wrap up warm.' : w.wind_mph >= 25 ? ' It’ll be windy.' : '';
+  return `${EMOJI[w.icon] ?? '🌤'} ${w.temp_c}°C, ${w.summary.toLowerCase()} at kick-off.${tip}`;
+}
