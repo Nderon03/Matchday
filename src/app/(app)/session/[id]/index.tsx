@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Linking, View, type HostInstance } from 'react-native';
+import { Linking, Platform, View, type HostInstance } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -23,6 +23,8 @@ import { LateStatusCard, useLateStatus } from '@/features/FinesPanel';
 import { usePriceLabel } from '@/hooks/useFees';
 import { SettleUpCard, useGroupBalances, useMyOutstanding } from '@/features/SettleUp';
 import { MatchVideos } from '@/features/MatchVideos';
+import { downloadIcs, googleCalendarUrl, type CalendarEvent } from '@/features/calendar';
+import { appLink } from '@/lib/links';
 import type { RsvpStatus } from '@/types/db';
 
 export default function SessionScreen() {
@@ -44,6 +46,7 @@ export default function SessionScreen() {
   const outstanding = useMyOutstanding(detail.data?.session.group_id, detail.data?.session.status === 'scheduled');
   const balances = useGroupBalances(detail.data?.session.group_id, !!detail.data?.isManager);
   const [guestOpen, setGuestOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [guestName, setGuestName] = useState('');
 
   const d = detail.data;
@@ -73,6 +76,20 @@ export default function SessionScreen() {
   const votingOpen = s.status === 'completed' && !closedHere && (!s.voting_closes_at || new Date(s.voting_closes_at).getTime() > now);
   const canCheckIn = me?.status === 'confirmed' && !me.checked_in_at && ['scheduled', 'in_progress'].includes(s.status) && new Date(s.starts_at).getTime() - now < 3 * 3600_000;
   const waitPos = me?.status === 'waitlisted' ? groups.waitlisted.findIndex((w) => w.user_id === userId) + 1 : 0;
+
+  const calendarEvent: CalendarEvent = {
+    id: s.id,
+    title: s.name,
+    startsAt: s.starts_at,
+    durationMinutes: s.duration_minutes,
+    location: [s.venue, s.location].filter(Boolean).join(', ') || null,
+    details: `MATCHDAY · ${s.format_size}-a-side\n${appLink(`/session/${s.id}`)}`,
+  };
+  // web: choose Google Calendar or a calendar file (Apple/Outlook); phones: Google Calendar
+  const addToCalendar = () => {
+    if (Platform.OS !== 'web') Linking.openURL(googleCalendarUrl(calendarEvent)).catch(() => undefined);
+    else setCalendarOpen(true);
+  };
 
   const respond = (r: RsvpStatus) => run(`rsvp-${r}`, () => rpc<string>('respond_to_session', { p_session: id, p_response: r }),
     (res) => (res === 'confirmed' ? 'You’re in! ⚽' : res === 'waitlisted' ? 'Session full — you’re on the waiting list' : 'Response saved'));
@@ -132,7 +149,13 @@ export default function SessionScreen() {
             {statusBadge(s, me?.status)}
           </Row>
           <View style={{ gap: 6 }}>
-            <Row gap={8}><Ionicons name="time-outline" size={17} color={colors.textMuted} /><Text>{formatKickoff(s.starts_at)} · {s.duration_minutes} min</Text></Row>
+            <Row gap={8}>
+              <Ionicons name="time-outline" size={17} color={colors.textMuted} />
+              <Text style={{ flex: 1 }}>{formatKickoff(s.starts_at)} · {s.duration_minutes} min</Text>
+              {['scheduled', 'in_progress'].includes(s.status) && (
+                <Text variant="smallStrong" tone="primary" accessibilityRole="button" onPress={() => addToCalendar()}>Add to calendar</Text>
+              )}
+            </Row>
             {(s.venue || s.location) && (
               <Row gap={8}>
                 <Ionicons name="location-outline" size={17} color={colors.textMuted} />
@@ -460,6 +483,12 @@ export default function SessionScreen() {
         {groups.pending.length > 0 && <Text variant="small" tone="muted">Awaiting reply: {groups.pending.map((p) => p.display_name).join(', ')}</Text>}
         {groups.out.length > 0 && <Text variant="small" tone="faint">Not playing: {groups.out.map((p) => p.profile.display_name).join(', ')}</Text>}
       </View>
+
+      <Sheet visible={calendarOpen} onClose={() => setCalendarOpen(false)} title="Add to calendar">
+        <Text tone="muted">Includes the venue, a link back to this session and a reminder 2 hours before kick-off (calendar file).</Text>
+        <Button title="Google Calendar" icon="logo-google" onPress={() => { window.open(googleCalendarUrl(calendarEvent), '_blank'); setCalendarOpen(false); }} />
+        <Button title="Apple Calendar / Outlook (.ics file)" icon="calendar-outline" variant="secondary" onPress={() => { downloadIcs(calendarEvent); setCalendarOpen(false); }} />
+      </Sheet>
 
       <Sheet visible={guestOpen} onClose={() => setGuestOpen(false)} title="Bring a guest">
         <Text tone="muted">For someone without a MATCHDAY account. They take a squad spot and can be picked in line-ups, but don’t get stats or votes.</Text>

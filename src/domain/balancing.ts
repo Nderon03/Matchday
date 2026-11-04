@@ -17,12 +17,18 @@ export interface BalancePlayer {
 }
 
 /**
- * How goalkeepers are handled:
- *  - auto: a keeper per side only if at least two players' preferred position is GK
- *  - rotating: no fixed keepers (common in casual football) — everyone is treated as outfield
- *  - fixed: also count players who have kept goal before (2+ games in goal)
+ * How goalkeepers are handled. Keepers are players whose preferred position is GK.
+ *  - auto: 2+ keepers → one per side; 1 keeper → on one side, and the other side (which rotates
+ *    in goal) gets an extra defender and a slightly stronger squad; 0 keepers → everyone rotates.
+ *  - rotating: keepers play outfield today; everyone rotates in goal.
+ *  ('fixed' is kept for older callers and behaves like 'auto'.)
  */
 export type GoalkeeperMode = 'auto' | 'rotating' | 'fixed';
+
+/** Rating points the rotating side gets on top when only one team has a keeper. */
+export const ONE_KEEPER_EDGE = 0.6;
+/** Cost (in rating points) of each defender the rotating side is short of. */
+const DEFENCE_WEIGHT = 1.5;
 
 export interface BalanceOptions {
   goalkeepers?: GoalkeeperMode;
@@ -43,6 +49,8 @@ export interface BalanceResult {
   strengthB: number;
   difference: number;
   method: 'balanced' | 'random';
+  /** How many fixed keepers were used: 0 (both rotate), 1 (team B rotates) or 2 (one each). */
+  keeperCase: 0 | 1 | 2;
   explanation: string;
 }
 
@@ -66,8 +74,7 @@ export function hasEnoughHistory(players: BalancePlayer[]): boolean {
 }
 
 function isKeeper(p: BalancePlayer, mode: GoalkeeperMode) {
-  if (mode === 'rotating') return false;
-  return p.position === 'GK' || (mode === 'fixed' && (p.gk_games ?? 0) >= 2);
+  return mode !== 'rotating' && p.position === 'GK';
 }
 
 function mulberry(seed: number) {
@@ -89,23 +96,57 @@ export function shuffle<T>(xs: T[], random: () => number = Math.random): T[] {
   return a;
 }
 
-function chooseKeepers(players: BalancePlayer[], mode: GoalkeeperMode = 'auto') {
-  const keepers = players.filter((p) => isKeeper(p, mode)).sort((a, b) => (b.gk_games ?? 0) - (a.gk_games ?? 0) || playerStrength(b) - playerStrength(a));
-  return keepers.length >= 2 ? [keepers[0], keepers[1]] : [];
+/** Up to two keepers (players who chose GK), best first. */
+export function chooseKeepers(players: BalancePlayer[], mode: GoalkeeperMode = 'auto') {
+  const keepers = players.filter((p) => isKeeper(p, mode)).sort((a, b) => playerStrength(b) - playerStrength(a) || (b.gk_games ?? 0) - (a.gk_games ?? 0));
+  return keepers.slice(0, 2);
 }
 
+/** Team sizes (including keepers). With one keeper and an odd squad, the rotating side gets the extra player. */
+function sizes(total: number, keeperCount: number) {
+  const a = keeperCount === 1 ? Math.floor(total / 2) : Math.ceil(total / 2);
+  return { a, b: total - a };
+}
+
+/** Short goalkeeper note (used for random teams). */
+export function keeperNote(keeperCase: 0 | 1 | 2, rotatingMode = false) {
+  if (rotatingMode || keeperCase === 0) return 'Both teams rotate in goal.';
+  if (keeperCase === 1) return 'One goalkeeper, so the other team rotates in goal.';
+  return 'One goalkeeper on each side.';
+}
+
+export function keeperExplanation(keeperCase: 0 | 1 | 2, rotatingMode = false) {
+  if (rotatingMode) return 'Keepers are playing outfield today, so both teams rotate in goal. Teams are balanced on ratings and positions.';
+  if (keeperCase === 2) return 'Balanced on ratings and positions, with a goalkeeper on each side.';
+  if (keeperCase === 1) return 'Only one goalkeeper, so the other team rotates in goal. To make up for it they get an extra defender and a slightly stronger squad.';
+  return 'No goalkeepers, so both teams rotate in goal. Teams are balanced on ratings and positions.';
+}
+
+/**
+ * a / b are whole teams (keepers included). keeperCase 1 means team A has the only keeper:
+ * team B should then be ONE_KEEPER_EDGE stronger and have at least one more defender.
+ */
 function cost(
   a: BalancePlayer[],
   b: BalancePlayer[],
   pairs: Map<string, number>,
   positionWeight: number,
   pairingWeight: number,
+  keeperCase: 0 | 1 | 2 = 0,
+  defendersAvailable = 0,
 ) {
   const sa = a.reduce((s, p) => s + playerStrength(p), 0);
   const sb = b.reduce((s, p) => s + playerStrength(p), 0);
+  const count = (team: BalancePlayer[], pos: PlayerPosition) => team.filter((p) => p.position === pos).length;
   let posPenalty = 0;
-  for (const pos of ['DEF', 'MID', 'FWD'] as const) {
-    posPenalty += Math.abs(a.filter((p) => p.position === pos).length - b.filter((p) => p.position === pos).length);
+  for (const pos of ['MID', 'FWD'] as const) posPenalty += Math.abs(count(a, pos) - count(b, pos));
+  let defencePenalty = 0;
+  if (keeperCase === 1) {
+    // the rotating side needs the extra defender (when there are defenders to give)
+    const wanted = Math.min(defendersAvailable, count(a, 'DEF') + 1);
+    defencePenalty = Math.max(0, wanted - count(b, 'DEF')) + Math.max(0, count(b, 'DEF') - count(a, 'DEF') - 2);
+  } else {
+    posPenalty += Math.abs(count(a, 'DEF') - count(b, 'DEF'));
   }
   let pairPenalty = 0;
   for (const team of [a, b]) {
@@ -115,7 +156,8 @@ function cost(
       }
     }
   }
-  return { total: Math.abs(sa - sb) + positionWeight * Math.max(0, posPenalty - 1) + pairingWeight * pairPenalty, sa, sb };
+  const strengthGap = keeperCase === 1 ? Math.abs(sa + ONE_KEEPER_EDGE - sb) : Math.abs(sa - sb);
+  return { total: strengthGap + positionWeight * Math.max(0, posPenalty - 1) + DEFENCE_WEIGHT * defencePenalty + pairingWeight * pairPenalty, sa, sb };
 }
 
 const pairKey = (x: string, y: string) => (x < y ? `${x}|${y}` : `${y}|${x}`);
@@ -144,18 +186,21 @@ export function balanceTeams(players: BalancePlayer[], opts: BalanceOptions = {}
   for (const p of opts.recentPairings ?? []) pairs.set(pairKey(p.user_a, p.user_b), p.times);
 
   const keepers = chooseKeepers(players, opts.goalkeepers);
+  const keeperCase = keepers.length as 0 | 1 | 2;
   const keeperIds = new Set(keepers.map((k) => k.user_id));
-  // shuffle first so equal-cost solutions vary week to week
-  const outfield = shuffle(players.filter((p) => !keeperIds.has(p.user_id)), random);
+  // shuffle first so equal-cost solutions vary week to week; extra GK-preferring players play outfield
+  const outfield = shuffle(players.filter((p) => !keeperIds.has(p.user_id)), random)
+    .map((p) => (p.position === 'GK' ? { ...p, position: 'ANY' as PlayerPosition } : p));
   const kA = keepers[0] ? [keepers[0]] : [];
   const kB = keepers[1] ? [keepers[1]] : [];
+  const defendersAvailable = outfield.filter((p) => p.position === 'DEF').length;
 
   const total = players.length;
-  const sizeA = Math.ceil(total / 2) - kA.length;
+  const sizeA = sizes(total, keeperCase).a - kA.length;
 
   let best: { a: BalancePlayer[]; b: BalancePlayer[]; c: ReturnType<typeof cost> } | null = null;
   const consider = (a: BalancePlayer[], b: BalancePlayer[]) => {
-    const c = cost([...kA, ...a], [...kB, ...b], pairs, positionWeight, pairingWeight);
+    const c = cost([...kA, ...a], [...kB, ...b], pairs, positionWeight, pairingWeight, keeperCase, defendersAvailable);
     if (!best || c.total < best.c.total - 1e-9) best = { a, b, c };
   };
 
@@ -200,9 +245,8 @@ export function balanceTeams(players: BalancePlayer[], opts: BalanceOptions = {}
     strengthB: round2(res.c.sb),
     difference: round2(difference),
     method: 'balanced',
-    explanation:
-      'Suggested teams based on previous performances and player balance' +
-      (keepers.length === 2 ? ', with a goalkeeper on each side.' : opts.goalkeepers === 'rotating' ? '. Goalkeepers rotate, so nobody is fixed in goal.' : '.'),
+    keeperCase,
+    explanation: keeperExplanation(keeperCase, opts.goalkeepers === 'rotating'),
   };
 }
 
@@ -210,9 +254,10 @@ export function balanceTeams(players: BalancePlayer[], opts: BalanceOptions = {}
 export function randomTeams(players: BalancePlayer[], seedOrRandom?: number | (() => number), goalkeepers: GoalkeeperMode = 'auto'): BalanceResult {
   const random = typeof seedOrRandom === 'number' ? mulberry(seedOrRandom) : seedOrRandom ?? Math.random;
   const keepers = chooseKeepers(players, goalkeepers);
+  const keeperCase = keepers.length as 0 | 1 | 2;
   const keeperIds = new Set(keepers.map((k) => k.user_id));
   const rest = shuffle(players.filter((p) => !keeperIds.has(p.user_id)), random);
-  const sizeA = Math.ceil(players.length / 2) - (keepers[0] ? 1 : 0);
+  const sizeA = sizes(players.length, keeperCase).a - (keepers[0] ? 1 : 0);
   const a = [...(keepers[0] ? [keepers[0]] : []), ...rest.slice(0, sizeA)];
   const b = [...(keepers[1] ? [keepers[1]] : []), ...rest.slice(sizeA)];
   const sa = a.reduce((s, p) => s + playerStrength(p), 0);
@@ -225,7 +270,8 @@ export function randomTeams(players: BalancePlayer[], seedOrRandom?: number | ((
     strengthB: round2(sb),
     difference: round2(Math.abs(sa - sb)),
     method: 'random',
-    explanation: 'Random teams.',
+    keeperCase,
+    explanation: `Random teams. ${keeperNote(keeperCase, goalkeepers === 'rotating')}`,
   };
 }
 

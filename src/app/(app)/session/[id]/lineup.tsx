@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, Switch, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/theme/ThemeProvider';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Card, Chip, EmptyState, ErrorState, Header, Input, Loading, Row, Screen, Segmented, Sheet, Text, useConfirm, useToast } from '@/components/ui';
 import { Pitch, type LineupPlayer } from '@/components/football/Pitch';
@@ -107,6 +109,9 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
   const [dirty, setDirty] = useState(!!initialSuggestion);
   const [selected, setSelected] = useState<string | null>(null);
   const [gkMode, setGkMode] = useState<GoalkeeperMode>('auto');
+  const { colors } = useTheme();
+  // players who chose Goalkeeper as their preferred position (guests count as outfield)
+  const keeperNames = Object.values(players).filter((p) => p.position === 'GK' && !p.isGuest).map((p) => p.display_name);
   const [swapFrom, setSwapFrom] = useState<string | null>(null);
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
@@ -213,17 +218,31 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
             <Button title="Randomise" icon="shuffle" size="sm" variant="secondary" onPress={() => apply('random')} />
             <Button title="Clear" size="sm" variant="ghost" onPress={() => { update({ A: [], B: [] }); setSuggestion(null); }} />
           </Row>
-          <Row gap={space.sm} wrap>
-            <Text variant="caption" tone="muted">Goalkeepers:</Text>
-            <Chip label="Auto" selected={gkMode === 'auto'} onPress={() => setGkMode('auto')} />
-            <Chip label="Rotating" selected={gkMode === 'rotating'} onPress={() => setGkMode('rotating')} />
-            <Chip label="Fixed" selected={gkMode === 'fixed'} onPress={() => setGkMode('fixed')} />
-          </Row>
-          <Text variant="caption" tone="faint">
-            {gkMode === 'rotating' ? 'Nobody is fixed in goal — everyone counts as outfield when balancing. You can still mark a placeholder keeper.'
-              : gkMode === 'fixed' ? 'Players who prefer GK or have kept goal before are split one per side.'
-              : 'A keeper goes on each side only if two players chose Goalkeeper as their position.'}
-          </Text>
+          <Card variant="alt">
+            <View style={{ gap: space.sm }}>
+              <Row gap={space.sm}>
+                <Ionicons name="hand-left-outline" size={18} color={colors.primary} />
+                <Text variant="smallStrong" style={{ flex: 1 }}>
+                  {keeperNames.length === 0 ? 'No goalkeepers today'
+                    : `${keeperNames.length} goalkeeper${keeperNames.length > 1 ? 's' : ''}: ${keeperNames.join(', ')}`}
+                </Text>
+              </Row>
+              <Text variant="caption" tone="muted">
+                {gkMode === 'rotating' || keeperNames.length === 0 ? 'Both teams rotate in goal. Teams are balanced on ratings and positions.'
+                  : keeperNames.length === 1 ? 'They go on one team and the other team rotates in goal, so it gets an extra defender and a slightly stronger squad.'
+                  : keeperNames.length === 2 ? 'One goalkeeper on each team.'
+                  : 'The best two go in goal, one on each team. The others play outfield.'}
+              </Text>
+              {keeperNames.length > 0 && (
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <Text variant="small" style={{ flex: 1 }}>Keepers play outfield today (everyone rotates)</Text>
+                  <Switch value={gkMode === 'rotating'} onValueChange={(v) => setGkMode(v ? 'rotating' : 'auto')}
+                    trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Keepers play outfield today" />
+                </Row>
+              )}
+              <Text variant="caption" tone="faint">Goalkeepers are players whose preferred position is Goalkeeper. Tap Balance teams after changing this.</Text>
+            </View>
+          </Card>
           {!!suggestion && (
             <Card variant="alt">
               <Text variant="small">{suggestion.explanation}</Text>

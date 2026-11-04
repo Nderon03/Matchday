@@ -35,14 +35,15 @@ describe('balanceTeams', () => {
     expect(r.difference).toBeCloseTo(0, 5);
   });
 
-  it('places one goalkeeper on each side when available', () => {
+  it('places one goalkeeper on each side when two players choose GK', () => {
     const players = make([7, 7, 7, 7, 7, 7, 7, 7, 7, 7]);
     players[0].position = 'GK';
-    players[1].gk_games = 5;
-    const r = balanceTeams(players, { random: seeded(3), goalkeepers: 'fixed' });
+    players[1].position = 'GK';
+    const r = balanceTeams(players, { random: seeded(3) });
     expect([r.goalkeepers.A, r.goalkeepers.B].sort()).toEqual(['p0', 'p1']);
     expect(r.A.includes('p0') !== r.A.includes('p1')).toBe(true);
-    expect(r.explanation).toMatch(/goalkeeper/);
+    expect(r.keeperCase).toBe(2);
+    expect(r.explanation).toMatch(/goalkeeper on each side/);
   });
 
   it('handles odd numbers and every format up to 11-a-side', () => {
@@ -68,26 +69,66 @@ describe('balanceTeams', () => {
   });
 });
 
-describe('goalkeeper modes', () => {
-  const players = make([7, 7, 7, 7, 7, 7]);
-  players[0].gk_games = 6; // has kept goal before, but prefers outfield
-  players[1].gk_games = 4;
-  it('auto ignores goal-keeping history and only uses preferred positions', () => {
-    expect(balanceTeams(players, { random: seeded(5) }).goalkeepers).toEqual({ A: undefined, B: undefined });
-    const withGk = players.map((p, i) => (i < 2 ? { ...p, position: 'GK' as const } : p));
-    const r = balanceTeams(withGk, { random: seeded(5) });
-    expect([r.goalkeepers.A, r.goalkeepers.B].sort()).toEqual(['p0', 'p1']);
+describe('goalkeepers: 0, 1, 2 or more', () => {
+  const pos = (list: string[]) => list.map((position, i) => ({ user_id: `p${i}`, position: position as BalancePlayer['position'], group_rating: 7, games: 20 }));
+
+  it('0 keepers: nobody is fixed in goal and positions are spread', () => {
+    const r = balanceTeams(pos(['DEF', 'DEF', 'MID', 'MID', 'FWD', 'FWD', 'ANY', 'ANY', 'DEF', 'DEF']), { random: seeded(5) });
+    expect(r.goalkeepers).toEqual({ A: undefined, B: undefined });
+    expect(r.keeperCase).toBe(0);
+    expect(r.explanation).toMatch(/both teams rotate/i);
+    const defs = (team: string[]) => team.filter((id) => ['p0', 'p1', 'p8', 'p9'].includes(id)).length;
+    expect(defs(r.A)).toBe(2);
+    expect(defs(r.B)).toBe(2);
   });
-  it('rotating never fixes a goalkeeper, even if players prefer GK', () => {
-    const withGk = players.map((p, i) => (i < 2 ? { ...p, position: 'GK' as const } : p));
+
+  it('1 keeper: other side rotates and gets an extra defender and a slightly stronger squad', () => {
+    const players = pos(['GK', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'FWD', 'FWD', 'ANY', 'ANY']);
+    players.forEach((p, i) => { p.group_rating = 5 + (i % 4); });
+    const r = balanceTeams(players, { random: seeded(7) });
+    expect(r.keeperCase).toBe(1);
+    expect(r.goalkeepers).toEqual({ A: 'p0', B: undefined });
+    const defs = (team: string[]) => team.filter((id) => ['p1', 'p2', 'p3'].includes(id)).length;
+    expect(defs(r.B)).toBeGreaterThan(defs(r.A));
+    expect(r.strengthB).toBeGreaterThanOrEqual(r.strengthA);
+    expect(r.explanation).toMatch(/other team rotates/);
+  });
+
+  it('1 keeper with an odd squad: the rotating side gets the extra player', () => {
+    const r = balanceTeams(pos(['GK', 'DEF', 'DEF', 'MID', 'MID', 'FWD', 'FWD', 'ANY', 'ANY']), { random: seeded(2) });
+    expect(r.A).toHaveLength(4);
+    expect(r.B).toHaveLength(5);
+    expect(r.A).toContain('p0');
+  });
+
+  it('3+ keepers: the best two go in goal, one each, the rest play outfield', () => {
+    const players = pos(['GK', 'GK', 'GK', 'DEF', 'MID', 'FWD', 'ANY', 'ANY']);
+    players[0].group_rating = 8; players[1].group_rating = 7.5; players[2].group_rating = 6;
+    const r = balanceTeams(players, { random: seeded(1) });
+    expect([r.goalkeepers.A, r.goalkeepers.B].sort()).toEqual(['p0', 'p1']);
+    expect([...r.A, ...r.B]).toContain('p2');
+  });
+
+  it('keepers playing outfield: nobody is fixed, even with GK players', () => {
+    const withGk = pos(['GK', 'GK', 'DEF', 'MID', 'FWD', 'ANY']);
     const r = balanceTeams(withGk, { random: seeded(5), goalkeepers: 'rotating' });
     expect(r.goalkeepers).toEqual({ A: undefined, B: undefined });
-    expect(r.explanation).toMatch(/rotate/);
+    expect(r.explanation).toMatch(/playing outfield/);
     expect(randomTeams(withGk, 3, 'rotating').goalkeepers).toEqual({ A: undefined, B: undefined });
   });
-  it('a single keeper is not forced onto one side', () => {
-    const one = players.map((p, i) => (i === 0 ? { ...p, position: 'GK' as const } : p));
-    expect(balanceTeams(one, { random: seeded(5) }).goalkeepers).toEqual({ A: undefined, B: undefined });
+
+  it('goal-keeping history alone does not make someone the keeper', () => {
+    const players = make([7, 7, 7, 7, 7, 7]);
+    players[0].gk_games = 6;
+    expect(balanceTeams(players, { random: seeded(5) }).keeperCase).toBe(0);
+  });
+
+  it('random teams follow the same goalkeeper rules', () => {
+    const one = pos(['GK', 'DEF', 'MID', 'FWD', 'ANY', 'ANY', 'ANY']);
+    const r = randomTeams(one, 9);
+    expect(r.goalkeepers.A).toBe('p0');
+    expect(r.B).toHaveLength(4);
+    expect(r.explanation).toMatch(/other team rotates/);
   });
 });
 
