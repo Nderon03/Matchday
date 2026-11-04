@@ -249,6 +249,10 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
             { value: 'public', label: 'Public' },
           ]}
         />
+        <Text variant="caption" tone="muted">
+          {visibility === 'public' ? 'Anyone on MATCHDAY can find this game in “Find a game” and join, so make sure the venue and area are filled in.'
+            : visibility === 'group' ? 'Members of the group can see and join.' : 'Only people you invite can see and join.'}
+        </Text>
         {!!errors.visibility && <Text variant="caption" tone="danger">{errors.visibility}</Text>}
         <Row gap={space.sm} wrap>
           <Text variant="small" tone="muted">Withdrawal deadline:</Text>

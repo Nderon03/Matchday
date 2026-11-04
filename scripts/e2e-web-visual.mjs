@@ -65,6 +65,10 @@ const rpcs = {
   get_session_payment_statuses: people.slice(1, 9).map((p, i) => ({ user_id: p.id, status: ['paid', 'authorised', 'unpaid', 'paid', 'failed', 'paid', 'pending', 'paid'][i], method: 'card' })),
   get_player_strengths: people.slice(0, 9).map((p, i) => ({ user_id: p.id, position: p.position, group_rating: 6 + (i % 4) * 0.5, career_rating: 6.5, form: 7, games: 10, gk_games: i === 0 ? 5 : 0 })),
   get_recent_pairings: [], get_leaderboard: lb,
+  search_public_sessions: [
+    { id: SID, name: 'Thursday Night 5s', starts_at: kickoff, duration_minutes: 60, venue: 'Riverside Sports Centre, Pitch 2', location: 'Hackney', format_size: 5, max_attendance: 10, confirmed: 7, price_pence: 500, payment_mode: 'after', host_id: ME, host_name: 'Sam Carter', host_avatar: null, my_status: null },
+    { id: SID, name: 'Sunday Sevens', starts_at: kickoff, duration_minutes: 90, venue: 'Parkside Pitches', location: 'Camden', format_size: 7, max_attendance: 14, confirmed: 14, price_pence: 0, payment_mode: 'free', host_id: ME, host_name: 'Alex Reid', host_avatar: null, my_status: null },
+  ],
   get_payment_summary: { price_pence: 600, payment_mode: 'upfront', host_confirmed_at: null, collected_pence: 1800, authorised_pence: 1200, outstanding_pence: 1800, paid_count: 3, unpaid_count: 2, failed_count: 1, refunded_count: 0,
     players: people.slice(1, 7).map((p, i) => ({ user_id: p.id, username: p.username, display_name: p.display_name, avatar_url: null, status: ['paid', 'authorised', 'unpaid', 'paid', 'failed', 'paid'][i], amount_pence: i === 1 ? 1200 : 600, method: i === 3 ? 'cash' : 'card', paid_at: null, payment_id: `p${i}`, guest_count: i === 1 ? 1 : 0, fines_pence: i === 2 ? 100 : 0, refunded: 0, guest_payment_id: i === 0 ? 'gp0' : null, guest_status: i === 0 ? 'unpaid' : null, guest_amount_pence: i === 0 ? 600 : null, guest_bill_count: i === 0 ? 1 : null })) },
   get_player_profile: { profile: table.profiles[0], can_view_stats: true, is_self: true, is_friend: false, friend_request: null, friends_count: 18,
@@ -107,6 +111,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['payments', `/session/${SID}/payments`, 'Host dashboard'], ['settings', '/settings', 'Terms of Use'],
     ['notifications', '/notifications', 'Notifications'], ['privacy', '/legal/privacy', 'Privacy Policy'],
     ['terms', '/legal/terms', 'Terms of Use'], ['delete', '/legal/delete-account', 'Delete your account'],
+    ['find', '/session/find', 'Find a game'],
     ['done-redirect', `/done?kind=paid&session=${SID}`, 'Host dashboard'],
   ]) {
     await page.goto(base + path, { waitUntil: 'networkidle' });

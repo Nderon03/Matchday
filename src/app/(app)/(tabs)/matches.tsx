@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { EmptyState, ErrorState, Screen, Segmented, SkeletonList, Text } from '@/components/ui';
+import { Button, EmptyState, ErrorState, Row, Screen, Segmented, SkeletonList, Text } from '@/components/ui';
 import { SessionCard } from '@/components/football/SessionCard';
 import { useMySessions } from '@/hooks/queries';
 import { space } from '@/theme/tokens';
@@ -21,7 +21,10 @@ export default function Matches() {
 
   return (
     <Screen onRefresh={sessions.refetch} refreshing={sessions.isRefetching}>
-      <Text variant="h1" accessibilityRole="header" style={{ paddingTop: space.sm }}>Matches</Text>
+      <Row style={{ justifyContent: 'space-between', paddingTop: space.sm }}>
+        <Text variant="h1" accessibilityRole="header">Matches</Text>
+        <Button title="Find a game" icon="search" size="sm" variant="secondary" onPress={() => router.push('/session/find')} />
+      </Row>
       <Segmented value={tab} onChange={setTab} options={[{ value: 'upcoming', label: `Upcoming${upcoming.length ? ` · ${upcoming.length}` : ''}` }, { value: 'past', label: 'History' }]} />
       {!!sessions.isLoading && <SkeletonList rows={5} />}
       {!!sessions.error && <ErrorState error={sessions.error} onRetry={sessions.refetch} />}
@@ -29,8 +32,8 @@ export default function Matches() {
         <EmptyState
           icon={tab === 'upcoming' ? 'calendar-outline' : 'time-outline'}
           title={tab === 'upcoming' ? 'Nothing scheduled' : 'No match history yet'}
-          message={tab === 'upcoming' ? 'Create a session or wait for an invite from your squad.' : 'Finalised sessions you played in will appear here.'}
-          action={tab === 'upcoming' ? { label: 'Create a session', onPress: () => router.push('/create') } : undefined}
+          message={tab === 'upcoming' ? 'Join a public game near you, create a session, or wait for an invite from your squad.' : 'Finalised sessions you played in will appear here.'}
+          action={tab === 'upcoming' ? { label: 'Find a public game', onPress: () => router.push('/session/find') } : undefined}
         />
       )}
       <View style={{ gap: space.md }}>
