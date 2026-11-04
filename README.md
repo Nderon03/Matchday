@@ -289,8 +289,10 @@ themes; responsive web.
   Calendar comes with the iOS build.
 * **Email links** open the website, which offers "Open the MATCHDAY app". Android App Links / iOS Universal
   Links (opening the app directly) need a native build.
-* **Social sign-in** (Google/Apple) is hidden until configured (`EXPO_PUBLIC_OAUTH_PROVIDERS`).
-* **Find a game** searches the venue/area text hosts type (no maps or distance).
+* **Social sign-in** (Google/Apple) is hidden until configured (`EXPO_PUBLIC_OAUTH_PROVIDERS`). Planned for the
+  first big update with native sign-in, app links and one-tap calendar: see `docs/NEXT_UPDATE.md`.
+* **Find a game** searches the words in the venue, area and session name, and the distance from a typed
+  postcode or area (postcodes.io). There is no map view and no device location.
 * **Sharing:** player cards, results and Wrapped are shared as images; achievements and season awards as text.
 * **Offline:** reads are cached and refetched on reconnect; changes need a connection.
 * **Times in notifications** are formatted in Europe/London.
