@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Platform, ScrollView, View, type HostInstance } from 'react-native';
+import { Platform, Pressable, ScrollView, View, type HostInstance } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -27,6 +27,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   const cardRef = useRef<HostInstance>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reason, setReason] = useState('');
+  const links = useQuery({ queryKey: ['player', userId, 'connections'], queryFn: () => rpc<Connections | null>('get_player_connections', { p_user: userId }) });
   const bests = useQuery({ queryKey: ['player', userId, 'bests'], queryFn: () => rpc<PersonalBests | null>('get_personal_bests', { p_user: userId }) });
   // card style, flag and club live on the profile row (readable by everyone signed in)
   const style = useQuery({ queryKey: ['player', userId, 'card'], queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null } | null>(supabase.from('profiles').select('card_style, nationality, supported_club').eq('id', userId).maybeSingle()) });
@@ -174,6 +175,8 @@ export function PlayerProfileView({ userId }: { userId: string }) {
         </>
       )}
 
+      {!!d.can_view_stats && !!links.data && (!!links.data.partner || !!links.data.nemesis) && <ConnectionsCard c={links.data} self={!!d.is_self} name={p.display_name} userId={userId} />}
+
       {!!d.can_view_stats && !!bests.data && <PersonalBestsCard b={bests.data} linkable={!!d.is_self} />}
 
       {!d.is_self && (
@@ -228,6 +231,53 @@ function PersonalBestsCard({ b, linkable }: { b: PersonalBests; linkable: boolea
             </View>
             <Text variant="statSmall">{r.value}</Text>
           </Row>
+        ))}
+      </Card>
+    </>
+  );
+}
+
+interface Linked { player: { id: string; username: string; display_name: string; avatar_url: string | null }; games: number; wins: number; losses?: number; win_pct?: number }
+interface Connections { partner: Linked | null; nemesis: Linked | null }
+
+/** Who this player wins most with, and who keeps beating them. */
+function ConnectionsCard({ c, self, name, userId }: { c: Connections; self: boolean; name: string; userId: string }) {
+  const { colors } = useTheme();
+  const first = name.split(' ')[0];
+  const rows = [
+    c.partner && {
+      key: 'partner', icon: 'people' as const, colour: colors.primary, title: 'Best partner', who: c.partner.player,
+      line: `${self ? 'You win' : `${first} wins`} ${c.partner.win_pct}% of games together (${c.partner.games} played)`,
+      onPress: () => router.push(`/player/${c.partner!.player.id}`),
+    },
+    c.nemesis && {
+      key: 'nemesis', icon: 'flame' as const, colour: colors.danger, title: 'Nemesis', who: c.nemesis.player,
+      line: `${self ? 'Beat you' : `Beat ${first}`} ${c.nemesis.losses} times in ${c.nemesis.games} games`,
+      onPress: () => router.push({ pathname: '/compare', params: { a: userId, b: c.nemesis!.player.id } }),
+    },
+  ].filter(Boolean) as { key: string; icon: 'people' | 'flame'; colour: string; title: string; who: Linked['player']; line: string; onPress: () => void }[];
+  return (
+    <>
+      <SectionTitle title="Partners & rivals" />
+      <Card padded={false}>
+        {rows.map((r, i) => (
+          <Pressable key={r.key} onPress={r.onPress} accessibilityRole="button" accessibilityLabel={`${r.title}: ${r.who.display_name}. ${r.line}`}
+            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+            <Row gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
+              <View>
+                <Avatar uri={r.who.avatar_url} name={r.who.display_name} size={44} />
+                <View style={{ position: 'absolute', right: -4, bottom: -4, width: 20, height: 20, borderRadius: 10, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name={r.icon} size={13} color={r.colour} />
+                </View>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text variant="caption" style={{ color: r.colour }}>{r.title}</Text>
+                <Text variant="bodyStrong" numberOfLines={1}>{r.who.display_name}</Text>
+                <Text variant="caption" tone="muted">{r.line}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+            </Row>
+          </Pressable>
         ))}
       </Card>
     </>

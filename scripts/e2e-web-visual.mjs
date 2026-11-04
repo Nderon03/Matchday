@@ -93,6 +93,10 @@ const reveal = {
 };
 const rpcs = {
   get_match_reveals: [],
+  get_player_connections: {
+    partner: { player: people[1], games: 18, wins: 13, win_pct: 72 },
+    nemesis: { player: people[3], games: 8, wins: 2, losses: 6 },
+  },
   get_personal_bests: {
     best_rating: { value: '8.60', session_id: SID, name: 'Tuesday 6-a-side', played_at: ago(40) },
     most_goals: { value: 4, session_id: SID, name: 'Wednesday Football', played_at: ago(12) },
@@ -146,7 +150,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   });
   for (const [name, path, expected] of [
     ['home', '/', 'Next up'], ['session', `/session/${SID}`, 'Host controls'], ['lineup', `/session/${SID}/lineup`, 'Balance teams'],
-    ['leagues', '/leagues', 'My groups'], ['profile', '/profile', 'Most goals in a game'], ['create', '/create', 'New session'],
+    ['leagues', '/leagues', 'My groups'], ['profile', '/profile', 'Best partner'], ['create', '/create', 'New session'],
     ['payments', `/session/${SID}/payments`, 'Host dashboard'], ['settings', '/settings', 'Terms of Use'],
     ['notifications', '/notifications', 'Notifications'], ['privacy', '/legal/privacy', 'Privacy Policy'],
     ['terms', '/legal/terms', 'Terms of Use'], ['delete', '/legal/delete-account', 'Delete your account'],
