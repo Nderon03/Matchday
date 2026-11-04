@@ -1,5 +1,5 @@
 /** Partners and rivals: computed from real line-ups and results. */
-import { Db, uniq } from './helpers';
+import { Db, uniq, expectAppError } from './helpers';
 
 const db = new Db();
 beforeAll(() => db.connect());
@@ -47,5 +47,23 @@ describe('partners and rivals', () => {
     await db.admin(`update user_preferences set profile_visibility = 'private', show_stats = false where user_id = $1`, [me]);
     expect(await db.rpc(stranger, 'get_player_connections', { p_user: me })).toBeNull();
     expect(await db.rpc(me, 'get_player_connections', { p_user: me })).toEqual({ partner: null, nemesis: null });
+  });
+});
+
+describe('team of the month candidates', () => {
+  it('gives group members the month’s numbers, and nobody else', async () => {
+    const host = await db.createUser(uniq('tm'));
+    const p = await db.createUser(uniq('tp'));
+    const outsider = await db.createUser(uniq('to'));
+    const groupId = await db.rpc<string>(host, 'create_group', { p_name: 'Monthly FC' });
+    await db.admin(`insert into group_members (group_id, user_id, role) values ($1, $2, 'member') on conflict do nothing`, [groupId, p]);
+    const sid = await db.rpc<string>(host, 'create_session', { p: { name: 'Month game', starts_at: new Date(Date.now() + 3600_000).toISOString(), format_size: 5, group_id: groupId } });
+    await db.admin(`update sessions set status = 'finalised', starts_at = now() where id = $1`, [sid]);
+    await db.admin(`insert into session_player_statistics (session_id, user_id, group_id, played_at, fixtures_played, goals, rating_avg, rating_eligible, motm)
+                    values ($1, $2, $3, now(), 1, 2, 7.5, true, true)`, [sid, p, groupId]);
+    const r = await db.rpc<any>(host, 'get_month_candidates', { p_group: groupId, p_month: new Date().toISOString().slice(0, 10) });
+    expect(r.sessions).toBe(1);
+    expect(r.players).toEqual([expect.objectContaining({ user_id: p, rated: 1, goals: 2, motm: 1, apps: 1 })]);
+    await expectAppError(db.rpc(outsider, 'get_month_candidates', { p_group: groupId, p_month: new Date().toISOString().slice(0, 10) }), 'forbidden');
   });
 });

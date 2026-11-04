@@ -49,6 +49,7 @@ const home = {
   groups: [{ id: GID, name: 'Wednesday Football', logo_url: null, my_rank: 2, leader: { display_name: 'Alex Reid', value: 7.6 } }],
 };
 const table = {
+  groups: [{ id: GID, name: 'Wednesday Football', description: 'Weekly 5-a-side in Hackney.', visibility: 'private', join_policy: 'request', location: 'Hackney', rules: null, logo_url: null, cover_url: null, created_by: ME }],
   profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z', terms_version: LEGAL_VERSION, terms_accepted_at: '2026-11-01T00:00:00Z', card_style: 'gold', nationality: 'XK', supported_club: 'arsenal' }],
   session_videos: [{ id: 'v1', session_id: SID, video_id: 'dQw4w9WgXcQ', title: 'Game 1', added_by: ME, created_at: kickoff }],
   payments: [],
@@ -57,7 +58,7 @@ const table = {
   sessions: [session], session_attendance: attendance, session_invitations: [], fixtures, session_hosts: [], goal_submissions: [], player_goals: [],
   motm_awards: [], session_player_statistics: [], groups: [{ id: GID, name: 'Wednesday Football', logo_url: null }],
   notifications: [{ id: 'n1', type: 'session_removed', title: 'Removed from Sunday Kickabout', body: '', data: { session_id: SID, session_name: 'Sunday Kickabout', reason: 'Too many no-shows' }, read_at: null, created_at: kickoff }], activity_feed: [],
-  group_members: [{ role: 'owner', group: { id: GID, name: 'Wednesday Football', logo_url: null, location: 'Hackney', group_members: [{ count: 14 }] } }],
+  group_members: [{ role: 'owner', user_id: ME, joined_at: '2026-01-01T00:00:00Z', profile: people[0], group: { id: GID, name: 'Wednesday Football', logo_url: null, location: 'Hackney', group_members: [{ count: 14 }] } }],
   achievements: [], friendships: [], friend_requests: [], user_blocks: [], session_templates: [], user_preferences: [{ user_id: ME, profile_visibility: 'public', show_stats: true, push_enabled: true, email_enabled: true, notification_prefs: {}, theme: 'dark' }],
 };
 const ago = (days) => new Date(Date.now() - days * 86400_000).toISOString();
@@ -93,6 +94,11 @@ const reveal = {
 };
 const rpcs = {
   get_match_reveals: [],
+  get_month_candidates: {
+    sessions: 4,
+    players: people.slice(0, 8).map((p, i) => ({ user_id: p.id, display_name: p.display_name, username: p.username, avatar_url: null, position: p.position,
+      rated: 3, rating: (8.4 - i * 0.25).toFixed(2), goals: 6 - i, assists: i % 3, motm: i === 0 ? 2 : 0, apps: 4 })),
+  },
   get_player_connections: {
     partner: { player: people[1], games: 18, wins: 13, win_pct: 72 },
     nemesis: { player: people[3], games: 8, wins: 2, losses: 6 },
@@ -156,6 +162,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['terms', '/legal/terms', 'Terms of Use'], ['delete', '/legal/delete-account', 'Delete your account'],
     ['find', '/session/find', 'Find a game'],
     ['group-new', '/group/new', 'Who can join'],
+    ['group', `/group/${GID}`, 'Player of the Month'],
     ['session-new', '/session/new', 'Postcode'],
     ['done-redirect', `/done?kind=paid&session=${SID}`, 'Host dashboard'],
     ['achievements', '/achievements', 'Hall of Fame'],
@@ -188,6 +195,11 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.screenshot({ path: join(OUT, `auth-${vpName}-calendar-picked.png`) });
       await page.goto(base + path, { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
+    }
+    if (name === 'group') {
+      await page.getByText('Player of the Month').first().scrollIntoViewIfNeeded();
+      await page.waitForTimeout(800);
+      await page.getByText('C = Player of the Month').first().locator('xpath=../..').screenshot({ path: join(OUT, `auth-${vpName}-team-of-month.png`) }).catch(() => undefined);
     }
     if (name === 'leagues') {
       await page.getByText('Leaderboards').first().click();

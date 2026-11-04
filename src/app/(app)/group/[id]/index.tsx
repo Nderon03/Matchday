@@ -25,6 +25,7 @@ import { useGroupBalances } from '@/features/SettleUp';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
+import { TeamOfMonth } from '@/features/TeamOfMonth';
 
 type Tab = 'overview' | 'members' | 'fixtures' | 'results' | 'tables' | 'awards' | 'seasons' | 'feed' | 'records' | 'fines';
 const AWARD_LABEL: Record<string, string> = {
@@ -144,6 +145,7 @@ export default function GroupScreen() {
           <SectionTitle title="Next fixture" />
           {upcoming[0] ? <SessionCard session={upcoming[0]} /> : <Text tone="muted" variant="small">Nothing scheduled.</Text>}
           {!!results[0] && (<><SectionTitle title="Latest result" /><SessionCard session={results[0]} /></>)}
+          {!!myRole && <TeamOfMonth groupId={id} groupName={g.name} />}
           {!!g.rules && (<><SectionTitle title="Rules" /><Card><Text variant="small">{g.rules}</Text></Card></>)}
         </View>
       )}
