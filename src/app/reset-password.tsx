@@ -14,7 +14,7 @@ export default function ResetPassword() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
   const toast = useToast();
   const submit = async () => {
     const parsed = passwordSchema.safeParse(password);
@@ -26,10 +26,13 @@ export default function ResetPassword() {
     if (e) return setError(friendlyAuthError(e));
     finishRecovery();
     toast.success('Password updated');
-    if (isMobileWeb()) return setDone(true);
+    if (isMobileWeb()) {
+      const { data } = await supabase.auth.getUser();
+      return setDone(data.user?.email ?? '');
+    }
     router.replace('/');
   };
-  if (done) return <OpenAppPrompt title="Password updated" message="Open the MATCHDAY app and sign in with your new password." />;
+  if (done !== null) return <OpenAppPrompt title="Password updated" email={done} message="Open the MATCHDAY app and sign in with your new password." />;
   return (
     <Screen edges={['top', 'bottom']} maxWidth={480}>
       <Header title="Choose a new password" />

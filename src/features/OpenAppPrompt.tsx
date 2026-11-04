@@ -15,7 +15,7 @@ export function isMobileWeb() {
  * Shown on the website after an email link (sign-up confirmation, password reset) is opened on a
  * phone: a button back into the app, plus the option to carry on in the browser.
  */
-export function OpenAppPrompt({ title, message }: { title: string; message: string }) {
+export function OpenAppPrompt({ title, message, email }: { title: string; message: string; email?: string | null }) {
   const { colors } = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', padding: space.xxl, gap: space.md }}>
@@ -23,7 +23,7 @@ export function OpenAppPrompt({ title, message }: { title: string; message: stri
       <Text variant="h1" align="center">{title}</Text>
       <Text tone="muted" align="center">{message}</Text>
       <Button title="Open the MATCHDAY app" icon="phone-portrait-outline" size="lg" style={{ alignSelf: 'stretch', maxWidth: 420, width: '100%', marginTop: space.lg }}
-        onPress={() => Linking.openURL('matchday://sign-in').catch(() => undefined)} />
+        onPress={() => Linking.openURL(`matchday:///sign-in${email ? `?email=${encodeURIComponent(email)}` : ''}`).catch(() => undefined)} />
       <Button title="Continue on the website" variant="ghost" onPress={() => router.replace('/')} />
     </View>
   );

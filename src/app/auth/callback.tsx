@@ -20,7 +20,7 @@ export default function AuthCallback() {
   const params = useLocalSearchParams<{ code?: string; token_hash?: string; error_description?: string; type?: string }>();
   const { colors } = useTheme();
   const [error, setError] = useState<string | null>(params.error_description ?? null);
-  const [confirmed, setConfirmed] = useState(false);
+  const [confirmed, setConfirmed] = useState<string | null>(null);
   useEffect(() => {
     (async () => {
       if (params.type === 'recovery') startRecovery();
@@ -42,12 +42,12 @@ export default function AuthCallback() {
       if (!data.session) return setError((prev) => prev ?? 'This link is invalid or has expired.');
       if (isRecovering()) return router.replace('/reset-password');
       // email confirmed on a phone's browser: offer to jump back into the app
-      if (isMobileWeb() && (params.type === 'email' || params.type === 'signup')) return setConfirmed(true);
+      if (isMobileWeb() && (params.type === 'email' || params.type === 'signup')) return setConfirmed(data.session.user.email ?? '');
       router.replace('/');
     })();
   }, [params.code, params.token_hash, params.type]);
-  if (confirmed && !error) {
-    return <OpenAppPrompt title="Email confirmed" message="You’re all set. Open the MATCHDAY app and sign in with your email and password." />;
+  if (confirmed !== null && !error) {
+    return <OpenAppPrompt title="Email confirmed" email={confirmed} message="You’re all set. Open the MATCHDAY app and sign in with your password." />;
   }
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', padding: space.xxl, gap: space.md }}>

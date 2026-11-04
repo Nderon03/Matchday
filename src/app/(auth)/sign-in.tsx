@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Link, router } from 'expo-router';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import { Button, Header, Input, Screen, Text } from '@/components/ui';
 import { env } from '@/lib/env';
 import { supabase } from '@/lib/supabase';
@@ -9,7 +9,9 @@ import { friendlyAuthError, signInWithProvider } from '@/features/auth';
 import { space } from '@/theme/tokens';
 
 export default function SignIn() {
-  const [email, setEmail] = useState('');
+  // opened from the "Email confirmed → Open the app" button: email is pre-filled
+  const params = useLocalSearchParams<{ email?: string }>();
+  const [email, setEmail] = useState(typeof params.email === 'string' ? params.email : '');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
