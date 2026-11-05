@@ -45,7 +45,7 @@ export async function removeGroupMember({ confirm, run, groupId, userId, name }:
 }) {
   const r = await confirm({
     title: `Remove ${name} from the group?`,
-    message: 'They’ll lose access to the group and can only rejoin if an admin adds them back. They’ll be told straight away. Their past stats are kept.',
+    message: 'They’ll lose access to the group, be taken off its upcoming games, and can only come back if an admin invites them. They’ll be told straight away. Their past stats are kept.',
     confirmLabel: 'Remove',
     destructive: true,
     reasonLabel: 'Reason (optional, shown to them)',

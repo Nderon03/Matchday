@@ -58,6 +58,7 @@ export function routeForNotification(data: Record<string, any> | undefined): str
         return `/session/${data.session_id}`;
     }
   }
+  if (data.type === 'group_invite') return '/leagues';
   if (data.group_id) return `/group/${data.group_id}`;
   if (data.user_id) return `/player/${data.user_id}`;
   if (data.achievement) return '/profile';

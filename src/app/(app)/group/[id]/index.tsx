@@ -15,7 +15,7 @@ import { keys, useFeed, useFriends, useGroup, useGroupSessions } from '@/hooks/q
 import { PeoplePicker } from '@/components/football/PeoplePicker';
 import { toggleIn } from '@/domain/sets';
 import { useAction } from '@/hooks/useAction';
-import { rpc } from '@/lib/api';
+import { q, rpc } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { formatDate, formatPence } from '@/domain/format';
 import { shareText } from '@/lib/share';
@@ -61,6 +61,12 @@ export default function GroupScreen() {
     },
   });
   const feed = useFeed(tab === 'feed' ? id : undefined);
+  // invitations sent but not answered yet (members can see who's been invited)
+  const invites = useQuery({
+    queryKey: ['group', id, 'invites'],
+    enabled: !!group.data?.myRole,
+    queryFn: () => q<any[]>(supabase.from('group_invitations').select('user_id, invited_by, created_at, profile:profiles!group_invitations_user_id_fkey(id, username, display_name, avatar_url)').eq('group_id', id).eq('status', 'pending').order('created_at', { ascending: false })),
+  });
 
   if (group.isLoading) return <Screen><Header title="Group" /><Loading /></Screen>;
   if (!group.data) return <Screen><Header title="Group" /><ErrorState error={group.error} onRetry={group.refetch} /></Screen>;
@@ -71,7 +77,13 @@ export default function GroupScreen() {
   const canRemove = (uid: string, role: string) => uid !== userId && role !== 'owner' && (myRole === 'owner' || (myRole === 'admin' && (role === 'member' || role === 'moderator')));
   const removeMember = (uid: string, name: string) => removeGroupMember({ confirm, run, groupId: id, userId: uid, name });
   const memberIds = new Set(members.map((m) => m.user_id));
-  const addableFriends = (friends.data?.friends ?? []).filter((f) => !memberIds.has(f.id));
+  const invitedIds = new Set((invites.data ?? []).map((i) => i.user_id));
+  const addableFriends = (friends.data?.friends ?? []).filter((f) => !memberIds.has(f.id) && !invitedIds.has(f.id));
+  const leave = async () => {
+    if (await confirm({ title: `Leave ${g.name}?`, message: 'You’ll stop seeing its games and chat. Games you’ve already said yes to stay as they are. Your stats are kept, and you can come back if someone invites you.', confirmLabel: 'Leave group', destructive: true })) {
+      run('leave', async () => { await rpc('remove_group_member', { p_group: id, p_user: userId }); router.replace('/leagues'); }, `You left ${g.name}`);
+    }
+  };
   const upcoming = (sessions.data ?? []).filter((s) => ['scheduled', 'in_progress'].includes(s.status)).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const results = (sessions.data ?? []).filter((s) => ['completed', 'finalised'].includes(s.status));
 
@@ -79,7 +91,7 @@ export default function GroupScreen() {
     <Screen edges={['top', 'bottom']} onRefresh={() => { group.refetch(); sessions.refetch(); }} refreshing={group.isRefetching}>
       <Header title={g.name} subtitle={`${members.length} members${g.location ? ` · ${g.location}` : ''}`}
         right={<Row>
-          {!!myRole && <IconButton icon="person-add-outline" label="Add players" onPress={() => setInviteOpen(true)} />}
+          {!!myRole && <IconButton icon="person-add-outline" label="Invite players" onPress={() => setInviteOpen(true)} />}
           {!!isAdmin && <IconButton icon="settings-outline" label="Group settings" onPress={() => router.push(`/group/${id}/settings`)} />}
         </Row>} />
 
@@ -206,6 +218,28 @@ export default function GroupScreen() {
             </Row>
           ))}
         </Card>
+        {!!invites.data?.length && (
+          <View style={{ gap: space.sm }}>
+            <SectionTitle title={`Invited · waiting for a reply · ${invites.data.length}`} />
+            <Card padded={false}>
+              {invites.data.map((inv, i) => (
+                <Row key={inv.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
+                  <Avatar uri={inv.profile?.avatar_url} name={inv.profile?.display_name ?? '?'} size={32} />
+                  <View style={{ flex: 1 }}>
+                    <Text variant="smallStrong">{inv.profile?.display_name}</Text>
+                    <Text variant="caption" tone="muted">Invited {formatDate(inv.created_at)}{inv.invited_by ? ` by ${members.find((m) => m.user_id === inv.invited_by)?.profile.display_name ?? 'a member'}` : ''}</Text>
+                  </View>
+                  {(isAdmin || inv.invited_by === userId) && (
+                    <Button title="Cancel" size="sm" variant="ghost" loading={busy === `ci-${inv.user_id}`}
+                      onPress={() => run(`ci-${inv.user_id}`, async () => { await rpc('cancel_group_invite', { p_group: id, p_user: inv.user_id }); invites.refetch(); }, 'Invitation cancelled')} />
+                  )}
+                </Row>
+              ))}
+            </Card>
+          </View>
+        )}
+        {!!myRole && myRole !== 'owner' && <Button title="Leave group" icon="exit-outline" variant="ghost" loading={busy === 'leave'} onPress={leave} />}
+        {myRole === 'owner' && <Text variant="caption" tone="faint" align="center">You own this group. To leave, hand it to another member first (Group settings → Members → Transfer ownership).</Text>}
         </View>
       )}
 
@@ -294,7 +328,7 @@ export default function GroupScreen() {
         </View>
       )}
 
-      <Sheet visible={inviteOpen} onClose={() => { setInviteOpen(false); setPicked(new Set()); }} title={`Add players to ${g.name}`}>
+      <Sheet visible={inviteOpen} onClose={() => { setInviteOpen(false); setPicked(new Set()); }} title={`Invite players to ${g.name}`}>
         <ScrollView contentContainerStyle={{ gap: space.md }}>
           {canAdd ? (
             <>
@@ -303,16 +337,17 @@ export default function GroupScreen() {
                 people={addableFriends}
                 selected={picked}
                 onToggle={(uid) => setPicked((p) => toggleIn(p, uid))}
-                emptyText={friends.data?.friends.length ? 'All your friends are already in this group.' : 'No friends yet — add some from the Friends screen, or share the link below.'}
+                emptyText={friends.data?.friends.length ? 'All your friends are already in this group or invited.' : 'No friends yet — add some from the Friends screen, or share the link below.'}
               />
-              <Button title={picked.size ? `Add ${picked.size} to group` : 'Add to group'} icon="person-add" disabled={!picked.size} loading={busy === 'add-members'}
+              <Text variant="caption" tone="faint">They’ll get an invitation and join once they accept.</Text>
+              <Button title={picked.size ? `Invite ${picked.size} to the group` : 'Send invitations'} icon="mail-outline" disabled={!picked.size} loading={busy === 'add-members'}
                 onPress={async () => {
-                  const n = await run('add-members', () => rpc<number>('add_group_members', { p_group: id, p_users: [...picked] }), (count) => `${count} player${count === 1 ? '' : 's'} added`);
-                  if (n !== undefined) { setPicked(new Set()); setInviteOpen(false); }
+                  const n = await run('add-members', () => rpc<number>('add_group_members', { p_group: id, p_users: [...picked] }), (count) => (count ? `${count} invitation${count === 1 ? '' : 's'} sent` : 'Already invited'));
+                  if (n !== undefined) { setPicked(new Set()); setInviteOpen(false); invites.refetch(); }
                 }} />
             </>
           ) : (
-            <Text variant="small" tone="muted">Only admins can add people to this invite-only group.</Text>
+            <Text variant="small" tone="muted">Only admins can invite people to this invite-only group.</Text>
           )}
           <Text variant="smallStrong" tone="muted">Not friends yet or not on MATCHDAY?</Text>
           <Text variant="caption" tone="faint">Share this link or let them scan the QR code. It expires in 7 days.</Text>

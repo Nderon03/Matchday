@@ -14,6 +14,7 @@ async function setup(mode: 'after' | 'upfront', startsInMinutes = 24 * 60) {
   for (const u of [p]) await db.befriend(host, u);
   const g = await db.rpc<string>(host, 'create_group', { p_name: 'Guest FC', p_visibility: 'private', p_join_policy: 'request' });
   await db.rpc(host, 'add_group_members', { p_group: g, p_users: [p] });
+  for (const u of [p]) await db.rpc(u, 'respond_group_invite', { p_group: g, p_accept: true });
   const sid = await db.rpc<string>(host, 'create_session', {
     p: { name: 'Guest game', group_id: g, starts_at: new Date(Date.now() + startsInMinutes * 60_000).toISOString(), format_size: 5, invitee_ids: [p], payment_mode: mode, price_pence: 600 },
   });

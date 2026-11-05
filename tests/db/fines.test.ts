@@ -18,6 +18,7 @@ async function setup(opts: { enabled?: boolean } = {}) {
   for (const u of [p, q]) await db.befriend(host, u);
   const g = await db.rpc<string>(host, 'create_group', { p_name: 'Fines FC', p_visibility: 'private', p_join_policy: 'request' });
   await db.rpc(host, 'add_group_members', { p_group: g, p_users: [p, q] });
+  for (const u of [p, q]) await db.rpc(u, 'respond_group_invite', { p_group: g, p_accept: true });
   if (opts.enabled !== false) {
     await db.as(host, `update group_settings set late_fines_enabled = true where group_id = $1`, [g]);
   }

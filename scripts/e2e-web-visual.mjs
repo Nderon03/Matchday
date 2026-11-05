@@ -94,6 +94,7 @@ const reveal = {
 };
 const rpcs = {
   get_match_reveals: [],
+  get_my_group_invites: [{ group_id: '66666666-6666-4666-8666-666666666666', name: 'Sunday Kickabout', logo_url: null, location: 'Mill Hill', members: 12, invited_by: 'Alex Reid', created_at: ago(0.2) }],
   get_reliability: Object.fromEntries(people.map((p, i) => [p.id, i === 0 ? { attended: 20, no_shows: 0, late_drops: 0, pct: 100 } : { attended: 20, no_shows: i === 3 ? 4 : 0, late_drops: i === 3 ? 2 : 1, pct: i === 3 ? 77 : 95 }])),
   get_month_candidates: {
     sessions: 4,
@@ -204,6 +205,9 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.getByText('C = Player of the Month').first().locator('xpath=../..').screenshot({ path: join(OUT, `auth-${vpName}-team-of-month.png`) }).catch(() => undefined);
     }
     if (name === 'leagues') {
+      const lt = await page.locator('body').innerText();
+      if (!lt.includes('Join group') || !lt.includes('Alex Reid invited you')) failures.push(`${vpName}: group invitation not shown`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-group-invites.png`) });
       await page.getByText('Leaderboards').first().click();
       await page.waitForTimeout(500);
       if (!/Not qualified yet/i.test(await page.locator('body').innerText())) failures.push(`${vpName}: not-qualified section missing`);

@@ -198,8 +198,8 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
                   <Text variant="bodyStrong">{r.profile.display_name}</Text>
                   <Text variant="caption" tone="muted">{r.reason ? `Reason: ${r.reason}` : 'No reason given'}</Text>
                 </View>
-                <Button title="Allow back" size="sm" variant="secondary" loading={busy === `re-${r.user_id}`}
-                  onPress={() => run(`re-${r.user_id}`, () => rpc('readmit_group_member', { p_group: id, p_user: r.user_id }), `${r.profile.display_name} added back`)} />
+                <Button title="Invite back" size="sm" variant="secondary" loading={busy === `re-${r.user_id}`}
+                  onPress={() => run(`re-${r.user_id}`, () => rpc('readmit_group_member', { p_group: id, p_user: r.user_id }), `Invitation sent to ${r.profile.display_name}`)} />
               </Row>
             ))}
           </Card>

@@ -137,6 +137,7 @@ describe('removing members from a group', () => {
     await db.befriend(member, kicked);
     const g = await db.rpc<string>(owner, 'create_group', { p_name: 'Kick FC', p_visibility: 'public', p_join_policy: 'open' });
     await db.rpc(owner, 'add_group_members', { p_group: g, p_users: [member, kicked] });
+    for (const u of [member, kicked]) await db.rpc(u, 'respond_group_invite', { p_group: g, p_accept: true });
 
     await expectAppError(db.rpc(member, 'remove_group_member', { p_group: g, p_user: kicked }), 'forbidden');
     await db.rpc(owner, 'remove_group_member', { p_group: g, p_user: kicked, p_reason: 'Repeated no-shows' });
@@ -154,14 +155,15 @@ describe('removing members from a group', () => {
     expect(await db.as(kicked, `select reason from group_removals where group_id = $1`, [g])).toEqual([{ reason: 'Repeated no-shows' }]);
     expect(await db.as(member, `select * from group_removals where group_id = $1`, [g])).toHaveLength(0);
 
-    // admin re-admits → back in, and can later leave freely without being "removed"
+    // admin invites them back → they accept, and can later leave freely without being "removed"
     await expectAppError(db.rpc(member, 'readmit_group_member', { p_group: g, p_user: kicked }), 'forbidden');
     await db.rpc(owner, 'readmit_group_member', { p_group: g, p_user: kicked });
-    expect((await db.admin(`select public.is_group_member($1, $2) m`, [g, kicked]))[0].m).toBe(true);
+    expect((await db.admin(`select public.is_group_member($1, $2) m`, [g, kicked]))[0].m).toBe(false);
+    expect(await db.rpc(kicked, 'respond_group_invite', { p_group: g, p_accept: true })).toBe('joined');
     await db.rpc(kicked, 'remove_group_member', { p_group: g, p_user: kicked });
     expect(await db.rpc(kicked, 'join_group', { p_group: g })).toBe('joined');
 
-    // an admin can also bring someone back by adding them directly
+    // an admin can also bring someone back by inviting them (which lifts the removal)
     await db.rpc(owner, 'remove_group_member', { p_group: g, p_user: member });
     expect(await db.rpc<number>(owner, 'add_group_members', { p_group: g, p_users: [member] })).toBe(1);
     expect((await db.admin(`select count(*)::int n from group_removals where group_id = $1`, [g]))[0].n).toBe(0);
@@ -287,25 +289,27 @@ describe('waiting list and capacity', () => {
   });
 });
 
-describe('adding friends to a group directly', () => {
-  it('adds only friends, notifies them, and respects invite-only groups', async () => {
+describe('inviting friends to a group', () => {
+  it('invites only friends, who must accept, and respects invite-only groups', async () => {
     const owner = await db.createUser(uniq('own'));
     const friend = await db.createUser(uniq('fr'));
     const stranger = await db.createUser(uniq('st'));
     await db.befriend(owner, friend);
     const g = await db.rpc<string>(owner, 'create_group', { p_name: 'Direct FC', p_visibility: 'private', p_join_policy: 'request' });
     expect(await db.rpc<number>(owner, 'add_group_members', { p_group: g, p_users: [friend, stranger] })).toBe(1);
+    // invited, not added
+    expect((await db.admin(`select public.is_group_member($1, $2) m`, [g, friend]))[0].m).toBe(false);
     expect((await db.admin(`select public.is_group_member($1, $2) m`, [g, stranger]))[0].m).toBe(false);
-    const [n] = await db.admin(`select count(*)::int n from notifications where user_id = $1 and type = 'group_added'`, [friend]);
-    expect(n.n).toBe(1);
-    // adding again is a no-op
+    expect((await db.admin(`select count(*)::int n from notifications where user_id = $1 and type = 'group_invite'`, [friend]))[0].n).toBe(1);
+    // inviting again doesn't send another
     expect(await db.rpc<number>(owner, 'add_group_members', { p_group: g, p_users: [friend] })).toBe(0);
-    // non-members cannot add; members cannot add to invite-only groups
+    // non-members cannot invite; members cannot invite to invite-only groups
     await expectAppError(db.rpc(stranger, 'add_group_members', { p_group: g, p_users: [owner] }), 'not_found');
     const other = await db.createUser(uniq('ot'));
     await db.befriend(friend, other);
     const g2 = await db.rpc<string>(owner, 'create_group', { p_name: 'Closed FC', p_visibility: 'private', p_join_policy: 'invite_only' });
     await db.rpc(owner, 'add_group_members', { p_group: g2, p_users: [friend] });
+    await db.rpc(friend, 'respond_group_invite', { p_group: g2, p_accept: true });
     await expectAppError(db.rpc(friend, 'add_group_members', { p_group: g2, p_users: [other] }), 'forbidden');
   });
 });

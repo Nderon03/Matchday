@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar, Badge, Button, Card, Chip, EmptyState, ErrorState, Row, Screen, Segmented, SkeletonList, Text } from '@/components/ui';
 import { Leaderboard } from '@/components/football/Leaderboard';
 import { useMyGroups } from '@/hooks/queries';
+import { GroupInvites } from '@/features/GroupInvites';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 
@@ -24,6 +25,7 @@ export default function Leagues() {
 
       {tab === 'groups' && (
         <View style={{ gap: space.md }}>
+          <GroupInvites />
           {!!groups.isLoading && <SkeletonList />}
           {!!groups.error && <ErrorState error={groups.error} onRetry={groups.refetch} />}
           {groups.data?.length === 0 && (

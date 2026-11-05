@@ -25,6 +25,7 @@ const TYPES: [string, string, string][] = [
   ['session_video', 'Match videos', 'When the host adds a video of a game'],
   ['achievement_unlocked', 'Achievements', 'When you unlock something new'],
   ['friend_request', 'Friend requests', 'New requests and acceptances'],
+  ['group_invite', 'Group invitations', 'When someone invites you to a group'],
   ['moderation_report', 'Reports (group admins)', 'When something in your group is reported'],
   ['season_started', 'Seasons', 'New seasons and awards in your groups'],
 ];
