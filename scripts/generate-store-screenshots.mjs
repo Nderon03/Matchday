@@ -9,11 +9,12 @@ const { chromium } = require('playwright');
 const RAW = process.argv[2];
 const OUT = join(process.cwd(), 'assets', 'store', 'screenshots');
 const SHOTS = [
-  ['home', 'Your football, organised', 'Next game, tasks and form at a glance'],
-  ['session', 'Everyone in, one tap', 'RSVPs, waiting list and guests'],
-  ['lineup', 'Balanced teams in seconds', 'Drag-and-drop line-ups on the pitch'],
-  ['leagues', 'Leaderboards that settle it', 'Goals, ratings and MOTM by group'],
-  ['profile', 'Your stats, every game', 'Ratings, form, streaks and achievements'],
+  ['home', 'Your football, organised', 'Next game, to-dos and your form at a glance'],
+  ['session', 'Everyone in, one tap', 'RSVPs, waiting list, guests and the forecast'],
+  ['lineup', 'Fair teams in seconds', 'Balanced line-ups you can drag and drop'],
+  ['profile', 'Your player card', 'Ratings, stats, flag, club and reliability'],
+  ['achievements', 'Level up every week', 'Medals from Bronze to Legend, new card styles'],
+  ['group', 'Team of the Month', 'The best five in your group, picked from ratings'],
   ['payments', 'Get paid without chasing', 'Card, Apple Pay & Google Pay via Stripe'],
 ];
 

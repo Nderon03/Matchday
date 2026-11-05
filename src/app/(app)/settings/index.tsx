@@ -88,6 +88,8 @@ export default function Settings() {
 
       <SectionTitle title="About" />
       <Card padded={false}>
+        <ListItem title="Help & FAQ" subtitle="Payments, waiting lists, medals, hosting" left={icon('help-circle-outline')} onPress={() => router.push('/help')} />
+        <Divider />
         <ListItem title="Terms of Use" left={icon('document-text-outline')} onPress={() => router.push('/legal/terms')} />
         <Divider />
         <ListItem title="Privacy Policy" left={icon('shield-checkmark-outline')} onPress={() => router.push('/legal/privacy')} />

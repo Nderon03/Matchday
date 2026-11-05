@@ -56,7 +56,7 @@ const table = {
   session_guests: [{ id: 'g1111111-1111-4111-8111-111111111111', session_id: SID, name: 'Dave', added_by: people[1].id, status: 'confirmed', created_at: kickoff },
                    { id: 'g2222222-2222-4222-8222-222222222222', session_id: SID, name: 'Marco', added_by: people[2].id, status: 'pending', created_at: kickoff }],
   sessions: [session], session_attendance: attendance, session_invitations: [], fixtures, session_hosts: [], goal_submissions: [], player_goals: [],
-  motm_awards: [], session_player_statistics: [], groups: [{ id: GID, name: 'Wednesday Football', logo_url: null }],
+  motm_awards: [], session_player_statistics: [],
   notifications: [{ id: 'n1', type: 'session_removed', title: 'Removed from Sunday Kickabout', body: '', data: { session_id: SID, session_name: 'Sunday Kickabout', reason: 'Too many no-shows' }, read_at: null, created_at: kickoff }], activity_feed: [],
   group_members: [{ role: 'owner', user_id: ME, joined_at: '2026-01-01T00:00:00Z', profile: people[0], group: { id: GID, name: 'Wednesday Football', logo_url: null, location: 'Hackney', group_members: [{ count: 14 }] } }],
   achievements: [], friendships: [], friend_requests: [], user_blocks: [], session_templates: [], user_preferences: [{ user_id: ME, profile_visibility: 'public', show_stats: true, push_enabled: true, email_enabled: true, notification_prefs: {}, theme: 'dark' }],
@@ -167,6 +167,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['session-new', '/session/new', 'Postcode'],
     ['done-redirect', `/done?kind=paid&session=${SID}`, 'Host dashboard'],
     ['achievements', '/achievements', 'Hall of Fame'],
+    ['help', '/help', 'Help & FAQ'],
     ['edit-profile', '/settings/profile', 'Club you support'],
   ]) {
     await page.goto(base + path, { waitUntil: 'networkidle' });
@@ -229,10 +230,12 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     if (nested) failures.push(`${vpName} ${path}: ${nested} interactive element(s) nested inside a button (invalid HTML)`);
     const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
     if (scrollW > vp.width + 1) failures.push(`${vpName} ${path}: horizontal overflow (${scrollW}px)`);
-    if (store && ['home', 'session', 'lineup', 'leagues', 'profile', 'payments'].includes(name)) {
+    if (store && ['home', 'session', 'lineup', 'achievements', 'profile', 'group', 'payments'].includes(name)) {
       await mkdir(join(OUT, 'store-raw'), { recursive: true });
       await page.evaluate(() => window.scrollTo(0, 0));
-      await page.waitForTimeout(200);
+      // the group shot shows Team of the Month
+      if (name === 'group') await page.getByText('Team of the Month').first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
+      await page.waitForTimeout(name === 'group' ? 1200 : 200);
       await page.screenshot({ path: join(OUT, 'store-raw', `${name}.png`) });
     }
     await page.screenshot({ path: join(OUT, `auth-${vpName}-${name}.png`), fullPage: vpName === 'phone' });

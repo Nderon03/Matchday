@@ -4,11 +4,12 @@ import { adminClient, handler, json, requireCronSecret } from '../_shared/http.t
 import { buildExpoMessages, chunk, type QueuedNotification } from '../_shared/payments-core.ts';
 import { getSessionWeather } from '../_shared/session-weather.ts';
 import { reminderLine } from '../_shared/weather.ts';
+import { REPORT_INBOX_DEFAULT, reportEmail } from '../_shared/reports.ts';
 
 Deno.serve(handler(async (req) => {
   requireCronSecret(req);
   const admin = adminClient();
-  const result = { pushed: 0, push_failed: 0, emailed: 0, email_skipped: 0 };
+  const result = { pushed: 0, push_failed: 0, emailed: 0, email_skipped: 0, reports_emailed: 0 };
 
   const { data: queued } = await admin.from('notifications').select('id, user_id, title, body, data, type').eq('push_status', 'queued').order('created_at').limit(500);
   if (queued?.length) {
@@ -78,6 +79,39 @@ Deno.serve(handler(async (req) => {
     });
     await admin.from('notifications').update({ email_status: res.ok ? 'sent' : 'failed' }).eq('id', n.id);
     if (res.ok) result.emailed++;
+  }
+  // every new report goes to the operator's inbox
+  const { data: reports } = await admin.from('reports').select('id, created_at, target_type, target_id, reason, reporter_id, group_id').is('alerted_at', null).order('created_at').limit(20);
+  for (const r of reports ?? []) {
+    if (!resendKey) break;
+    const who = async (id: string | null) => {
+      if (!id) return 'unknown';
+      const { data: p } = await admin.from('profiles').select('username, display_name').eq('id', id).maybeSingle();
+      return p ? `@${p.username} (${p.display_name})` : 'deleted account';
+    };
+    let target = r.target_id as string;
+    if (r.target_type === 'user') target = await who(r.target_id);
+    else if (r.target_type === 'comment') {
+      const { data: c } = await admin.from('comments').select('body, author_id').eq('id', r.target_id).maybeSingle();
+      target = c ? `“${c.body}” by ${await who(c.author_id)}` : 'comment (already deleted)';
+    } else if (r.target_type === 'group') {
+      const { data: g } = await admin.from('groups').select('name').eq('id', r.target_id).maybeSingle();
+      target = g?.name ?? 'group (deleted)';
+    }
+    const { data: g } = r.group_id ? await admin.from('groups').select('name').eq('id', r.group_id).maybeSingle() : { data: null };
+    const mail = reportEmail({ id: r.id, created_at: r.created_at, target_type: r.target_type, reason: r.reason, reporter: await who(r.reporter_id), target: `${target} [${r.target_id}]`, group: g?.name ?? null });
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: Deno.env.get('EMAIL_FROM') ?? 'MATCHDAY <noreply@matchday.app>', to: Deno.env.get('REPORTS_EMAIL') ?? REPORT_INBOX_DEFAULT, subject: mail.subject, html: mail.html }),
+    });
+    if (res.ok) {
+      await admin.from('reports').update({ alerted_at: new Date().toISOString() }).eq('id', r.id);
+      result.reports_emailed++;
+    } else {
+      console.error('Report email failed', res.status);
+      break;
+    }
   }
   return json(result);
 }));

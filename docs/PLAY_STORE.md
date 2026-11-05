@@ -86,7 +86,9 @@ Data processed ephemerally? **No** for all of the above.
 > • Create a group for your regular game and invite friends by link or QR code
 > • Players tap "I'm in" or "Can't make it" – with a waiting list when it's full
 > • Bring a guest, with the host's approval
-> • Kick-off reminders so nobody forgets
+> • Kick-off reminders with the weather forecast
+> • Last-minute drop-out? The place is offered down the waiting list automatically
+> • Reliability scores, so hosts know who turns up
 >
 > **Pick the teams**
 > • Drag-and-drop line-ups on a pitch
@@ -100,8 +102,11 @@ Data processed ephemerally? **No** for all of the above.
 >
 > **Stats that settle arguments**
 > • Goals, assists, wins, ratings, MOTM awards and form
-> • Group leaderboards and seasons
-> • Compare any two players head to head
+> • Your player card with your flag, your club and your rating
+> • Medals that level up from Bronze to Legend and unlock new card styles
+> • Team of the Month, group leaderboards and seasons
+> • Best partner, nemesis and head-to-heads
+> • Share the match report straight to the group chat
 >
 > **Payments without the chasing**
 > • Hosts set a price; players pay by card, Apple Pay or Google Pay
@@ -115,4 +120,4 @@ Data processed ephemerally? **No** for all of the above.
 ## Graphics
 - **App icon (512×512):** `assets/store/play-icon-512.png`
 - **Feature graphic (1024×500):** `assets/store/feature-graphic-1024x500.png`
-- **Phone screenshots (1080×1920):** `assets/store/screenshots/01-home.png` … `06-payments.png` (regenerate with `STORE_SHOTS=1 node scripts/e2e-web-visual.mjs` then `node scripts/generate-store-screenshots.mjs <raw dir>`).
+- **Phone screenshots (1080×1920):** `assets/store/screenshots/01-home.png` … `07-payments.png` (upload all 7) (regenerate with `STORE_SHOTS=1 node scripts/e2e-web-visual.mjs` then `node scripts/generate-store-screenshots.mjs <raw dir>`).

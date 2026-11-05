@@ -14,6 +14,8 @@ const TYPES: [string, string, string][] = [
   ['session_reminder', 'Kick-off reminders', '24 hours before a game you’re in'],
   ['lineup_announced', 'Line-ups announced', 'When the host confirms teams'],
   ['waitlist_promoted', 'Waiting list', 'When a space opens up for you'],
+  ['waitlist_offer', 'Last-minute places', 'On the day: a place is yours if you take it within 30 minutes'],
+  ['spot_open', 'Unfilled places (hosts)', 'When nobody on the waiting list takes a free place'],
   ['voting_open', 'Voting open', 'After full time'],
   ['voting_reminder', 'Voting reminders', 'Before voting closes'],
   ['goals_reminder', 'Goal reminders', 'If you forget to submit goals'],
@@ -23,6 +25,7 @@ const TYPES: [string, string, string][] = [
   ['session_video', 'Match videos', 'When the host adds a video of a game'],
   ['achievement_unlocked', 'Achievements', 'When you unlock something new'],
   ['friend_request', 'Friend requests', 'New requests and acceptances'],
+  ['moderation_report', 'Reports (group admins)', 'When something in your group is reported'],
   ['season_started', 'Seasons', 'New seasons and awards in your groups'],
 ];
 
