@@ -55,3 +55,23 @@ describe('calendar feed', () => {
     expect(await db.admin(`select * from calendar_feed_events($1)`, [token])).toHaveLength(0);
   });
 });
+
+describe('invite landing preview', () => {
+  it('shows a friend invite as their card, with mutual friends, and respects privacy', async () => {
+    const ned = await db.createUser(uniq('ned'));
+    const me = await db.createUser(uniq('me'));
+    const mutual = await db.createUser(uniq('mu'));
+    await db.befriend(ned, mutual);
+    await db.befriend(me, mutual);
+    await db.admin(`update profiles set nationality = 'XK', supported_club = 'arsenal' where id = $1`, [ned]);
+    const code = await db.rpc<string>(ned, 'create_invite_link', { p_kind: 'friend' });
+    const r = await db.rpc<any>(me, 'get_invite', { p_code: code });
+    expect(r.preview).toMatchObject({ id: ned, nationality: 'XK', supported_club: 'arsenal', already_friends: false, is_self: false, mutual_count: 1, medal_points: 0 });
+    expect(r.preview.mutual).toHaveLength(1);
+    await db.admin(`update user_preferences set profile_visibility = 'private', show_stats = false where user_id = $1`, [ned]);
+    expect((await db.rpc<any>(me, 'get_invite', { p_code: code })).preview.stats).toBeNull();
+    // accepting makes you friends, and the preview then says so
+    await db.rpc(me, 'accept_invite', { p_code: code });
+    expect((await db.rpc<any>(me, 'get_invite', { p_code: code })).preview.already_friends).toBe(true);
+  });
+});

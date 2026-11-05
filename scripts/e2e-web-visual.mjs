@@ -308,6 +308,42 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     Object.assign(mine, before);
   }
 
+  // invite links: friend (player card, mutual friends, handshake), group and game
+  {
+    const friendPreview = { id: people[1].id, username: 'alex', display_name: 'Alex Reid', avatar_url: null, position: 'DEF', nationality: 'GB-SCT',
+      supported_club: 'celtic', card_style: 'silver', is_self: false, already_friends: false, medal_points: 11,
+      stats: { sessions: 31, fixtures: 70, wins: 39, losses: 21, win_pct: 55.7, goals: 18, assists: 22, motm: 4, rating: '7.40' },
+      mutual: [{ display_name: 'Jordan Pike', avatar_url: null }, { display_name: 'Chris Obi', avatar_url: null }], mutual_count: 4 };
+    rpcs.get_invite = { valid: true, kind: 'friend', target_id: people[1].id, preview: friendPreview };
+    rpcs.accept_invite = { kind: 'friend', target_id: people[1].id, result: 'friends' };
+    await page.goto(base + '/invite/abc123def456', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(700);
+    let it = await page.locator('body').innerText();
+    if (!it.includes('Alex wants to play with you') || !it.includes('4 mutual friends') || !it.includes('Add Alex as a friend')) failures.push(`${vpName}: friend invite incomplete`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-invite-friend.png`), fullPage: vpName === 'phone' });
+    await page.getByRole('button', { name: 'Add Alex as a friend' }).click();
+    await page.waitForTimeout(2600);
+    it = await page.locator('body').innerText();
+    if (!it.includes('You and Alex are now friends') || !it.includes('Compare our stats')) failures.push(`${vpName}: friends celebration missing`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-invite-friends-now.png`) });
+
+    rpcs.get_invite = { valid: true, kind: 'group', target_id: GID, preview: { name: 'Sunday Kickabout', logo_url: null, location: 'Mill Hill', description: 'Relaxed 6-a-side every Sunday morning.', members: 12, already_member: false, invited_by: 'Alex Reid', faces: people.slice(1, 7).map((p) => ({ display_name: p.display_name, avatar_url: null })) } };
+    await page.goto(base + '/invite/grp123def456', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    it = await page.locator('body').innerText();
+    if (!it.includes('Alex wants you in Sunday Kickabout') || !it.includes('Join the group')) failures.push(`${vpName}: group invite incomplete`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-invite-group.png`) });
+
+    rpcs.get_invite = { valid: true, kind: 'session', target_id: SID, preview: { name: 'Wednesday Football', starts_at: kickoff, venue: 'Riverside Sports Centre', area: 'NW7 2EU', format_size: 5, status: 'scheduled', payment_mode: 'upfront', price_pence: 600, places_left: 2, max: 10, host: 'Sam Carter', host_avatar: null } };
+    await page.goto(base + '/invite/ses123def456', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    it = await page.locator('body').innerText();
+    if (!it.includes('Sam wants you to play') || !it.includes('2 of 10 places left') || !it.includes('Nearly full')) failures.push(`${vpName}: game invite incomplete`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-invite-game.png`) });
+    delete rpcs.get_invite;
+    delete rpcs.accept_invite;
+  }
+
   // teams reveal: a player (not the host) opening confirmed line-ups
   {
     rpcs.is_session_manager = false;
