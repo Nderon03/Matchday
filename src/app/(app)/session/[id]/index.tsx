@@ -32,6 +32,7 @@ import { ReliabilityChip, useReliability } from '@/features/Reliability';
 import { SquadMeter } from '@/features/moments/SquadMeter';
 import { TickBurst } from '@/features/moments/TickBurst';
 import { MotmAnnouncement } from '@/features/moments/MotmAnnouncement';
+import { CalendarSyncSheet } from '@/features/CalendarSync';
 
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,6 +45,7 @@ export default function SessionScreen() {
   const { run, busy } = useAction([keys.session(id), keys.mySessions]);
   // when I tapped "I'm in" this visit, so the card can celebrate it
   const [justIn, setJustIn] = useState(0);
+  const [syncOpen, setSyncOpen] = useState(false);
   const [finaliseOpen, setFinaliseOpen] = useState(false);
   // set when the host closes voting here, so Finalise unlocks immediately (the clock only ticks every 30s)
   const [closedHere, setClosedHere] = useState(false);
@@ -532,10 +534,12 @@ export default function SessionScreen() {
         {groups.out.length > 0 && <Text variant="small" tone="faint">Not playing: {groups.out.map((p) => p.profile.display_name).join(', ')}</Text>}
       </View>
 
+      <CalendarSyncSheet visible={syncOpen} onClose={() => setSyncOpen(false)} />
       <Sheet visible={calendarOpen} onClose={() => setCalendarOpen(false)} title="Add to calendar">
         <Text tone="muted">Includes the venue, a link back to this session and a reminder 2 hours before kick-off (calendar file).</Text>
         <Button title="Google Calendar" icon="logo-google" onPress={() => { window.open(googleCalendarUrl(calendarEvent), '_blank'); setCalendarOpen(false); }} />
         <Button title="Apple Calendar / Outlook (.ics file)" icon="calendar-outline" variant="secondary" onPress={() => { downloadIcs(calendarEvent); setCalendarOpen(false); }} />
+        <Button title="Sync all my games instead" icon="sync-outline" variant="ghost" onPress={() => { setCalendarOpen(false); setSyncOpen(true); }} />
       </Sheet>
 
       <Sheet visible={guestOpen} onClose={() => setGuestOpen(false)} title="Bring a guest">

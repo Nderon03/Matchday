@@ -16,6 +16,7 @@ import * as Updates from 'expo-updates';
 import { CONTACT_EMAIL } from '@/legal/content';
 import { reportError, sentryEnabled } from '@/lib/sentry';
 import { haptics } from '@/lib/haptics';
+import { CalendarSyncSheet } from '@/features/CalendarSync';
 
 /** Version line: app version plus which over-the-air update is running (handy when checking an update arrived). */
 function versionLabel() {
@@ -37,6 +38,7 @@ export default function Settings() {
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
   const [vibration, setVibration] = useState(haptics.isEnabled());
+  const [calendarOpen, setCalendarOpen] = useState(false);
   useEffect(() => haptics.subscribe(setVibration), []);
 
   const setVisibility = async (v: ProfileVisibility) => {
@@ -59,6 +61,8 @@ export default function Settings() {
         <ListItem title="Payouts" subtitle="Receive session fees with Stripe" left={icon('wallet-outline')} onPress={() => router.push('/settings/payouts')} />
         <Divider />
         <ListItem title="Payment history" left={icon('receipt-outline')} onPress={() => router.push('/payments')} />
+        <Divider />
+        <ListItem title="Sync with my calendar" subtitle="All your games in Google or Apple Calendar" left={icon('calendar-outline')} onPress={() => setCalendarOpen(true)} />
         <Divider />
         <ListItem title="Blocked players" left={icon('ban-outline')} onPress={() => router.push('/settings/blocked')} />
       </Card>
@@ -112,6 +116,7 @@ export default function Settings() {
         }
       }}>{versionLabel()}</Text>
 
+      <CalendarSyncSheet visible={calendarOpen} onClose={() => setCalendarOpen(false)} />
       <Sheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete your account">
         <Text tone="muted">This permanently deletes your profile, friends, statistics and notifications. Groups you own are handed to another admin. This cannot be undone.</Text>
         <Input label='Type DELETE to confirm' value={confirm} onChangeText={setConfirm} autoCapitalize="characters" />

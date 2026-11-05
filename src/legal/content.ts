@@ -63,6 +63,8 @@ export const PRIVACY: LegalDoc = {
         'Other players see your username, display name, photo and position. Who sees your statistics, achievements and bio depends on your privacy setting; members of a group always see your record within that group.',
         'Hosts and group admins see attendance, payment status and any amounts you owe in their sessions and groups.',
         'Once you have played 5 games, other players can see your reliability: how often you turn up after saying you’re in (no-shows and dropping out in the last 24 hours count against it). It helps hosts fill their games.',
+        'If a host shares an invite link, anyone with the link can see the game’s name, time, venue and how many places are left (never who’s playing), including in link previews in WhatsApp and other apps.',
+        'If you turn on calendar sync, your private calendar link shows the games you’re in. Keep it to yourself; you can reset it any time in Settings.',
         'Man of the Match votes and player ratings are anonymous: other users, including hosts, only see totals and averages, never who voted for whom.',
         'If you appear in a match video and want it taken down, ask the host or contact us and we will remove the link.',
       ],

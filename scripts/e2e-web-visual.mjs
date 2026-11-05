@@ -94,6 +94,7 @@ const reveal = {
 };
 const rpcs = {
   get_match_reveals: [],
+  get_calendar_feed: 'a'.repeat(64),
   get_my_group_invites: [{ group_id: '66666666-6666-4666-8666-666666666666', name: 'Sunday Kickabout', logo_url: null, location: 'Mill Hill', members: 12, invited_by: 'Alex Reid', created_at: ago(0.2) }],
   get_reliability: Object.fromEntries(people.map((p, i) => [p.id, i === 0 ? { attended: 20, no_shows: 0, late_drops: 0, pct: 100 } : { attended: 20, no_shows: i === 3 ? 4 : 0, late_drops: i === 3 ? 2 : 1, pct: i === 3 ? 77 : 95 }])),
   get_month_candidates: {
@@ -204,6 +205,15 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.getByText('Player of the Month').first().scrollIntoViewIfNeeded();
       await page.waitForTimeout(800);
       await page.getByText('C = Player of the Month').first().locator('xpath=../..').screenshot({ path: join(OUT, `auth-${vpName}-team-of-month.png`) }).catch(() => undefined);
+    }
+    if (name === 'settings') {
+      await page.getByText('Sync with my calendar').first().click();
+      await page.waitForTimeout(600);
+      const ct = await page.locator('body').innerText();
+      if (!ct.includes('Google Calendar') || !ct.includes('cancelled games disappear')) failures.push(`${vpName}: calendar sync sheet missing`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-calendar-sync.png`) });
+      await page.getByRole('button', { name: 'Close' }).last().click();
+      await page.waitForTimeout(300);
     }
     if (name === 'leagues') {
       const lt = await page.locator('body').innerText();

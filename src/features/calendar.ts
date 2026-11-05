@@ -24,7 +24,7 @@ export function googleCalendarUrl(e: CalendarEvent) {
   return `https://calendar.google.com/calendar/render?${q.toString()}`;
 }
 
-const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 
 export function icsText(e: CalendarEvent, now = new Date()) {
   const { start, end } = eventTimes(e);

@@ -5,7 +5,7 @@ const expoConfig = require('eslint-config-expo/flat');
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['dist/*', 'supabase/functions/**', 'node_modules/*', '.expo/*', 'coverage/*'],
+    ignores: ['dist/*', 'supabase/functions/**', 'netlify/edge-functions/**', 'node_modules/*', '.expo/*', 'coverage/*'],
   },
   {
     files: ['tests/**/*.ts', '**/__tests__/**/*.ts', 'jest.config.js', 'tests/**/*.js', 'scripts/**/*.{js,mjs}'],

@@ -61,3 +61,6 @@ verify_jwt = false
 
 [functions.send-notifications]
 verify_jwt = false
+
+[functions.calendar-feed]
+verify_jwt = false
