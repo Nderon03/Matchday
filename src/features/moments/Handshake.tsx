@@ -94,9 +94,10 @@ export function HandshakeModal({ them, onClose }: { them: Friend | null; onClose
 const seenKey = (uid: string) => `matchday.friendsCelebrated.${uid}`;
 
 /**
- * The other side of a new friendship: when someone accepts your request (or opens your friend
- * link), you get the handshake too, live or the next time you open the app. The first run on a
- * device only records "now", so there's no backlog.
+ * The other side of new friendships: when people accept your requests (or open your friend link)
+ * you get a celebration, live or the next time you open the app. One new friend: the handshake.
+ * Several since you last looked: one "You've got 5 new friends" moment, not five in a row.
+ * The first run on a device only records "now", so there's no backlog.
  */
 export function FriendAcceptedWatcher() {
   const { userId } = useAuth();
@@ -114,21 +115,65 @@ export function FriendAcceptedWatcher() {
     }).catch(() => alive && setSeen(new Date().toISOString()));
     return () => { alive = false; };
   }, [userId]);
-  const next = useMemo(() => (seen ? (notifications.data ?? [])
-    .filter((n) => n.type === 'friend_accepted' && n.created_at > seen && (n.data as any)?.user_id)
-    .sort((a, b) => a.created_at.localeCompare(b.created_at))[0] : undefined), [notifications.data, seen]);
-  const friendId = (next?.data as any)?.user_id as string | undefined;
-  const them = useQuery({
-    queryKey: ['player-basic', friendId],
-    enabled: !!friendId,
-    queryFn: () => q<Friend>(supabase.from('profiles').select('id, display_name, avatar_url').eq('id', friendId!).single()),
+  const pending = useMemo(() => (seen ? (notifications.data ?? [])
+    .filter((n) => n.type === 'friend_accepted' && n.created_at > seen && (n.data as any)?.user_id) : []), [notifications.data, seen]);
+  const ids = useMemo(() => [...new Set(pending.map((n) => (n.data as any).user_id as string))].sort(), [pending]);
+  const people = useQuery({
+    queryKey: ['player-basic', ids],
+    enabled: ids.length > 0,
+    queryFn: () => q<Friend[]>(supabase.from('profiles').select('id, display_name, avatar_url').in('id', ids)),
   });
-  if (!next || !them.data || !userId) return null;
+  if (!userId || !ids.length || !people.data?.length) return null;
   const done = () => {
-    setSeen(next.created_at);
-    AsyncStorage.setItem(seenKey(userId), next.created_at).catch(() => undefined);
+    const latest = pending.reduce((m, n) => (n.created_at > m ? n.created_at : m), seen!);
+    setSeen(latest);
+    AsyncStorage.setItem(seenKey(userId), latest).catch(() => undefined);
   };
-  return <HandshakeModal them={them.data} onClose={done} />;
+  if (people.data.length === 1) return <HandshakeModal them={people.data[0]} onClose={done} />;
+  return <NewFriendsModal friends={people.data} onClose={done} />;
+}
+
+/** Several new friends at once: one celebration with everyone's faces around the handshake. */
+function NewFriendsModal({ friends, onClose }: { friends: Friend[]; onClose: () => void }) {
+  const { colors, reduceMotion } = useTheme();
+  const shown = friends.slice(0, 8);
+  const [pop] = useState(() => shown.map(() => new Animated.Value(reduceMotion ? 1 : 0)));
+  const [hand] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
+  useEffect(() => {
+    haptics.success();
+    if (reduceMotion) return;
+    Animated.sequence([
+      Animated.spring(hand, { toValue: 1, friction: 4, tension: 90, useNativeDriver: native }),
+      Animated.stagger(90, pop.map((v) => Animated.spring(v, { toValue: 1, friction: 6, tension: 90, useNativeDriver: native }))),
+    ]).start();
+  }, [hand, pop, reduceMotion]);
+  const names = friends.map((f) => first(f.display_name));
+  const list = names.length <= 3 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : `${names.slice(0, 2).join(', ')} and ${names.length - 2} others`;
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+      <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onClose} accessibilityLabel="Close" />
+      {!reduceMotion && <Confetti colour="#22C55E" />}
+      <View style={styles.centre} pointerEvents="box-none">
+        <View accessibilityViewIsModal style={[styles.card, { backgroundColor: colors.surface, borderColor: `${colors.primary}55`, gap: space.lg, alignItems: 'center' }]}>
+          <Animated.Text accessibilityLabel="Handshake" style={{ fontSize: 50, lineHeight: 62, transform: [{ scale: hand.interpolate({ inputRange: [0, 1], outputRange: [0.2, 1] }) }] }}>🤝</Animated.Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.sm }}>
+            {shown.map((f, i) => (
+              <Animated.View key={f.id} style={{ opacity: pop[i], transform: [{ scale: pop[i].interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }] }}>
+                <Avatar uri={f.avatar_url} name={f.display_name} size={46} ring={colors.primary} />
+              </Animated.View>
+            ))}
+          </View>
+          <View style={{ alignItems: 'center', gap: space.xs }}>
+            <Text variant="overline" tone="primary">New teammates</Text>
+            <Text variant="h1" align="center">You’ve got {friends.length} new friends</Text>
+            <Text tone="muted" align="center">{list} said yes. Invite them to your next game.</Text>
+          </View>
+          <Button title="See my friends" size="lg" style={{ alignSelf: 'stretch' }} onPress={() => { onClose(); router.push('/friends'); }} />
+          <Button title="Done" variant="ghost" onPress={onClose} />
+        </View>
+      </View>
+    </Modal>
+  );
 }
 
 const styles = StyleSheet.create({

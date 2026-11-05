@@ -374,6 +374,25 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     await page.waitForTimeout(1200);
     if ((await page.locator('body').innerText()).includes('are now friends')) failures.push(`${vpName}: friend handshake shown twice`);
     table.notifications = table.notifications.filter((n) => n.id !== 'n-fa');
+
+    // several accepted while I was away: one combined moment, not one each
+    const profilesBefore = table.profiles.length;
+    table.profiles.push(people[4], people[6], people[7]);
+    for (const [i, p] of [people[4], people[6], people[7]].entries()) {
+      table.notifications.push({ id: `n-fb${i}`, user_id: ME, type: 'friend_accepted', title: 'Friend request accepted', body: '', data: { user_id: p.id }, read_at: null, created_at: new Date(Date.now() + i * 1000).toISOString() });
+    }
+    await page.goto(base + '/matches', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(2200);
+    ft = await page.locator('body').innerText();
+    if (!/You’ve got \d+ new friends/.test(ft) || /are now friends/.test(ft)) failures.push(`${vpName}: combined new-friends moment missing`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-new-friends.png`) });
+    await page.getByRole('button', { name: 'Done' }).click();
+    await page.waitForTimeout(300);
+    await page.goto(base + '/matches', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    if (/new friends|are now friends/.test(await page.locator('body').innerText())) failures.push(`${vpName}: new-friends moment shown twice`);
+    table.profiles.splice(profilesBefore);
+    table.notifications = table.notifications.filter((n) => !String(n.id).startsWith('n-fb'));
   }
 
   // teams reveal: a player (not the host) opening confirmed line-ups
