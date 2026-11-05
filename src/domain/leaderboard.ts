@@ -1,16 +1,17 @@
 /** Leaderboard ranking rules (mirrors public.get_leaderboard). */
 export type LeaderboardCategory =
-  | 'goals' | 'motm' | 'rating' | 'form' | 'appearances' | 'wins' | 'win_pct' | 'assists' | 'improved' | 'streak';
+  | 'goals' | 'assists' | 'ga' | 'motm' | 'rating' | 'form' | 'appearances' | 'wins' | 'win_pct' | 'improved' | 'streak';
 
 export const CATEGORIES: { key: LeaderboardCategory; label: string; short: string; unit?: string; decimals?: number }[] = [
   { key: 'goals', label: 'Top goal scorers', short: 'Goals' },
+  { key: 'assists', label: 'Most assists', short: 'Assists' },
+  { key: 'ga', label: 'Most goals + assists', short: 'G/A' },
   { key: 'motm', label: 'Most MOTM awards', short: 'MOTM' },
   { key: 'rating', label: 'Highest career rating', short: 'Rating', decimals: 1 },
   { key: 'form', label: 'Best recent form', short: 'Form', decimals: 1 },
   { key: 'appearances', label: 'Most appearances', short: 'Apps' },
   { key: 'wins', label: 'Most wins', short: 'Wins' },
   { key: 'win_pct', label: 'Highest win percentage', short: 'Win %', unit: '%', decimals: 1 },
-  { key: 'assists', label: 'Most assists', short: 'Assists' },
   { key: 'improved', label: 'Most improved player', short: '+Rating', decimals: 2 },
   { key: 'streak', label: 'Longest winning streak', short: 'Streak' },
 ];

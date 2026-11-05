@@ -66,8 +66,8 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
   const st = cardStyle(data.card_style);
   const s = data.stats;
   const cells: [string, string | number][] = [
-    ['Games', s?.sessions ?? 0], ['Wins', s?.wins ?? 0], ['Losses', s?.losses ?? 0], ['Win %', s ? `${Number(s.win_pct).toFixed(0)}%` : '–'],
-    ['Goals', s?.goals ?? 0], ['Assists', s?.assists ?? 0], ['MOTM', s?.motm ?? 0], ['Medals', data.achievements ?? 0],
+    ['Games', s?.sessions ?? 0], ['Wins', s?.wins ?? 0], ['Win %', s ? `${Number(s.win_pct).toFixed(0)}%` : '–'], ['MOTM', s?.motm ?? 0],
+    ['Goals', s?.goals ?? 0], ['Assists', s?.assists ?? 0], ['G/A', (s?.goals ?? 0) + (s?.assists ?? 0)], ['Medals', data.achievements ?? 0],
   ];
   return (
     <View ref={ref} collapsable={false} style={{ borderRadius: radius.xl, overflow: 'hidden', backgroundColor: st.to, borderWidth: st.border ? (st.id === 'hall_of_fame' ? 2 : 1) : 0, borderColor: st.border ?? undefined }}>

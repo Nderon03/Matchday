@@ -144,6 +144,7 @@ export default function Compare() {
               <Bar label="Win %" a={n(ca.win_pct)} b={n(cb.win_pct)} format={(v) => `${v.toFixed(0)}%`} />
               <Bar label="Goals" a={n(ca.goals)} b={n(cb.goals)} />
               <Bar label="Assists" a={n(ca.assists)} b={n(cb.assists)} />
+              <Bar label="G/A" a={n(ca.goals) + n(ca.assists)} b={n(cb.goals) + n(cb.assists)} />
               <Bar label="MOTM" a={n(ca.motm)} b={n(cb.motm)} />
             </View>
           </Card>

@@ -104,9 +104,9 @@ export function PlayerProfileView({ userId }: { userId: string }) {
             <StatTile label="Sessions" value={s.sessions} sub={`${s.fixtures} games`} />
             <StatTile label="Win %" value={`${Number(s.win_pct).toFixed(0)}%`} sub={`${s.wins}W ${s.draws}D ${s.losses}L`} />
             <StatTile label="Goals" value={s.goals} sub={`${(s.goals / Math.max(1, s.sessions)).toFixed(1)} per session`} />
-            <StatTile label="Assists" value={s.assists} />
+            <StatTile label="Assists" value={s.assists} sub={`${(s.assists / Math.max(1, s.sessions)).toFixed(1)} per session`} />
+            <StatTile label="G/A" value={s.goals + s.assists} sub={`${((s.goals + s.assists) / Math.max(1, s.sessions)).toFixed(1)} per session`} />
             <StatTile label="MOTM" value={s.motm} />
-            <StatTile label="Best rating" value={rating(s.highest_rating)} />
             <StatTile label="Win streak" value={s.current_win_streak} sub={`Best ${s.best_win_streak}`} />
             <StatTile label="Unbeaten" value={s.current_unbeaten} sub={`Best ${s.best_unbeaten}`} />
           </StatGrid>

@@ -164,6 +164,11 @@ describe('single-match journey (5-a-side)', () => {
     expect(lb.find((r) => r.user_id === scorer)).toMatchObject({ rank: 1 });
     expect(lb.filter((r) => r.rank === 1)).toHaveLength(2);
     expect(Number(lb[0].value)).toBe(3);
+    // G/A adds goals and assists together for every player
+    const ga = await db.as(host, `select * from public.get_leaderboard('ga', 'group', $1)`, [groupId]);
+    const totals = await db.admin(`select user_id, (goals + assists)::int n from v_group_stats where group_id = $1 and goals + assists > 0`, [groupId]);
+    expect(ga).toHaveLength(totals.length);
+    for (const t of totals) expect(Number(ga.find((r) => r.user_id === t.user_id).value)).toBe(t.n);
     // win% requires the minimum number of appearances — nobody qualifies after one game
     const pct = await db.as(host, `select * from public.get_leaderboard('win_pct', 'group', $1)`, [groupId]);
     expect(pct.filter((r) => r.qualified)).toHaveLength(0);

@@ -37,6 +37,7 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
       <Text variant="h3">{def.label}</Text>
       {(category === 'win_pct') && <Text variant="caption" tone="muted">Minimum {minAppearances ?? 5} appearances to qualify.</Text>}
       {(category === 'rating' || category === 'form') && <Text variant="caption" tone="muted">Minimum 3 rated sessions. Every session counts equally.</Text>}
+      {category === 'ga' && <Text variant="caption" tone="muted">Goals and assists added together: every goal you score or set up.</Text>}
       {category === 'improved' && <Text variant="caption" tone="muted">Recent-half average minus early-half average (min. 6 rated sessions).</Text>}
 
       {!!lb.isLoading && <SkeletonList rows={6} />}
