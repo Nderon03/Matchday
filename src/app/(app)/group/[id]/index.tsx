@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, View, Pressable } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -123,9 +123,11 @@ export default function GroupScreen() {
 
       <Segmented scroll value={tab} onChange={setTab} options={[
         { value: 'overview', label: 'Overview' }, { value: 'fixtures', label: 'Fixtures' }, { value: 'results', label: 'Results' },
-        { value: 'tables', label: 'Tables' }, { value: 'members', label: 'Members' }, { value: 'awards', label: 'Awards' },
+        { value: 'tables', label: 'Tables' }, { value: 'awards', label: 'Awards' },
         { value: 'seasons', label: 'Seasons' }, { value: 'feed', label: 'Feed' }, { value: 'records', label: 'Records' },
         ...(myRole && (isAdmin || settings?.late_fines_enabled) ? [{ value: 'fines' as const, label: 'Fines' }] : []),
+        // last, so it's easy to find (leaving, inviting, removing)
+        { value: 'members', label: `Members · ${members.length}` },
       ]} />
       {tab === 'fines' && !!myRole && <FinesPanel groupId={id} isAdmin={isAdmin} />}
 
@@ -135,7 +137,9 @@ export default function GroupScreen() {
           <Row gap={space.sm}>
             <StatTile compact label="Sessions" value={records.data?.sessions_played ?? '–'} />
             <StatTile compact label="Goals" value={records.data?.goals_scored ?? '–'} />
-            <StatTile compact label="Members" value={members.length} />
+            <Pressable style={{ flex: 1 }} onPress={() => setTab('members')} accessibilityRole="button" accessibilityLabel={`${members.length} members, see all`}>
+              <StatTile compact label="Members ›" value={members.length} />
+            </Pressable>
           </Row>
           {!!myRole && <Button title="Create a session for this group" icon="add" onPress={() => router.push({ pathname: '/session/new', params: { groupId: id } })} />}
           {!!isAdmin && joinRequests.length > 0 && (
