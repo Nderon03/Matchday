@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Animated, Easing, Platform, View } from 'react-native';
+import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar, Button, Card, ErrorState, Loading, Row, Screen, Text, useToast } from '@/components/ui';
 import { PlayerCard } from '@/components/football/PlayerCard';
 import { Confetti } from '@/components/football/Confetti';
+import { HandshakeScene } from '@/features/moments/Handshake';
 import { rpc } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { useAuth } from '@/providers/AuthProvider';
@@ -15,7 +16,6 @@ import { usePriceLabel } from '@/hooks/useFees';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 
-const native = Platform.OS !== 'web';
 const first = (name?: string | null) => (name ?? '').split(' ')[0] || 'them';
 
 /** Deep-link landing for friend / group / game invites (also the QR target). */
@@ -90,7 +90,6 @@ function FriendInvite({ code, p }: { code: string; p: any }) {
     setBusy(true);
     try {
       await acceptInvite(code);
-      haptics.success();
       setDone(true);
     } catch (e) {
       toast.error(e);
@@ -159,60 +158,15 @@ function FriendInvite({ code, p }: { code: string; p: any }) {
   );
 }
 
-/** The celebration: two players slide in, meet in the middle, 🤝. */
+/** The celebration after accepting a friend link. */
 function FriendsNow({ them }: { them: any }) {
-  const { colors, reduceMotion } = useTheme();
-  const { profile, userId } = useAuth();
-  const v = () => new Animated.Value(reduceMotion ? 1 : 0);
-  const [meet] = useState(v);
-  const [shake] = useState(v);
-  const [text] = useState(v);
-  useEffect(() => {
-    if (reduceMotion) return;
-    Animated.sequence([
-      Animated.spring(meet, { toValue: 1, friction: 6, tension: 55, useNativeDriver: native }),
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(shake, { toValue: 1, duration: 220, easing: Easing.out(Easing.back(2)), useNativeDriver: native }),
-          Animated.loop(Animated.sequence([
-            Animated.timing(shake, { toValue: 1.25, duration: 120, useNativeDriver: native }),
-            Animated.timing(shake, { toValue: 0.75, duration: 120, useNativeDriver: native }),
-          ]), { iterations: 3 }),
-          Animated.timing(shake, { toValue: 1, duration: 120, useNativeDriver: native }),
-        ]),
-        Animated.timing(text, { toValue: 1, duration: 420, delay: 250, useNativeDriver: native }),
-      ]),
-    ]).start();
-  }, [meet, shake, text, reduceMotion]);
-  const name = first(them.display_name);
-  const side = (from: number) => ({
-    opacity: meet, transform: [{ translateX: meet.interpolate({ inputRange: [0, 1], outputRange: [from, 0] }) }],
-  });
+  const { reduceMotion } = useTheme();
   return (
     <Screen edges={['top', 'bottom']} maxWidth={480} scroll={false}>
       {!reduceMotion && <Confetti colour="#22C55E" />}
-      <View style={{ flex: 1, justifyContent: 'center', gap: space.xl }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.md }}>
-          <Animated.View style={side(-160)}><Avatar uri={profile?.avatar_url} name={profile?.display_name} size={88} ring={colors.primary} /></Animated.View>
-          <Animated.Text accessibilityLabel="Handshake" style={{ fontSize: 52, lineHeight: 64,
-            opacity: shake.interpolate({ inputRange: [0, 0.3, 1.25], outputRange: [0, 1, 1] }),
-            transform: [
-              { scale: shake.interpolate({ inputRange: [0, 0.75, 1, 1.25], outputRange: [0.2, 1, 1, 1] }) },
-              { rotate: shake.interpolate({ inputRange: [0, 0.75, 1, 1.25], outputRange: ['0deg', '-14deg', '0deg', '14deg'] }) },
-            ] }}>🤝</Animated.Text>
-          <Animated.View style={side(160)}><Avatar uri={them.avatar_url} name={them.display_name} size={88} ring={colors.primary} /></Animated.View>
-        </View>
-        <Animated.View style={{ alignItems: 'center', gap: space.xs, opacity: text, transform: [{ translateY: text.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }}>
-          <Text variant="overline" tone="primary">New teammate</Text>
-          <Text variant="h1" align="center">You and {name} are now friends</Text>
-          <Text tone="muted" align="center">Invite each other to games, compare stats and see who wins more together.</Text>
-        </Animated.View>
-        <Animated.View style={{ gap: space.sm, opacity: text }}>
-          <Button title={`See ${name}’s profile`} size="lg" onPress={() => router.replace(`/player/${them.id}`)} />
-          <Button title="Compare our stats" variant="secondary" size="lg" icon="git-compare-outline"
-            onPress={() => router.replace({ pathname: '/compare', params: { a: userId ?? '', b: them.id } })} />
-          <Button title="Done" variant="ghost" onPress={() => router.replace('/')} />
-        </Animated.View>
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <HandshakeScene them={{ id: them.id, display_name: them.display_name, avatar_url: them.avatar_url }} />
+        <Button title="Done" variant="ghost" onPress={() => router.replace('/')} style={{ marginTop: space.sm }} />
       </View>
     </Screen>
   );

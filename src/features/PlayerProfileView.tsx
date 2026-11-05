@@ -17,6 +17,7 @@ import { formatDate, formatKickoff, POSITION_LABEL, rating } from '@/domain/form
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { ReliabilityChip, useReliability } from '@/features/Reliability';
+import { HandshakeModal, type Friend } from '@/features/moments/Handshake';
 
 export function PlayerProfileView({ userId }: { userId: string }) {
   const { colors } = useTheme();
@@ -27,6 +28,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   const { run, busy } = useAction([keys.player(userId, groupId), keys.friends]);
   const cardRef = useRef<HostInstance>(null);
   const [reportOpen, setReportOpen] = useState(false);
+  const [newFriend, setNewFriend] = useState<Friend | null>(null);
   const [reason, setReason] = useState('');
   const reliability = useReliability([userId]);
   const links = useQuery({ queryKey: ['player', userId, 'connections'], queryFn: () => rpc<Connections | null>('get_player_connections', { p_user: userId }) });
@@ -55,6 +57,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
 
   return (
     <View style={{ gap: space.lg }}>
+      <HandshakeModal them={newFriend} onClose={() => setNewFriend(null)} />
       <PlayerCard ref={cardRef} data={{ ...p, stats: s ? { ...s, rating: s.rating } : null, achievements: points, card_style: style.data?.card_style, nationality: style.data?.nationality, supported_club: style.data?.supported_club, reliability: reliability.data?.[userId] ?? null }} />
 
       <Row gap={space.sm} wrap>
@@ -71,9 +74,15 @@ export function PlayerProfileView({ userId }: { userId: string }) {
             ) : d.friend_request?.outgoing ? (
               <Button title="Request sent" size="sm" variant="secondary" disabled />
             ) : d.friend_request ? (
-              <Button title="Accept request" icon="checkmark" size="sm" loading={busy === 'accept'} onPress={() => run('accept', () => rpc('respond_friend_request', { p_request: d.friend_request.id, p_accept: true }), 'You’re now friends')} />
+              <Button title="Accept request" icon="checkmark" size="sm" loading={busy === 'accept'} onPress={async () => {
+                const ok = await run('accept', () => rpc('respond_friend_request', { p_request: d.friend_request.id, p_accept: true }));
+                if (ok !== undefined) setNewFriend({ id: p.id, display_name: p.display_name, avatar_url: p.avatar_url });
+              }} />
             ) : (
-              <Button title="Add friend" icon="person-add-outline" size="sm" loading={busy === 'add'} onPress={() => run('add', () => rpc('send_friend_request', { p_target: userId }), 'Friend request sent')} />
+              <Button title="Add friend" icon="person-add-outline" size="sm" loading={busy === 'add'} onPress={async () => {
+                const r = await run('add', () => rpc<string>('send_friend_request', { p_target: userId }), (x) => (x === 'accepted' ? '' : 'Friend request sent'));
+                if (r === 'accepted') setNewFriend({ id: p.id, display_name: p.display_name, avatar_url: p.avatar_url });
+              }} />
             )}
             {!!d.can_view_stats && <Button title="Compare" icon="git-compare-outline" size="sm" variant="secondary" onPress={() => router.push({ pathname: '/compare', params: groupId ? { b: userId, groupId } : { b: userId } })} />}
             <Button title="Share card" icon="share-social-outline" size="sm" variant="ghost" onPress={share} />

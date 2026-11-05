@@ -8,10 +8,12 @@ import { useAction } from '@/hooks/useAction';
 import { rpc } from '@/lib/api';
 import { timeAgo } from '@/domain/format';
 import { space } from '@/theme/tokens';
+import { HandshakeModal, type Friend } from '@/features/moments/Handshake';
 
 interface SearchRow { id: string; username: string; display_name: string; avatar_url: string | null; is_friend: boolean; request_pending: boolean }
 
 export default function Friends() {
+  const [newFriend, setNewFriend] = useState<Friend | null>(null);
   const friends = useFriends();
   const { run, busy } = useAction([keys.friends]);
   const [tab, setTab] = useState<'friends' | 'requests' | 'find'>('friends');
@@ -75,7 +77,10 @@ export default function Friends() {
                   <Text variant="bodyStrong">{r.profile.display_name}</Text>
                   <Text variant="caption" tone="muted">@{r.profile.username} · {timeAgo(r.created_at)}</Text>
                 </View>
-                <Button title="Accept" size="sm" loading={busy === `a-${r.id}`} onPress={() => run(`a-${r.id}`, () => rpc('respond_friend_request', { p_request: r.id, p_accept: true }), 'Friend added')} />
+                <Button title="Accept" size="sm" loading={busy === `a-${r.id}`} onPress={async () => {
+                  const ok = await run(`a-${r.id}`, () => rpc('respond_friend_request', { p_request: r.id, p_accept: true }));
+                  if (ok !== undefined) setNewFriend(r.profile);
+                }} />
                 <Button title="Reject" size="sm" variant="ghost" onPress={() => run(`r-${r.id}`, () => rpc('respond_friend_request', { p_request: r.id, p_accept: false }))} />
               </Row>
             </Card>
@@ -106,7 +111,9 @@ export default function Friends() {
                 </View>
                 {u.is_friend ? <Text variant="small" tone="primary">Friends</Text> : u.request_pending ? <Text variant="small" tone="muted">Pending</Text> : (
                   <Button title="Add" size="sm" icon="person-add-outline" loading={busy === `s-${u.id}`} onPress={async () => {
-                    const r = await run(`s-${u.id}`, () => rpc<string>('send_friend_request', { p_target: u.id }), (x) => (x === 'accepted' ? 'You’re now friends' : 'Request sent'));
+                    const r = await run(`s-${u.id}`, () => rpc<string>('send_friend_request', { p_target: u.id }), (x) => (x === 'accepted' ? '' : 'Request sent'));
+                    // they'd already asked you: it's a friendship straight away
+                    if (r === 'accepted') setNewFriend(u);
                     if (r) setResults((rs) => rs?.map((x) => (x.id === u.id ? { ...x, request_pending: r !== 'accepted', is_friend: r === 'accepted' } : x)) ?? null);
                   }} />
                 )}
@@ -119,6 +126,7 @@ export default function Friends() {
       <Sheet visible={qrOpen} onClose={() => setQrOpen(false)} title="Add me on MATCHDAY">
         <InviteQr kind="friend" message="Add me on MATCHDAY" />
       </Sheet>
+      <HandshakeModal them={newFriend} onClose={() => setNewFriend(null)} />
     </Screen>
   );
 }

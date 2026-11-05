@@ -11,7 +11,8 @@ export function useAction(invalidate: QueryKey[] = []) {
     setBusy(key);
     try {
       const r = await fn();
-      if (success) toast.success(typeof success === 'function' ? success(r) : success);
+      const message = typeof success === 'function' ? success(r) : success;
+      if (message) toast.success(message);
       invalidate.forEach((k) => qc.invalidateQueries({ queryKey: k }));
       qc.invalidateQueries({ queryKey: ['home'] });
       qc.invalidateQueries({ queryKey: ['tasks'] });

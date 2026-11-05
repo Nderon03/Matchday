@@ -344,6 +344,38 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     delete rpcs.accept_invite;
   }
 
+  // making friends inside the app: accepting a request, and the other side finding out
+  {
+    const savedReq = table.friend_requests;
+    table.friend_requests = [{ id: 'fr1', created_at: ago(0.1), profile: people[4] }];
+    await page.goto(base + '/friends', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    await page.getByText('Requests').first().click().catch(() => undefined);
+    await page.waitForTimeout(300);
+    await page.getByRole('button', { name: 'Accept' }).first().click();
+    await page.waitForTimeout(2600);
+    let ft = await page.locator('body').innerText();
+    if (!ft.includes('You and Danny are now friends')) failures.push(`${vpName}: handshake after accepting a request missing`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-handshake-accept.png`) });
+    await page.getByRole('button', { name: 'Done' }).click();
+    table.friend_requests = savedReq;
+
+    // my request was accepted: I get the handshake too (once)
+    await page.evaluate((uid) => localStorage.setItem(`matchday.friendsCelebrated.${uid}`, new Date(Date.now() - 3600_000).toISOString()), ME);
+    table.notifications.push({ id: 'n-fa', user_id: ME, type: 'friend_accepted', title: 'Friend request accepted', body: 'Ravi accepted', data: { user_id: people[6].id }, read_at: null, created_at: new Date().toISOString() });
+    await page.goto(base + '/matches', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(2600);
+    ft = await page.locator('body').innerText();
+    // (the test server answers every profile lookup with the same player, so only the wording is checked)
+    if (!/You and \w+ are now friends/.test(ft)) failures.push(`${vpName}: handshake for an accepted request missing`);
+    await page.getByRole('button', { name: 'Done' }).click();
+    await page.waitForTimeout(300);
+    await page.goto(base + '/matches', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    if ((await page.locator('body').innerText()).includes('are now friends')) failures.push(`${vpName}: friend handshake shown twice`);
+    table.notifications = table.notifications.filter((n) => n.id !== 'n-fa');
+  }
+
   // teams reveal: a player (not the host) opening confirmed line-ups
   {
     rpcs.is_session_manager = false;

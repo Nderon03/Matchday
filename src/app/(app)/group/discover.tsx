@@ -33,7 +33,10 @@ export default function Discover() {
             </View>
             {g.join_policy === 'invite_only' ? <Badge label="Invite only" /> : (
               <Button title={g.join_policy === 'open' ? 'Join' : 'Ask to join'} size="sm" loading={busy === g.id}
-                onPress={() => run(g.id, () => rpc<string>('join_group', { p_group: g.id }), (r) => (r === 'joined' ? 'Welcome to the group!' : r === 'already_member' ? 'You’re already a member' : 'Request sent to the admins'))} />
+                onPress={async () => {
+                  const r = await run(g.id, () => rpc<string>('join_group', { p_group: g.id }), (x) => (x === 'joined' ? '' : x === 'already_member' ? 'You’re already a member' : 'Request sent to the admins'));
+                  if (r === 'joined' || r === 'already_member') router.push(`/group/${g.id}`);
+                }} />
             )}
           </Row>
         </Card>
