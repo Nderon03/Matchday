@@ -16,6 +16,7 @@ import { space } from '@/theme/tokens';
 import { formatKickoff, rating } from '@/domain/format';
 import { usePriceLabel } from '@/hooks/useFees';
 import { useLayout } from '@/hooks/useLayout';
+import { NearlyThere } from '@/features/moments/NearlyThere';
 
 function greeting() {
   const h = new Date().getHours();
@@ -128,6 +129,7 @@ export default function Home() {
                 <StatTile label="Goals" value={career?.goals ?? 0} compact />
                 <StatTile label="MOTM" value={career?.motm ?? 0} compact />
               </Row>
+              <NearlyThere data={mine.data} />
             </View>
             {d.groups.length > 0 && (
               <View style={{ flex: 1, gap: space.sm }}>

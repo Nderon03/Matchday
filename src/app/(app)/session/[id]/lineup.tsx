@@ -15,6 +15,8 @@ import { space } from '@/theme/tokens';
 import type { PlayerPosition } from '@/types/db';
 import { POSITION_LABEL } from '@/domain/format';
 import { removeSessionPlayer } from '@/features/removePlayer';
+import { TeamsReveal } from '@/features/moments/TeamsReveal';
+import { useAuth } from '@/providers/AuthProvider';
 
 type Strengths = { players: BalancePlayer[]; pairings: { user_a: string; user_b: string; times: number }[] };
 
@@ -31,6 +33,7 @@ function lineupPublished(session: SessionDetail['session'], fixture: SessionDeta
 export default function LineupScreen() {
   const { id, fixture: fixtureParam, auto } = useLocalSearchParams<{ id: string; fixture?: string; auto?: 'balanced' | 'random' }>();
   const detail = useSessionDetail(id);
+  const { userId } = useAuth();
   const d = detail.data;
   const [fixtureId, setFixtureId] = useState<string | null>(fixtureParam ?? null);
   const strengths = useQuery({
@@ -50,6 +53,8 @@ export default function LineupScreen() {
   // the editor remounts when switching game or when someone else saves a new line-up
   const savedSig = fixture.teams.map((t) => `${t.name}:${t.players.map((p) => `${p.user_id ?? p.guest_id}${p.is_goalkeeper ? 'g' : ''}${p.is_substitute ? 's' : ''}`).join(',')}`).join('|');
   return (
+    <>
+    {!!userId && <TeamsReveal detail={d} fixture={fixture} userId={userId} />}
     <LineupEditor
       key={`${fixture.id}-${savedSig}`}
       id={id}
@@ -60,6 +65,7 @@ export default function LineupScreen() {
       auto={fixture.id === fixtureParam && !fixture.played ? auto : undefined}
       onSelectFixture={setFixtureId}
     />
+    </>
   );
 }
 

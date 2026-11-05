@@ -8,6 +8,7 @@ import { CATEGORIES, formatValue, type LeaderboardCategory } from '@/domain/lead
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import type { Season } from '@/types/db';
+import { RankChangePill, useRankChange } from '@/features/moments/RankChange';
 
 export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope: 'group' | 'friends' | 'global'; groupId?: string; seasons?: Season[]; minAppearances?: number }) {
   const { colors } = useTheme();
@@ -19,6 +20,8 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
   const rows = all.filter((r) => r.qualified);
   const pending = all.filter((r) => !r.qualified);
   const me = rows.find((r) => r.is_me);
+  // has my position moved since I last looked at this exact table?
+  const delta = useRankChange(`${scope}.${groupId ?? ''}.${seasonId ?? period}.${category}`, lb.isFetching ? null : me?.rank);
   const unit = category === 'win_pct' ? 'appearances' : category === 'rating' || category === 'form' || category === 'improved' ? 'rated sessions' : 'games';
   const fmt = (v: number) => formatValue(category, v);
   const def = CATEGORIES.find((c) => c.key === category)!;
@@ -54,6 +57,7 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
               <Row gap={space.md} style={{ padding: space.md }}>
                 <Text variant="statSmall" tone="primary" style={{ width: 36 }}>#{me.rank}</Text>
                 <Text variant="bodyStrong" style={{ flex: 1 }}>You</Text>
+                <RankChangePill delta={delta} />
                 <Text variant="caption" tone="muted">{me.appearances} apps</Text>
                 <Text variant="statSmall">{fmt(me.value)}</Text>
               </Row>
@@ -70,6 +74,7 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
                   <Text variant="bodyStrong" numberOfLines={1} onPress={() => router.push(`/player/${r.user_id}`)}>{r.display_name}{r.is_me ? ' (you)' : ''}</Text>
                   <Text variant="caption" tone="muted">{r.appearances} apps</Text>
                 </View>
+                {r.is_me && <RankChangePill delta={delta} />}
                 <Text variant="statSmall">{fmt(r.value)}</Text>
               </Row>
             ))}

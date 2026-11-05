@@ -1,6 +1,6 @@
 import { lineupOps, arrangeOutfield } from '../lineup';
 import { decideMotm } from '../motm';
-import { CARD_STYLES, MAX_POINTS, TRACKS, cardStyle, medalPoints, parseCode, qualifyingCodes, rarityLabel, trackProgress } from '../achievements';
+import { CARD_STYLES, MAX_POINTS, TRACKS, cardStyle, medalPoints, nearlyThere, parseCode, qualifyingCodes, rarityLabel, trackProgress } from '../achievements';
 import { rank, formatValue } from '../leaderboard';
 import { validateGoalClaim, sessionSchema, signUpSchema, fieldErrors } from '../validation';
 import { formatPence, poundsToPence, timeUntil, formatKickoff } from '../format';
@@ -184,5 +184,21 @@ describe('setting positions', () => {
   it('an outfield position removes goalkeeper status', () => {
     const s = lineupOps.setPosition(base, 'a', 'DEF');
     expect(s.A[0]).toMatchObject({ user_id: 'a', position: 'DEF', is_goalkeeper: false });
+  });
+});
+
+describe('nearly there', () => {
+  const item = (track: string, level: number, target: number, value: number, unlocked: boolean) => ({ track, level, target, value, unlocked_at: unlocked ? '2026-01-01' : null });
+  it('finds the medal you are one away from, preferring the bigger level', () => {
+    const items = [
+      item('goals', 1, 1, 24, true), item('goals', 2, 10, 24, true), item('goals', 3, 25, 24, false),
+      item('apps', 1, 1, 9, true), item('apps', 2, 10, 9, false),
+    ];
+    expect(nearlyThere(items)).toMatchObject({ track: 'goals', level: 3, label: '1 goal from Gold in Goals', progress: 14, target: 15 });
+  });
+  it('nothing when nobody is that close, or the track is maxed', () => {
+    expect(nearlyThere([item('goals', 1, 1, 0, false)].map((i) => ({ ...i, value: 0 })))).toMatchObject({ label: '1 goal from Bronze in Goals' });
+    expect(nearlyThere([item('assists', 2, 10, 7, false), item('assists', 1, 1, 7, true)])).toBeNull();
+    expect(nearlyThere([item('wins', 2, 5, 4, false), item('wins', 1, 3, 4, true)])).toBeNull();
   });
 });

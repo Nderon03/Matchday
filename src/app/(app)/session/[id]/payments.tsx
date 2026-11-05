@@ -17,6 +17,7 @@ import type { Payment } from '@/types/db';
 import * as Clipboard from 'expo-clipboard';
 import { appLink } from '@/lib/links';
 import { usePriceLabel } from '@/hooks/useFees';
+import { TickBurst } from '@/features/moments/TickBurst';
 
 interface PaymentQuote { lines: { label: string; amount_pence: number; kind: 'session' | 'guest' | 'fine' | 'fee' }[]; host_receives_pence: number; booking_fee_pence: number; total_pence: number }
 
@@ -73,6 +74,17 @@ export default function PaymentsScreen() {
     <Screen edges={['top', 'bottom']} maxWidth={640} onRefresh={() => { mine.refetch(); summary.refetch(); }} refreshing={mine.isRefetching}>
       <Header title="Payments" subtitle={`${s.name} · ${price(s.price_pence).total} per player`} />
 
+      {checkout === 'success' && (p?.status === 'paid' || p?.status === 'authorised') && (
+        <Card variant="highlight">
+          <View style={{ alignItems: 'center', gap: space.xs }}>
+            <TickBurst size={56} />
+            <Text variant="h3" align="center">{p.status === 'paid' ? 'You’re paid up' : 'You’re all set'}</Text>
+            <Text variant="small" tone="muted" align="center">
+              {p.status === 'paid' ? `Thanks! Your place for ${s.name} is paid.` : `Your card is held and only charged once the host confirms ${s.name} took place.`}
+            </Text>
+          </View>
+        </Card>
+      )}
       {checkout === 'success' && p?.status !== 'paid' && p?.status !== 'authorised' && (
         <Card variant="alt"><Text variant="small">Payment submitted — waiting for Stripe to confirm. This usually takes a few seconds; your status updates automatically.</Text></Card>
       )}

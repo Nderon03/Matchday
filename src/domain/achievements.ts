@@ -85,3 +85,35 @@ export function rarityLabel(holders: number, players: number): string | null {
   if (pct < 1) return 'Under 1% of players';
   return `${Math.round(pct)}% of players`;
 }
+
+/** Tracks where "one more" is something you can just go and do. */
+const NUDGE_UNITS: Record<string, [string, string]> = {
+  goals: ['goal', 'goals'], assists: ['assist', 'assists'], apps: ['game', 'games'], motm: ['MOTM award', 'MOTM awards'], weeks: ['week in a row', 'weeks in a row'],
+};
+
+/**
+ * The medal a player is one step from, e.g. "1 goal from Gold in Goals". Picks the highest level
+ * when several are close. Null when nothing is within one.
+ */
+export function nearlyThere(items: { track: string; level: number | null; target: number; value: number; unlocked_at: string | null }[]):
+  { track: string; name: string; icon: string; level: number; label: string; progress: number; target: number } | null {
+  let best: ReturnType<typeof nearlyThere> = null;
+  for (const t of TRACKS) {
+    const units = NUDGE_UNITS[t.track];
+    if (!units) continue;
+    const levels = items.filter((i) => i.track === t.track);
+    const reached = levels.filter((i) => i.unlocked_at).reduce((m, i) => Math.max(m, i.level ?? 0), 0);
+    if (reached >= 5) continue;
+    const next = levels.find((i) => i.level === reached + 1);
+    if (!next) continue;
+    const left = next.target - next.value;
+    if (left !== 1) continue;
+    const nextLevel = reached + 1;
+    if (best && best.level >= nextLevel) continue;
+    best = {
+      track: t.track, name: t.name, icon: t.icon, level: nextLevel, progress: next.value - (reached ? t.targets[reached - 1] : 0), target: next.target - (reached ? t.targets[reached - 1] : 0),
+      label: `1 ${units[0]} from ${levelInfo(nextLevel).label} in ${t.name}`,
+    };
+  }
+  return best;
+}

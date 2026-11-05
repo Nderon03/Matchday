@@ -29,6 +29,9 @@ import type { RsvpStatus } from '@/types/db';
 import { haptics } from '@/lib/haptics';
 import { KickoffWeather } from '@/features/KickoffWeather';
 import { ReliabilityChip, useReliability } from '@/features/Reliability';
+import { SquadMeter } from '@/features/moments/SquadMeter';
+import { TickBurst } from '@/features/moments/TickBurst';
+import { MotmAnnouncement } from '@/features/moments/MotmAnnouncement';
 
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -39,6 +42,8 @@ export default function SessionScreen() {
   const squadReliability = useReliability(detail.data?.isManager ? detail.data.attendance.filter((a) => ['confirmed', 'waitlisted'].includes(a.status)).map((a) => a.user_id) : []);
   const now = useNow();
   const { run, busy } = useAction([keys.session(id), keys.mySessions]);
+  // when I tapped "I'm in" this visit, so the card can celebrate it
+  const [justIn, setJustIn] = useState(0);
   const [finaliseOpen, setFinaliseOpen] = useState(false);
   // set when the host closes voting here, so Finalise unlocks immediately (the clock only ticks every 30s)
   const [closedHere, setClosedHere] = useState(false);
@@ -84,6 +89,7 @@ export default function SessionScreen() {
   // a place offered to me from the waiting list (last 24 hours before kick-off)
   const offerUntil = me?.status === 'waitlisted' && me.offer_expires_at && new Date(me.offer_expires_at).getTime() > now ? me.offer_expires_at : null;
   const lastDay = new Date(s.starts_at).getTime() - now < 24 * 3600_000;
+  const showJustIn = me?.status === 'confirmed' && justIn > 0 && now - justIn < 60_000;
 
   const calendarEvent: CalendarEvent = {
     id: s.id,
@@ -101,7 +107,7 @@ export default function SessionScreen() {
 
   const respond = (r: RsvpStatus) => run(`rsvp-${r}`, () => rpc<string>('respond_to_session', { p_session: id, p_response: r }),
     (res) => {
-      if (res === 'confirmed') haptics.success();
+      if (res === 'confirmed') { haptics.success(); setJustIn(Date.now()); }
       return res === 'confirmed' ? 'You’re in! ⚽' : res === 'waitlisted' ? 'Session full — you’re on the waiting list' : 'Response saved';
     });
 
@@ -179,7 +185,8 @@ export default function SessionScreen() {
               </Row>
             )}
             <KickoffWeather sessionId={s.id} startsAt={s.starts_at} hasPlace={s.latitude != null} active={['scheduled', 'in_progress'].includes(s.status)} />
-            <Row gap={8}><Ionicons name="people-outline" size={17} color={colors.textMuted} /><Text>{groups.confirmed.length + guestsIn.length}/{s.max_attendance} confirmed{guestsIn.length ? ` (incl. ${guestsIn.length} guest${guestsIn.length > 1 ? 's' : ''})` : ''}{groups.waitlisted.length ? ` · ${groups.waitlisted.length} waiting` : ''}</Text></Row>
+            <SquadMeter confirmed={groups.confirmed.length + guestsIn.length} max={s.max_attendance}
+              label={`confirmed${guestsIn.length ? ` (incl. ${guestsIn.length} guest${guestsIn.length > 1 ? 's' : ''})` : ''}${groups.waitlisted.length ? ` · ${groups.waitlisted.length} waiting` : ''}`} />
             {s.payment_mode !== 'free' && (
               <Row gap={8} style={{ alignItems: 'flex-start' }}>
                 <Ionicons name="card-outline" size={17} color={colors.textMuted} style={{ marginTop: 2 }} />
@@ -214,8 +221,13 @@ export default function SessionScreen() {
       {s.status === 'scheduled' && (
         <Card variant={me?.status === 'confirmed' || offerUntil ? 'highlight' : 'default'} style={notAttending ? { borderColor: colors.danger } : undefined}>
           <View style={{ gap: space.md }}>
-            <Text variant="h3">
-              {me?.status === 'confirmed' ? 'You’re playing' : offerUntil ? 'A place just opened for you' : me?.status === 'waitlisted' ? `Waiting list · position ${waitPos}` : blocked ? 'Removed by the host' : reinvited ? 'The host invited you back — are you in?' : notAttending ? 'You’re not attending' : 'Are you in?'}
+            {showJustIn && (
+              <View style={{ alignItems: 'center', marginTop: -space.sm, marginBottom: -space.md }}>
+                <TickBurst key={justIn} size={52} />
+              </View>
+            )}
+            <Text variant="h3" align={showJustIn ? 'center' : undefined}>
+              {me?.status === 'confirmed' ? (showJustIn ? 'You’re in! ⚽' : 'You’re playing') : offerUntil ? 'A place just opened for you' : me?.status === 'waitlisted' ? `Waiting list · position ${waitPos}` : blocked ? 'Removed by the host' : reinvited ? 'The host invited you back — are you in?' : notAttending ? 'You’re not attending' : 'Are you in?'}
             </Text>
             {me?.status === 'confirmed' ? (
               <Row gap={space.sm} wrap>
@@ -330,6 +342,10 @@ export default function SessionScreen() {
         </View>
       )}
 
+      {s.status === 'finalised' && !!userId && (
+        <MotmAnnouncement sessionId={s.id} finalisedAt={s.finalised_at ?? null} userId={userId}
+          winners={d.motm.filter((m) => !m.fixture_id).map((m) => ({ user_id: m.user_id, name: nameOf(m.user_id), avatar: d.attendance.find((a) => a.user_id === m.user_id)?.profile.avatar_url ?? null, votes: m.votes }))} />
+      )}
       {s.status === 'finalised' && (
         <View style={{ gap: space.sm }}>
           <ResultCard

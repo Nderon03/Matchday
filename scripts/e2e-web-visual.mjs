@@ -175,6 +175,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     await page.waitForTimeout(600);
     if (name === 'home') {
       const t = await page.locator('body').innerText();
+      if (!t.includes('1 MOTM award from Gold in Man of the Match')) failures.push(`${vpName}: nearly-there nudge missing`);
       if (!t.includes('The host removed you from Sunday Kickabout') || !t.includes('Too many no-shows')) failures.push(`${vpName}: removal notice not shown`);
       if (t.includes('Add a profile photo')) failures.push(`${vpName}: get started checklist shown to an established player`);
       await page.screenshot({ path: join(OUT, `auth-${vpName}-kicked-notice.png`) });
@@ -213,6 +214,17 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       if (!/Not qualified yet/i.test(await page.locator('body').innerText())) failures.push(`${vpName}: not-qualified section missing`);
       await page.getByText(/Not qualified yet/i).first().scrollIntoViewIfNeeded();
       await page.screenshot({ path: join(OUT, `auth-${vpName}-leaderboard-pending.png`) });
+      // drop two places, look again: the change is shown once
+      const mine = lb.find((r) => r.is_me);
+      const was = mine.rank;
+      lb.filter((r) => r.qualified && r.rank <= 3).forEach((r) => { r.rank = r.is_me ? 3 : r.rank + (r.rank < 3 ? 1 : 0) - (r.rank === 3 ? 2 : 0); });
+      await page.goto(base + '/leagues', { waitUntil: 'networkidle' });
+      await page.getByText('Leaderboards').first().click();
+      await page.waitForTimeout(1200);
+      if (!/Down 2/.test(await page.locator('body').innerText())) failures.push(`${vpName}: table position change not shown`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-rank-change.png`) });
+      lb.forEach((r) => { if (r.qualified && r.rank <= 3) r.rank = r.is_me ? was : r.rank; });
+      lb.filter((r) => r.qualified).sort((a, b) => b.value - a.value).forEach((r, i) => { r.rank = i + 1; });
     }
     if (name === 'session') {
       const text0 = await page.locator('body').innerText();
@@ -220,6 +232,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       if (!/Dave/.test(text0)) failures.push(`${vpName}: guest not in squad`);
       if (!/Watch the game/i.test(text0)) failures.push(`${vpName}: match videos section missing`);
       if (!/10°C · Light rain/.test(text0)) failures.push(`${vpName}: kick-off weather missing`);
+      if (!/Squad complete/.test(text0)) failures.push(`${vpName}: squad complete missing`);
       if (!/77% reliable/.test(text0) || /95% reliable/.test(text0)) failures.push(`${vpName}: host reliability warning wrong`);
       await page.getByRole('button', { name: 'Can’t make it' }).first().click();
       await page.waitForTimeout(400);
@@ -273,24 +286,52 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     const ot = await page.locator('body').innerText();
     if (!ot.includes('A place just opened for you') || !/in the next 2\dm/.test(ot)) failures.push(`${vpName}: waiting-list offer not shown`);
     await page.screenshot({ path: join(OUT, `auth-${vpName}-offer.png`) });
+    // take the place: the card celebrates
+    rpcs.respond_to_session = 'confirmed';
+    Object.assign(mine, { status: 'confirmed', offer_expires_at: null });
+    await page.getByRole('button', { name: 'I’m in' }).first().click();
+    await page.waitForTimeout(900);
+    if (!(await page.locator('body').innerText()).includes('You’re in! ⚽')) failures.push(`${vpName}: I'm in celebration missing`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-im-in.png`) });
+    delete rpcs.respond_to_session;
     Object.keys(mine).forEach((k) => delete mine[k]);
     Object.assign(mine, before);
+  }
+
+  // teams reveal: a player (not the host) opening confirmed line-ups
+  {
+    rpcs.is_session_manager = false;
+    await page.goto(base + `/session/${SID}/lineup`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(2600);
+    const tt = await page.locator('body').innerText();
+    if (!tt.includes('Teams are out') || !tt.includes('You’re on Bibs')) failures.push(`${vpName}: teams reveal not shown`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-teams-reveal.png`) });
+    await page.getByRole('button', { name: 'See the pitch' }).click();
+    rpcs.is_session_manager = true;
   }
 
   // finalised session: the shareable match report
   {
     const saved = { status: session.status, fixtures: JSON.stringify(fixtures), t: { ...table } };
     session.status = 'finalised';
+    session.finalised_at = ago(0.1);
     fixtures[0].played = true; fixtures[0].teams[0].score = 7; fixtures[0].teams[1].score = 5;
     table.motm_awards = [{ user_id: people[2].id, fixture_id: null, votes: 6, shared: false }];
     table.player_goals = [{ user_id: ME, fixture_id: FID, goals: 2, assists: 1 }, { user_id: people[2].id, fixture_id: FID, goals: 3, assists: 0 }, { user_id: people[6].id, fixture_id: FID, goals: 1, assists: 2 }];
     table.session_player_statistics = [{ user_id: ME, rating_avg: '8.20', rating_eligible: true, goals: 2, motm: false }];
     await page.goto(base + `/session/${SID}`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(600);
+    if (!/And the Man of the Match is/.test(await page.locator('body').innerText())) failures.push(`${vpName}: MOTM announcement missing`);
+    await page.waitForTimeout(2400);
+    if (!/Jordan Pike[\s\S]*6 votes/.test(await page.locator('body').innerText())) failures.push(`${vpName}: MOTM not revealed`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-motm.png`) });
+    await page.getByRole('button', { name: 'Nice' }).click();
+    await page.waitForTimeout(400);
     const rt = await page.locator('body').innerText();
     if (!rt.includes('Share match report') || !rt.includes('matchdayapp.org') || !/8\.2 rating · 2 goals · 1 assist/.test(rt)) failures.push(`${vpName}: match report card incomplete`);
     await page.getByText('matchdayapp.org').first().locator('xpath=../../..').screenshot({ path: join(OUT, `auth-${vpName}-match-report.png`) }).catch(() => undefined);
     session.status = saved.status;
+    delete session.finalised_at;
     fixtures.splice(0, fixtures.length, ...JSON.parse(saved.fixtures));
     for (const k of Object.keys(table)) if (!(k in saved.t)) delete table[k];
     Object.assign(table, saved.t);
