@@ -27,6 +27,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { TeamOfMonth } from '@/features/TeamOfMonth';
 import { ReliabilityChip, useReliability } from '@/features/Reliability';
+import { GroupWelcome } from '@/features/GroupWelcome';
 
 type Tab = 'overview' | 'members' | 'fixtures' | 'results' | 'tables' | 'awards' | 'seasons' | 'feed' | 'records' | 'fines';
 const AWARD_LABEL: Record<string, string> = {
@@ -130,6 +131,9 @@ export default function GroupScreen() {
         { value: 'members', label: `Members · ${members.length}` },
       ]} />
       {tab === 'fines' && !!myRole && <FinesPanel groupId={id} isAdmin={isAdmin} />}
+      {!!userId && !!myRole && (
+        <GroupWelcome userId={userId} group={g} members={members} nextGame={upcoming[0] ? { id: upcoming[0].id, name: upcoming[0].name, starts_at: upcoming[0].starts_at } : null} />
+      )}
 
       {tab === 'overview' && (
         <View style={{ gap: space.lg }}>

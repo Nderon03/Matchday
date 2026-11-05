@@ -244,6 +244,25 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     }
     await page.screenshot({ path: join(OUT, `auth-${vpName}-${name}.png`), fullPage: vpName === 'phone' });
   }
+  // welcome moment when you've just joined a group
+  {
+    const before = table.group_members;
+    table.group_members = people.map((p, i) => ({ role: i === 0 ? 'member' : i === 1 ? 'owner' : 'member', user_id: p.id, joined_at: i === 0 ? ago(0.01) : ago(300 - i), profile: p,
+      group: { id: GID, name: 'Wednesday Football', logo_url: null, location: 'Hackney', group_members: [{ count: 10 }] } }));
+    await page.goto(base + `/group/${GID}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(2200);
+    const wt = await page.locator('body').innerText();
+    if (!wt.includes('Welcome to Wednesday Football') || !/player #10 of 10/.test(wt) || !wt.includes('are already here')) failures.push(`${vpName}: group welcome not shown`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-group-welcome.png`) });
+    await page.getByRole('button', { name: 'See the game' }).click().catch(() => failures.push(`${vpName}: group welcome has no next game button`));
+    await page.waitForTimeout(500);
+    // only once
+    await page.goto(base + `/group/${GID}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(900);
+    if ((await page.locator('body').innerText()).includes('Welcome to Wednesday Football')) failures.push(`${vpName}: group welcome shown twice`);
+    table.group_members = before;
+  }
+
   // a place offered from the waiting list in the last 24 hours
   {
     const mine = attendance.find((a) => a.user_id === ME);
