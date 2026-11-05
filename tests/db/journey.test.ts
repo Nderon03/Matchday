@@ -114,6 +114,11 @@ describe('single-match journey (5-a-side)', () => {
     await db.rpc<string>(teamB[1], 'submit_goals', { p_session: sessionId, p_goals: 2 });
     const sub3 = await db.rpc<string>(teamB[2], 'submit_goals', { p_session: sessionId, p_goals: 4 });
     await db.rpc(host, 'review_goal_submission', { p_submission: sub3, p_action: 'corrected', p_goals: 3, p_reason: 'One was an own goal' });
+    // messages use the right singular/plural
+    const single = await db.rpc<string>(teamA[2], 'submit_goals', { p_session: sessionId, p_goals: 1 });
+    await db.rpc(host, 'review_goal_submission', { p_submission: single, p_action: 'approved' });
+    const [msg] = await db.admin(`select body from notifications where user_id = $1 and type = 'goals_reviewed' order by created_at desc limit 1`, [teamA[2]]);
+    expect(msg.body).toBe('Your 1 goal now counts towards your stats.');
     // the host's own claim is approved automatically (capped by the score and audited)
     const hostSub = await db.rpc<string>(host, 'submit_goals', { p_session: sessionId, p_goals: 2 });
     expect((await db.admin(`select status from goal_submissions where id = $1`, [hostSub]))[0].status).toBe('approved');

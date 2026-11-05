@@ -6,7 +6,7 @@ import { Avatar, Button, Chip, ErrorState, Header, Loading, Row, Screen, Text, u
 import { rpc } from '@/lib/api';
 import { shareViewAsImage } from '@/lib/share';
 import { useAuth } from '@/providers/AuthProvider';
-import { rating } from '@/domain/format';
+import { rating, plural } from '@/domain/format';
 import { radius, space } from '@/theme/tokens';
 
 function periods() {
@@ -76,7 +76,7 @@ export default function Wrapped() {
                     <Big value={d.best_win_streak} label="Longest win streak" />
                   </View>
                   {!!d.best_performance && (
-                    <Text color="#C9D6CF">Best performance: {d.best_performance.name}{d.best_performance.rating ? ` (${rating(d.best_performance.rating)})` : ''}{d.best_performance.goals ? ` · ${d.best_performance.goals} goals` : ''}</Text>
+                    <Text color="#C9D6CF">Best performance: {d.best_performance.name}{d.best_performance.rating ? ` (${rating(d.best_performance.rating)})` : ''}{d.best_performance.goals ? ` · ${plural(d.best_performance.goals, 'goal')}` : ''}</Text>
                   )}
                   {d.teammates?.length > 0 && <Text color="#C9D6CF">Most games with: {d.teammates.map((t: any) => t.display_name).join(', ')}</Text>}
                 </>
@@ -84,7 +84,7 @@ export default function Wrapped() {
               <Text variant="caption" color="#6F8378">Your football. Your squad. Your statistics.</Text>
             </View>
           </View>
-          <Button title="Share" icon="share-social-outline" onPress={() => shareViewAsImage(ref, `matchday-wrapped-${key}`, `My MATCHDAY ${p.label}: ${d.sessions} sessions, ${d.goals} goals, ${d.motm} MOTM`).catch(toast.error)} />
+          <Button title="Share" icon="share-social-outline" onPress={() => shareViewAsImage(ref, `matchday-wrapped-${key}`, `My MATCHDAY ${p.label}: ${plural(d.sessions, 'session')}, ${plural(d.goals, 'goal')}, ${d.motm} MOTM`).catch(toast.error)} />
         </>
       )}
     </Screen>

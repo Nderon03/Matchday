@@ -57,3 +57,16 @@ export function rating(value: number | string | null | undefined): string {
 }
 
 export const POSITION_LABEL: Record<string, string> = { GK: 'Goalkeeper', DEF: 'Defender', MID: 'Midfielder', FWD: 'Forward', ANY: 'Anywhere' };
+
+/** "1 goal", "3 goals". Pass the plural when it isn't just "+s" ("1 person", "2 people"). */
+export function plural(n: number, one: string, many = `${one}s`) {
+  return `${n} ${Math.abs(n) === 1 ? one : many}`;
+}
+
+/** "Ben", "Ben and Alex", "Ben, Alex and Chris", "Ben, Alex and 3 others". */
+export function nameList(names: string[], max = 3) {
+  if (names.length <= 1) return names[0] ?? '';
+  if (names.length <= max) return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  const rest = names.length - (max - 1);
+  return `${names.slice(0, max - 1).join(', ')} and ${plural(rest, 'other')}`;
+}

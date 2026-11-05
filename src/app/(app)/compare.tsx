@@ -7,7 +7,7 @@ import { q, rpc } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useFriends, useMyGroups, type PublicProfile } from '@/hooks/queries';
-import { formatDate, rating } from '@/domain/format';
+import { formatDate, rating, plural } from '@/domain/format';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 
@@ -162,7 +162,7 @@ export default function Compare() {
               </View>
             )}
           </Card>
-          <Text variant="small" tone="muted">As teammates: {d.teammates.games} games together, {d.teammates.wins} won.</Text>
+          <Text variant="small" tone="muted">As teammates: {plural(d.teammates.games, 'game')} together, {d.teammates.wins} won.</Text>
         </>
       )}
     </Screen>

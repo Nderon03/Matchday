@@ -11,7 +11,7 @@ import { HandshakeScene } from '@/features/moments/Handshake';
 import { rpc } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { useAuth } from '@/providers/AuthProvider';
-import { formatKickoff } from '@/domain/format';
+import { formatKickoff, plural } from '@/domain/format';
 import { usePriceLabel } from '@/hooks/useFees';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
@@ -61,7 +61,7 @@ async function acceptInvite(code: string) {
 function SignedOut({ teaser }: { teaser: any }) {
   const line = !teaser ? 'Sign in or create an account to accept.'
     : teaser.kind === 'friend' ? `${teaser.name} wants to add you as a friend on MATCHDAY.`
-    : teaser.kind === 'group' ? `You’re invited to join ${teaser.name}${teaser.members ? `, ${teaser.members} players` : ''}.`
+    : teaser.kind === 'group' ? `You’re invited to join ${teaser.name}${teaser.members ? `, ${plural(teaser.members, 'player')}` : ''}.`
     : `You’re invited to ${teaser.name}${teaser.starts_at ? `, ${formatKickoff(teaser.starts_at)}` : ''}.`;
   return (
     <Screen edges={['top', 'bottom']} maxWidth={480}>

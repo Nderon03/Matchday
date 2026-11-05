@@ -17,7 +17,7 @@ import { toggleIn } from '@/domain/sets';
 import { useAction } from '@/hooks/useAction';
 import { q, rpc } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
-import { formatDate, formatPence } from '@/domain/format';
+import { formatDate, formatPence, plural } from '@/domain/format';
 import { shareText } from '@/lib/share';
 import { removeGroupMember } from '@/features/removePlayer';
 import { FinesPanel } from '@/features/FinesPanel';
@@ -90,7 +90,7 @@ export default function GroupScreen() {
 
   return (
     <Screen edges={['top', 'bottom']} onRefresh={() => { group.refetch(); sessions.refetch(); }} refreshing={group.isRefetching}>
-      <Header title={g.name} subtitle={`${members.length} members${g.location ? ` · ${g.location}` : ''}`}
+      <Header title={g.name} subtitle={`${plural(members.length, 'member')}${g.location ? ` · ${g.location}` : ''}`}
         right={<Row>
           {!!myRole && <IconButton icon="person-add-outline" label="Invite players" onPress={() => setInviteOpen(true)} />}
           {!!isAdmin && <IconButton icon="settings-outline" label="Group settings" onPress={() => router.push(`/group/${id}/settings`)} />}
@@ -141,7 +141,7 @@ export default function GroupScreen() {
           <Row gap={space.sm}>
             <StatTile compact label="Sessions" value={records.data?.sessions_played ?? '–'} />
             <StatTile compact label="Goals" value={records.data?.goals_scored ?? '–'} />
-            <Pressable style={{ flex: 1 }} onPress={() => setTab('members')} accessibilityRole="button" accessibilityLabel={`${members.length} members, see all`}>
+            <Pressable style={{ flex: 1 }} onPress={() => setTab('members')} accessibilityRole="button" accessibilityLabel={`${plural(members.length, 'member')}, see all`}>
               <StatTile compact label="Members ›" value={members.length} />
             </Pressable>
           </Row>
@@ -267,7 +267,7 @@ export default function GroupScreen() {
                       <Ionicons name={a.award === 'player_of_season' ? 'trophy' : a.award === 'golden_boot' ? 'football' : 'ribbon'} size={22} color={colors.gold} />
                       <View style={{ flex: 1 }}>
                         <Text variant="smallStrong">{AWARD_LABEL[a.award] ?? a.award}</Text>
-                        <Text variant="caption" tone="muted">{a.profile.display_name} · {Number(a.value)} ({a.appearances} apps)</Text>
+                        <Text variant="caption" tone="muted">{a.profile.display_name} · {Number(a.value)} ({plural(a.appearances, 'app')})</Text>
                       </View>
                       <Avatar uri={a.profile.avatar_url} name={a.profile.display_name} size={32} />
                     </Row>
@@ -315,12 +315,12 @@ export default function GroupScreen() {
           {!!records.data && ([
             ['Highest-scoring game', records.data.highest_scoring_fixture, (r: any) => `${r.score} · ${r.name}, ${formatDate(r.date)}`],
             ['Biggest victory', records.data.biggest_victory, (r: any) => `${r.score} · ${r.name}, ${formatDate(r.date)}`],
-            ['Most goals in a session', records.data.most_goals_in_session, (r: any) => `${r.user.display_name} · ${r.value} goals`],
+            ['Most goals in a session', records.data.most_goals_in_session, (r: any) => `${r.user.display_name} · ${plural(r.value, 'goal')}`],
             ['Highest session rating', records.data.highest_session_rating, (r: any) => `${r.user.display_name} · ${Number(r.value).toFixed(1)}`],
-            ['Most consecutive wins', records.data.most_consecutive_wins, (r: any) => `${r.user.display_name} · ${r.value} games`],
-            ['Longest unbeaten run', records.data.longest_unbeaten, (r: any) => `${r.user.display_name} · ${r.value} games`],
+            ['Most consecutive wins', records.data.most_consecutive_wins, (r: any) => `${r.user.display_name} · ${plural(r.value, 'game')}`],
+            ['Longest unbeaten run', records.data.longest_unbeaten, (r: any) => `${r.user.display_name} · ${plural(r.value, 'game')}`],
             ['Most MOTM in a season', records.data.most_motm_in_season, (r: any) => `${r.user.display_name} · ${r.value} (${r.season})`],
-            ['All-time top scorer', records.data.top_scorer, (r: any) => `${r.user.display_name} · ${r.value} goals`],
+            ['All-time top scorer', records.data.top_scorer, (r: any) => `${r.user.display_name} · ${plural(r.value, 'goal')}`],
             ['Most appearances', records.data.most_appearances, (r: any) => `${r.user.display_name} · ${r.value}`],
           ] as [string, any, (r: any) => string][]).map(([label, rec, fmt]) => (
             <Card key={label}>

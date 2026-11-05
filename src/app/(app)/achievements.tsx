@@ -7,7 +7,7 @@ import { Button, Card, ErrorState, Header, Row, Screen, SectionTitle, Sheet, Ske
 import { AchievementBadge } from '@/components/football/AchievementBadge';
 import { StreakCard } from '@/components/football/Streak';
 import { CARD_STYLES, LEVELS, MAX_POINTS, SEASON_CHAMPION, TRACKS, levelInfo, rarityLabel, type CardStyle, type TrackDef } from '@/domain/achievements';
-import { formatDate } from '@/domain/format';
+import { formatDate, plural } from '@/domain/format';
 import { keys, useMyAchievements, type MyAchievement, type MyAchievements } from '@/hooks/queries';
 import { useLayout } from '@/hooks/useLayout';
 import { rpc } from '@/lib/api';
@@ -53,7 +53,7 @@ export default function Achievements() {
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, justifyContent: 'space-between' }}>
             {tracks.map((t, i) => <TrackTile key={t.def.track} t={t} index={i} width={cardWidth} onPress={() => setOpen(t)} />)}
             {!!champion && (
-              <Card style={{ width: cardWidth as any, opacity: champion.unlocked_at ? 1 : 0.85 }} accessibilityLabel={`Season Champion${champion.value ? `, won ${champion.value} times` : ', not yet won'}`}>
+              <Card style={{ width: cardWidth as any, opacity: champion.unlocked_at ? 1 : 0.85 }} accessibilityLabel={`Season Champion${champion.value ? `, won ${plural(champion.value, 'time')}` : ', not yet won'}`}>
                 <View style={{ alignItems: 'center', gap: 6 }}>
                   <AchievementBadge icon={SEASON_CHAMPION.icon} level={champion.unlocked_at ? 5 : 0} size={54} />
                   <Text variant="smallStrong" align="center" numberOfLines={1}>Season Champion</Text>
@@ -168,7 +168,7 @@ function StylePicker({ points, current }: { points: number; current: string }) {
           const selected = current === s.id;
           return (
             <Pressable key={s.id} onPress={() => choose(s)} disabled={!!busy} accessibilityRole="button"
-              accessibilityState={{ selected, disabled: !unlocked }} accessibilityLabel={`${s.name} card${unlocked ? '' : `, needs ${s.points} points`}`}
+              accessibilityState={{ selected, disabled: !unlocked }} accessibilityLabel={`${s.name} card${unlocked ? '' : `, needs ${plural(s.points, 'point')}`}`}
               style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.97 : 1 }] })}>
               <View style={{ width: 118, height: 76, borderRadius: radius.md, overflow: 'hidden', borderWidth: selected ? 2 : 1,
                 borderColor: selected ? colors.primary : s.border ?? colors.border, opacity: unlocked ? 1 : 0.55 }}>
@@ -186,7 +186,7 @@ function StylePicker({ points, current }: { points: number; current: string }) {
                     <Text variant="caption" color={s.accent} style={{ fontWeight: '700' }}>{s.name}</Text>
                     {selected ? <Ionicons name="checkmark-circle" size={16} color={colors.primary} /> : !unlocked ? <Ionicons name="lock-closed" size={13} color={s.muted} /> : null}
                   </Row>
-                  <Text variant="caption" color={s.muted}>{unlocked ? (selected ? 'In use' : 'Tap to use') : `${s.points} points`}</Text>
+                  <Text variant="caption" color={s.muted}>{unlocked ? (selected ? 'In use' : 'Tap to use') : plural(s.points, 'point')}</Text>
                 </View>
               </View>
             </Pressable>

@@ -9,6 +9,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import type { Season } from '@/types/db';
 import { RankChangePill, useRankChange } from '@/features/moments/RankChange';
+import { plural } from '@/domain/format';
 
 export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope: 'group' | 'friends' | 'global'; groupId?: string; seasons?: Season[]; minAppearances?: number }) {
   const { colors } = useTheme();
@@ -22,7 +23,8 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
   const me = rows.find((r) => r.is_me);
   // has my position moved since I last looked at this exact table?
   const delta = useRankChange(`${scope}.${groupId ?? ''}.${seasonId ?? period}.${category}`, lb.isFetching ? null : me?.rank);
-  const unit = category === 'win_pct' ? 'appearances' : category === 'rating' || category === 'form' || category === 'improved' ? 'rated sessions' : 'games';
+  const unitOne = category === 'win_pct' ? 'appearance' : category === 'rating' || category === 'form' || category === 'improved' ? 'rated session' : 'game';
+  const units = (n: number) => plural(n, unitOne);
   const fmt = (v: number) => formatValue(category, v);
   const def = CATEGORIES.find((c) => c.key === category)!;
 
@@ -38,7 +40,7 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
         {seasons?.map((s) => <Chip key={s.id} label={s.name} selected={seasonId === s.id} onPress={() => setSeasonId(s.id)} />)}
       </ScrollView>
       <Text variant="h3">{def.label}</Text>
-      {(category === 'win_pct') && <Text variant="caption" tone="muted">Minimum {minAppearances ?? 5} appearances to qualify.</Text>}
+      {(category === 'win_pct') && <Text variant="caption" tone="muted">Minimum {plural(minAppearances ?? 5, 'appearance')} to qualify.</Text>}
       {(category === 'rating' || category === 'form') && <Text variant="caption" tone="muted">Minimum 3 rated sessions. Every session counts equally.</Text>}
       {category === 'ga' && <Text variant="caption" tone="muted">Goals and assists added together: every goal you score or set up.</Text>}
       {category === 'improved' && <Text variant="caption" tone="muted">Recent-half average minus early-half average (min. 6 rated sessions).</Text>}
@@ -47,7 +49,7 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
       {!!lb.error && <ErrorState error={lb.error} onRetry={lb.refetch} compact />}
       {!!lb.data && all.length === 0 && <EmptyState icon="podium-outline" title="No results yet" message="Play some games — the table fills up as results are finalised." />}
       {!!lb.data && rows.length === 0 && pending.length > 0 && (
-        <Card variant="alt"><Text variant="small">Nobody has reached {pending[0].needed} {unit} yet, so there’s no official ranking. Here’s how everyone is getting on:</Text></Card>
+        <Card variant="alt"><Text variant="small">Nobody has reached {units(pending[0].needed)} yet, so there’s no official ranking. Here’s how everyone is getting on:</Text></Card>
       )}
       {rows.length > 0 && (
         <>
@@ -58,7 +60,7 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
                 <Text variant="statSmall" tone="primary" style={{ width: 36 }}>#{me.rank}</Text>
                 <Text variant="bodyStrong" style={{ flex: 1 }}>You</Text>
                 <RankChangePill delta={delta} />
-                <Text variant="caption" tone="muted">{me.appearances} apps</Text>
+                <Text variant="caption" tone="muted">{plural(me.appearances, 'app')}</Text>
                 <Text variant="statSmall">{fmt(me.value)}</Text>
               </Row>
             </Card>
@@ -72,7 +74,7 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
                 <Avatar uri={r.avatar_url} name={r.display_name} size={34} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text variant="bodyStrong" numberOfLines={1} onPress={() => router.push(`/player/${r.user_id}`)}>{r.display_name}{r.is_me ? ' (you)' : ''}</Text>
-                  <Text variant="caption" tone="muted">{r.appearances} apps</Text>
+                  <Text variant="caption" tone="muted">{plural(r.appearances, 'app')}</Text>
                 </View>
                 {r.is_me && <RankChangePill delta={delta} />}
                 <Text variant="statSmall">{fmt(r.value)}</Text>
@@ -83,14 +85,14 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
       )}
       {pending.length > 0 && (
         <View style={{ gap: space.sm }}>
-          <Text variant="overline" tone="muted">Not qualified yet · needs {pending[0].needed} {unit}</Text>
+          <Text variant="overline" tone="muted">Not qualified yet · needs {units(pending[0].needed)}</Text>
           <Card padded={false}>
             {pending.map((r, i) => (
               <Row key={r.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, backgroundColor: r.is_me ? colors.primaryMuted : 'transparent' }}>
                 <Avatar uri={r.avatar_url} name={r.display_name} size={30} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text variant="bodyStrong" numberOfLines={1} onPress={() => router.push(`/player/${r.user_id}`)}>{r.display_name}{r.is_me ? ' (you)' : ''}</Text>
-                  <Text variant="caption" tone="muted">{r.progress} of {r.needed} {unit}</Text>
+                  <Text variant="caption" tone="muted">{r.progress} of {units(r.needed)}</Text>
                   <View style={{ height: 4, borderRadius: 2, backgroundColor: colors.surfaceAlt, marginTop: 4, overflow: 'hidden' }}>
                     <View style={{ width: `${Math.min(100, (100 * r.progress) / Math.max(1, r.needed))}%`, height: 4, backgroundColor: colors.primary }} />
                   </View>

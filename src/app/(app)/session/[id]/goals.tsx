@@ -10,6 +10,7 @@ import { validateGoalClaim } from '@/domain/validation';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import type { GoalSubmission, SubmissionStatus } from '@/types/db';
+import { plural } from '@/domain/format';
 
 const STATUS: Record<SubmissionStatus, { label: string; tone: 'warning' | 'success' | 'danger' | 'primary' | 'neutral' }> = {
   pending: { label: 'Awaiting approval', tone: 'warning' },
@@ -95,7 +96,7 @@ function GoalsBody({ id }: { id: string }) {
             </Row>
             {!!mine && mine.status !== 'pending' && mine.status !== 'clarification_requested' ? (
               <Text>
-                {mine.approved_goals ?? mine.goals} goal(s){mine.approved_assists ? `, ${mine.approved_assists} assist(s)` : ''}
+                {plural(mine.approved_goals ?? mine.goals, 'goal')}{mine.approved_assists ? `, ${plural(mine.approved_assists, 'assist')}` : ''}
                 {mine.status === 'corrected' ? ` (you claimed ${mine.goals})` : ''}
               </Text>
             ) : (
@@ -155,7 +156,7 @@ function GoalsBody({ id }: { id: string }) {
       {!!d.isManager && (
         <View style={{ gap: space.sm }}>
           <SectionTitle title={`To approve · ${reviewable.length}`} action={reviewable.filter((x) => x.status === 'pending').length > 1 ? 'Approve all' : undefined}
-            onAction={() => run('bulk', () => rpc<number>('bulk_approve_goals', { p_session: id }), (n) => `${n} claim(s) approved`)} />
+            onAction={() => run('bulk', () => rpc<number>('bulk_approve_goals', { p_session: id }), (n) => `${plural(n, 'claim')} approved`)} />
           {reviewable.length === 0 && <Text tone="muted" variant="small">No claims waiting. {pending.some((x) => x.user_id === userId) ? 'Your own claim needs another host or a teammate to approve it.' : ''}</Text>}
           {reviewable.map((sub) => {
             const p = nameOf(sub.user_id);
@@ -167,7 +168,7 @@ function GoalsBody({ id }: { id: string }) {
                     <View style={{ flex: 1 }}>
                       <Text variant="bodyStrong">{p?.display_name}</Text>
                       <Text variant="small" tone="muted">
-                        {sub.goals} goal(s){sub.assists ? ` · ${sub.assists} assist(s)` : ''}{sub.is_late ? ' · late claim' : ''}
+                        {plural(sub.goals, 'goal')}{sub.assists ? ` · ${plural(sub.assists, 'assist')}` : ''}{sub.is_late ? ' · late claim' : ''}
                         {sub.fixture_breakdown?.length ? ` · ${sub.fixture_breakdown.map((b) => `G${d.fixtures.find((f) => f.id === b.fixture_id)?.number}: ${b.goals}${b.assists ? `+${b.assists}a` : ''}`).join(', ')}` : ''}
                       </Text>
                       {!!sub.note && <Text variant="small" tone="muted">“{sub.note}”</Text>}

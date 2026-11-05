@@ -8,6 +8,7 @@ import { useMyGroups } from '@/hooks/queries';
 import { GroupInvites } from '@/features/GroupInvites';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
+import { plural } from '@/domain/format';
 
 export default function Leagues() {
   const { colors } = useTheme();
@@ -38,7 +39,7 @@ export default function Leagues() {
                 <Avatar uri={g.logo_url} name={g.name} size={48} />
                 <View style={{ flex: 1 }}>
                   <Text variant="h3" numberOfLines={1}>{g.name}</Text>
-                  <Text variant="small" tone="muted">{g.member_count} members{g.location ? ` · ${g.location}` : ''}</Text>
+                  <Text variant="small" tone="muted">{plural(g.member_count, 'member')}{g.location ? ` · ${g.location}` : ''}</Text>
                 </View>
                 {g.role !== 'member' && <Badge label={g.role} tone="primary" />}
                 <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />

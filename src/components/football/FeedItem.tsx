@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { Avatar, Card, Row, Text, useToast } from '@/components/ui';
-import { timeAgo } from '@/domain/format';
+import { timeAgo, plural } from '@/domain/format';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import type { FeedItem as FeedRow } from '@/hooks/queries';
@@ -16,7 +16,7 @@ export function describeActivity(item: FeedRow): { icon: keyof typeof Ionicons.g
   const who = item.actor?.display_name ?? 'Someone';
   switch (item.type) {
     case 'session_result': return { icon: 'football', text: `${p.session_name}: full time ${p.score}` };
-    case 'motm': return { icon: 'star', text: `${who} ${p.shared ? 'shared' : 'won'} Man of the Match in ${p.session_name} (${p.votes} votes)` };
+    case 'motm': return { icon: 'star', text: `${who} ${p.shared ? 'shared' : 'won'} Man of the Match in ${p.session_name} (${plural(p.votes, 'vote')})` };
     case 'hat_trick': return { icon: 'flame', text: `${who} scored a hat-trick (${p.goals} goals) in ${p.session_name}` };
     case 'achievement': return { icon: 'ribbon', text: `${who} unlocked “${p.name}”` };
     case 'season_started': return { icon: 'calendar', text: `${p.group_name} started ${p.season_name}` };

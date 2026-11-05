@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
+import { nameList } from '@/domain/format';
 
 const native = Platform.OS !== 'web';
 const first = (name?: string | null) => (name ?? '').split(' ')[0] || 'them';
@@ -148,7 +149,7 @@ function NewFriendsModal({ friends, onClose }: { friends: Friend[]; onClose: () 
     ]).start();
   }, [hand, pop, reduceMotion]);
   const names = friends.map((f) => first(f.display_name));
-  const list = names.length <= 3 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : `${names.slice(0, 2).join(', ')} and ${names.length - 2} others`;
+  const list = nameList(names);
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onClose} accessibilityLabel="Close" />

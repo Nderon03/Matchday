@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase';
 import { shareViewAsImage } from '@/lib/share';
 import { SEASON_CHAMPION, TRACKS, levelInfo, medalPoints, parseCode } from '@/domain/achievements';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
-import { formatDate, formatKickoff, POSITION_LABEL, rating } from '@/domain/format';
+import { formatDate, formatKickoff, POSITION_LABEL, rating, plural } from '@/domain/format';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { ReliabilityChip, useReliability } from '@/features/Reliability';
@@ -48,7 +48,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
 
   const share = async () => {
     try {
-      const r = await shareViewAsImage(cardRef, `matchday-${p.username}`, `${p.display_name} on MATCHDAY — rating ${rating(s?.rating)}, ${s?.goals ?? 0} goals, ${s?.motm ?? 0} MOTM`);
+      const r = await shareViewAsImage(cardRef, `matchday-${p.username}`, `${p.display_name} on MATCHDAY — rating ${rating(s?.rating)}, ${plural(s?.goals ?? 0, 'goal')}, ${s?.motm ?? 0} MOTM`);
       if (r === 'downloaded') toast.success('Player card downloaded');
     } catch (e) {
       toast.error(e);
@@ -91,7 +91,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
       </Row>
 
       {!!p.bio && <Text tone="muted">{p.bio}</Text>}
-      <Text variant="caption" tone="faint">{POSITION_LABEL[p.position]} · Joined {formatDate(p.created_at)} · {d.friends_count} friends</Text>
+      <Text variant="caption" tone="faint">{POSITION_LABEL[p.position]} · Joined {formatDate(p.created_at)} · {plural(d.friends_count, 'friend')}</Text>
       <ReliabilityChip r={reliability.data?.[userId]} />
 
       {d.groups.length > 0 && d.can_view_stats && (
@@ -110,7 +110,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
           <SectionTitle title={groupId ? 'Group record' : 'Career'} />
           <StatGrid>
             <StatTile label="Avg rating" value={rating(s.rating)} sub={`${s.rated_sessions} rated`} accent />
-            <StatTile label="Sessions" value={s.sessions} sub={`${s.fixtures} games`} />
+            <StatTile label="Sessions" value={s.sessions} sub={plural(s.fixtures, 'game')} />
             <StatTile label="Win %" value={`${Number(s.win_pct).toFixed(0)}%`} sub={`${s.wins}W ${s.draws}D ${s.losses}L`} />
             <StatTile label="Goals" value={s.goals} sub={`${(s.goals / Math.max(1, s.sessions)).toFixed(1)} per session`} />
             <StatTile label="Assists" value={s.assists} sub={`${(s.assists / Math.max(1, s.sessions)).toFixed(1)} per session`} />
@@ -152,7 +152,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
                   <Row key={t.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
                     <Avatar uri={t.avatar_url} name={t.display_name} size={32} />
                     <Text variant="bodyStrong" style={{ flex: 1 }} onPress={() => router.push(`/player/${t.user_id}`)}>{t.display_name}</Text>
-                    <Text variant="caption" tone="muted">{t.games} games · {Math.round((100 * t.wins) / Math.max(1, t.games))}% won</Text>
+                    <Text variant="caption" tone="muted">{plural(t.games, 'game')} · {Math.round((100 * t.wins) / Math.max(1, t.games))}% won</Text>
                   </Row>
                 ))}
               </Card>
@@ -264,7 +264,7 @@ function ConnectionsCard({ c, self, name, userId }: { c: Connections; self: bool
     },
     c.nemesis && {
       key: 'nemesis', icon: 'flame' as const, colour: colors.danger, title: 'Nemesis', who: c.nemesis.player,
-      line: `${self ? 'Beat you' : `Beat ${first}`} ${c.nemesis.losses} times in ${c.nemesis.games} games`,
+      line: `${self ? 'Beat you' : `Beat ${first}`} ${plural(c.nemesis.losses ?? 0, 'time')} in ${plural(c.nemesis.games, 'game')}`,
       onPress: () => router.push({ pathname: '/compare', params: { a: userId, b: c.nemesis!.player.id } }),
     },
   ].filter(Boolean) as { key: string; icon: 'people' | 'flame'; colour: string; title: string; who: Linked['player']; line: string; onPress: () => void }[];

@@ -2,7 +2,7 @@ import React, { forwardRef } from 'react';
 import { View, type HostInstance } from 'react-native';
 import Svg, { Defs, Line, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Text } from '@/components/ui';
-import { formatDate } from '@/domain/format';
+import { formatDate, plural } from '@/domain/format';
 import { radius, space } from '@/theme/tokens';
 
 export interface ResultCardData {
@@ -59,7 +59,7 @@ export const ResultCard = forwardRef<HostInstance, { data: ResultCardData }>(fun
         </View>
         {multi && (
           <View style={{ gap: 2, marginTop: -space.sm }}>
-            <Text variant="caption" color={MUTED} align="center">Aggregate over {played.length} games</Text>
+            <Text variant="caption" color={MUTED} align="center">Aggregate over {plural(played.length, 'game')}</Text>
             <Text variant="caption" color={MUTED} align="center">{played.map((f) => `${f.scoreA}–${f.scoreB}`).join('  ·  ')}</Text>
           </View>
         )}

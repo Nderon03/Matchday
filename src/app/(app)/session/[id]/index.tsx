@@ -16,7 +16,7 @@ import { rpc } from '@/lib/api';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
-import { formatKickoff, formatPence, rating, timeUntil } from '@/domain/format';
+import { formatKickoff, formatPence, rating, timeUntil, plural } from '@/domain/format';
 import { sameWeekdayNextWeek } from '@/features/sessionDates';
 import { removeSessionPlayer } from '@/features/removePlayer';
 import { LateStatusCard, useLateStatus } from '@/features/FinesPanel';
@@ -164,7 +164,7 @@ export default function SessionScreen() {
       <Card>
         <View style={{ gap: space.md }}>
           <Row style={{ justifyContent: 'space-between' }}>
-            <Text variant="overline" tone="primary">{s.format_size}-a-side · {s.mode === 'multi' ? `${d.fixtures.length} games` : 'single match'}</Text>
+            <Text variant="overline" tone="primary">{s.format_size}-a-side · {s.mode === 'multi' ? plural(d.fixtures.length, 'game') : 'single match'}</Text>
             {statusBadge(s, me?.status)}
           </Row>
           <View style={{ gap: 6 }}>
@@ -376,7 +376,7 @@ export default function SessionScreen() {
                 <Avatar uri={d.attendance.find((a) => a.user_id === m.user_id)?.profile.avatar_url} name={nameOf(m.user_id)} size={48} ring={colors.gold} />
                 <View style={{ flex: 1 }}>
                   <Text variant="h3">{nameOf(m.user_id)}</Text>
-                  <Text variant="small" tone="muted">{m.votes} votes{m.shared ? ' · shared award' : ''}</Text>
+                  <Text variant="small" tone="muted">{plural(m.votes, 'vote')}{m.shared ? ' · shared award' : ''}</Text>
                 </View>
                 <Ionicons name="star" size={26} color={colors.gold} />
               </Row>
@@ -566,10 +566,10 @@ export default function SessionScreen() {
 
       <Sheet visible={finaliseOpen} onClose={() => setFinaliseOpen(false)} title="Finalise results">
         <Text tone="muted">This publishes the results, awards MOTM and updates everyone’s statistics. Later changes need an audited correction.</Text>
-        {pendingClaims > 0 && <Text tone="danger">{pendingClaims} goal claim(s) still need a decision.</Text>}
+        {pendingClaims > 0 && <Text tone="danger">{plural(pendingClaims, 'goal claim')} still {pendingClaims === 1 ? 'needs' : 'need'} a decision.</Text>}
         {tied.length > 1 && (
           <View style={{ gap: space.sm }}>
-            <Text variant="bodyStrong">MOTM is tied on {top} votes</Text>
+            <Text variant="bodyStrong">MOTM is tied on {plural(top, 'vote')}</Text>
             <Text variant="small" tone="muted">Share the award, or pick a winner as host.</Text>
             <Row gap={space.sm} wrap>
               <Chip label="Share it" selected={!tiebreak} onPress={() => setTiebreak(null)} />

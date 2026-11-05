@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar, Button, Text } from '@/components/ui';
 import { Confetti } from '@/components/football/Confetti';
-import { formatKickoff } from '@/domain/format';
+import { formatKickoff, plural } from '@/domain/format';
 import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
@@ -130,7 +130,7 @@ function Welcome({ group, number, total, squad, nextGame, onClose }: {
                 ))}
               </View>
               <Text variant="caption" tone="faint">
-                {squad[0].profile.display_name.split(' ')[0]}{total > 2 ? ` and ${total - 2} other${total - 2 === 1 ? '' : 's'}` : ''} are already here
+                {squad[0].profile.display_name.split(' ')[0]}{total > 2 ? ` and ${plural(total - 2, 'other')} are` : ' is'} already here
               </Text>
             </View>
           )}

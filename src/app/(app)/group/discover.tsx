@@ -6,6 +6,7 @@ import { Avatar, Badge, Button, Card, EmptyState, ErrorState, Header, Input, Row
 import { rpc } from '@/lib/api';
 import { useAction } from '@/hooks/useAction';
 import { space } from '@/theme/tokens';
+import { plural } from '@/domain/format';
 
 export default function Discover() {
   const [search, setSearch] = useState('');
@@ -29,7 +30,7 @@ export default function Discover() {
             <Avatar uri={g.logo_url} name={g.name} size={44} />
             <View style={{ flex: 1 }}>
               <Text variant="bodyStrong">{g.name}</Text>
-              <Text variant="small" tone="muted">{g.members ?? 0} members{g.location ? ` · ${g.location}` : ''}</Text>
+              <Text variant="small" tone="muted">{plural(g.members ?? 0, 'member')}{g.location ? ` · ${g.location}` : ''}</Text>
             </View>
             {g.join_policy === 'invite_only' ? <Badge label="Invite only" /> : (
               <Button title={g.join_policy === 'open' ? 'Join' : 'Ask to join'} size="sm" loading={busy === g.id}
