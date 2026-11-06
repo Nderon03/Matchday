@@ -29,8 +29,8 @@ export function TaskCard({ task }: { task: Task }) {
           <Ionicons name={m.icon} size={20} color={tint} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text variant="bodyStrong" numberOfLines={1}>{task.subtitle}</Text>
-          <Text variant="small" tone="muted" numberOfLines={1}>
+          <Text variant="bodyStrong" numberOfLines={2}>{task.subtitle}</Text>
+          <Text variant="small" tone="muted" numberOfLines={2}>
             {task.title}{!!task.due_at && ['vote', 'goals'].includes(task.kind) ? ` · closes in ${timeUntil(task.due_at)}` : ''}
           </Text>
         </View>

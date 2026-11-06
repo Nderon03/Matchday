@@ -104,12 +104,12 @@ export default function FindGame() {
                     : left === 0 ? <Badge label="Full · waiting list" tone="warning" />
                     : <Badge label={`${left} ${left === 1 ? 'space' : 'spaces'} left`} tone="neutral" />}
                 </Row>
-                <Text variant="h3" numberOfLines={1}>{g.name}</Text>
+                <Text variant="h3" numberOfLines={2}>{g.name}</Text>
                 <Row gap={6}><Ionicons name="calendar-outline" size={15} color={colors.textMuted} /><Text variant="small" tone="muted">{formatKickoff(g.starts_at)} · {g.duration_minutes} min</Text></Row>
                 {!!(g.venue || g.location || g.postcode) && (
                   <Row gap={6}>
                     <Ionicons name="location-outline" size={15} color={colors.textMuted} />
-                    <Text variant="small" tone="muted" numberOfLines={1} style={{ flex: 1 }}>{[g.venue, g.location, g.postcode].filter(Boolean).join(' · ')}</Text>
+                    <Text variant="small" tone="muted" numberOfLines={2} style={{ flex: 1 }}>{[g.venue, g.location, g.postcode].filter(Boolean).join(' · ')}</Text>
                     {g.distance_miles != null && <Text variant="smallStrong" tone="primary">{g.distance_miles < 0.1 ? 'here' : `${g.distance_miles.toFixed(1)} mi`}</Text>}
                   </Row>
                 )}

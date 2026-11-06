@@ -14,16 +14,17 @@ export function StatTile({ label, value, sub, accent, compact }: { label: string
       style={{ flex: 1, minWidth: 0, padding: compact ? space.md : space.lg, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, gap: 2 }}
     >
       <Text variant={compact ? 'statSmall' : 'stat'} tone={accent ? 'primary' : 'default'}>{value}</Text>
-      <Text variant="caption" tone="muted" numberOfLines={1}>{label}</Text>
-      {!!sub && <Text variant="caption" tone="faint" numberOfLines={1}>{sub}</Text>}
+      <Text variant="caption" tone="muted" numberOfLines={2}>{label}</Text>
+      {!!sub && <Text variant="caption" tone="faint" numberOfLines={2}>{sub}</Text>}
     </View>
   );
 }
 
 /** Even grid of stat tiles: 3 columns on phones, 5 on wider screens. */
 export function StatGrid({ children }: { children: React.ReactNode }) {
-  const { isWide } = useLayout();
-  const cols = isWide ? 5 : 3;
+  const { isWide, isSmall } = useLayout();
+  // two across on small phones so labels like "G/A a game" aren't cut off
+  const cols = isWide ? 5 : isSmall ? 2 : 3;
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -space.xs }}>
       {React.Children.toArray(children).map((child, i) => (

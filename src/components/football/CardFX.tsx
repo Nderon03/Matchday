@@ -8,7 +8,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 const native = Platform.OS !== 'web';
 // where the sparkles sit (percent of the card, round the edges so they never cover text)
 const STARS: [number, number, number][] = [
-  [3, 4, 10], [93, 3, 12], [95, 46, 9], [2, 52, 9], [94, 91, 11], [50, 1, 8], [24, 95, 8], [70, 96, 9],
+  [3, 4, 10], [93, 3, 12], [95, 46, 9], [2, 52, 9], [96, 26, 9], [50, 1, 8], [24, 95, 8], [42, 97, 9],
 ];
 // Hall of Fame embers: [left %, size, seconds to rise, start delay ms]
 const EMBERS: [number, number, number, number][] = [
@@ -31,7 +31,7 @@ const TIERS: Record<string, Tier> = {
   silver: { texture: 'mesh', corners: 'glow', shine: 'quick', glow: true, rays: false, stars: 0, beam: false },
   gold: { texture: 'brushed', corners: 'ornament', shine: 'quick', glow: true, rays: true, stars: 4, beam: false },
   platinum: { texture: 'facets', corners: 'ornament', shine: 'holo', glow: true, rays: true, stars: 6, beam: false },
-  hall_of_fame: { texture: null, corners: 'ornament', shine: 'quick', glow: true, rays: false, stars: 8, beam: true },
+  hall_of_fame: { texture: null, corners: 'ornament', shine: 'quick', glow: true, rays: true, stars: 8, beam: true },
 };
 
 export function CardFX({ st, radius }: { st: CardStyle; radius: number }) {
@@ -113,7 +113,7 @@ export function CardFX({ st, radius }: { st: CardStyle; radius: number }) {
 
           {/* sunburst rays turning slowly behind the photo (Gold, Platinum) */}
           {tier.rays && (
-            <Animated.View style={{ position: 'absolute', width: big, height: big, left: w * 0.38 - big / 2, top: h * 0.3 - big / 2, opacity: 0.1,
+            <Animated.View style={{ position: 'absolute', width: big, height: big, left: w * 0.38 - big / 2, top: h * 0.3 - big / 2, opacity: st.id === 'gold' ? 0.1 : 0.06,
               transform: [{ rotate: rotate() }] }}>
               <Svg width={big} height={big}>
                 {Array.from({ length: 18 }, (_, i) => {
@@ -178,15 +178,15 @@ export function CardFX({ st, radius }: { st: CardStyle; radius: number }) {
 
           {/* corners */}
           {tier.corners && ([[0, 0], [1, 0], [0, 1], [1, 1]] as const).map(([cx, cy]) => (
-            <Animated.View key={`${cx}${cy}`} style={{ position: 'absolute', [cx ? 'right' : 'left']: 7, [cy ? 'bottom' : 'top']: 7,
+            <Animated.View key={`${cx}${cy}`} style={{ position: 'absolute', [cx ? 'right' : 'left']: 6, [cy ? 'bottom' : 'top']: 6,
               opacity: tier.corners === 'glow' ? pulse(0.35) : 0.9 }}>
               {tier.corners === 'ornament' ? (
-                <Svg width={18} height={18} style={{ transform: [{ scaleX: cx ? -1 : 1 }, { scaleY: cy ? -1 : 1 }] }}>
-                  <Path d="M1 17 V5 Q1 1 5 1 H17" stroke={st.accent} strokeWidth={1.6} fill="none" />
-                  <Path d="M5 9 L9 5 L13 9 L9 13 Z" fill={st.accent} />
+                <Svg width={15} height={15} style={{ transform: [{ scaleX: cx ? -1 : 1 }, { scaleY: cy ? -1 : 1 }] }}>
+                  <Path d="M1 14 V4 Q1 1 4 1 H14" stroke={st.accent} strokeWidth={1.5} fill="none" />
+                  <Path d="M4 7.5 L7.5 4 L11 7.5 L7.5 11 Z" fill={st.accent} />
                 </Svg>
               ) : (
-                <View style={{ width: 14, height: 14, borderColor: st.border ?? st.accent,
+                <View style={{ width: 13, height: 13, borderColor: st.border ?? st.accent,
                   borderTopWidth: cy ? 0 : 2, borderBottomWidth: cy ? 2 : 0, borderLeftWidth: cx ? 0 : 2, borderRightWidth: cx ? 2 : 0 }} />
               )}
             </Animated.View>

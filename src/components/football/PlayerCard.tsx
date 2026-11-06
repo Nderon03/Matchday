@@ -161,7 +161,7 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
             </View>
           ))}
         </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm, minHeight: 24 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm, minHeight: 24, paddingRight: st.base ? 0 : 6 }}>
           <Text variant="overline" color={st.accent}>MATCHDAY</Text>
           {data.medals?.length ? <CardMedals codes={data.medals} size={compact ? 26 : 30} />
             : (

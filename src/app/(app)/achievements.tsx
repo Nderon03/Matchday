@@ -86,7 +86,7 @@ function TrackTile({ t, index, width, onPress }: { t: TrackState; index: number;
       <Card onPress={onPress} accessibilityLabel={`${t.def.name}, ${info ? info.label : 'not started'}${t.next ? `, ${t.value} of ${t.next} to ${levelInfo(t.level + 1).label}` : ', maxed'}`}>
         <View style={{ alignItems: 'center', gap: 6 }}>
           <AchievementBadge icon={t.def.icon} level={t.level} progress={into} target={span} size={54} />
-          <Text variant="smallStrong" align="center" numberOfLines={1}>{t.def.name}</Text>
+          <Text variant="smallStrong" align="center" numberOfLines={2}>{t.def.name}</Text>
           <Text variant="caption" align="center" style={{ color: info ? info.colour : colors.textFaint }}>{info ? info.label : 'Not started'}</Text>
           <View style={{ flexDirection: 'row', gap: 3 }}>
             {[1, 2, 3, 4, 5].map((l) => (

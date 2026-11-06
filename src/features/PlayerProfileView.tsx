@@ -154,7 +154,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
                 return (
                   <View key={t.track} style={{ width: '25%', alignItems: 'center', gap: 4 }} accessible accessibilityLabel={`${t.name}: ${lvl ? levelInfo(lvl).label : 'not started'}`}>
                     <AchievementBadge icon={t.icon} level={lvl} size={44} animate={false} />
-                    <Text variant="caption" align="center" numberOfLines={1} tone={lvl ? 'default' : 'faint'}>{t.name}</Text>
+                    <Text variant="caption" align="center" numberOfLines={2} tone={lvl ? 'default' : 'faint'}>{t.name}</Text>
                     <Text variant="caption" align="center" style={{ color: lvl ? levelInfo(lvl).colour : colors.textFaint, marginTop: -4 }}>{lvl ? levelInfo(lvl).label : '–'}</Text>
                   </View>
                 );
@@ -219,7 +219,7 @@ function PersonalBestsCard({ b, linkable }: { b: PersonalBests; linkable: boolea
             <View style={{ flex: 1 }}>
               <Text variant="smallStrong">{r.label}</Text>
               {!!r.best && (
-                <Text variant="caption" tone="muted" numberOfLines={1} onPress={linkable ? () => router.push(`/session/${r.best!.session_id}`) : undefined}>
+                <Text variant="caption" tone="muted" numberOfLines={2} onPress={linkable ? () => router.push(`/session/${r.best!.session_id}`) : undefined}>
                   {r.best.name} · {formatDate(r.best.played_at)}
                 </Text>
               )}

@@ -38,7 +38,7 @@ export default function Leagues() {
               <Row gap={space.md}>
                 <Avatar uri={g.logo_url} name={g.name} size={48} />
                 <View style={{ flex: 1 }}>
-                  <Text variant="h3" numberOfLines={1}>{g.name}</Text>
+                  <Text variant="h3" numberOfLines={2}>{g.name}</Text>
                   <Text variant="small" tone="muted">{plural(g.member_count, 'member')}{g.location ? ` · ${g.location}` : ''}</Text>
                 </View>
                 {g.role !== 'member' && <Badge label={g.role} tone="primary" />}
