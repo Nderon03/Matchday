@@ -96,6 +96,13 @@ describe('achievements', () => {
     expect(await db.rpc(u, 'set_card_style', { p_style: 'silver' })).toBe('silver');
     await expectAppError(db.rpc(u, 'set_card_style', { p_style: 'hall_of_fame' }), 'style_locked');
     await expectAppError(db.rpc(u, 'set_card_style', { p_style: 'rainbow' }), 'invalid_style');
+    // up to three earned medals on the card, one level per medal
+    const earned = (await db.admin(`select achievement_code c from player_achievements where user_id = $1 order by c`, [u])).map((r) => r.c);
+    const goals = earned.filter((c: string) => c.startsWith('goals_'));
+    expect(await db.rpc(u, 'set_card_medals', { p_codes: [goals[0]] })).toEqual([goals[0]]);
+    await expectAppError(db.rpc(u, 'set_card_medals', { p_codes: goals.slice(0, 2) }), 'invalid');
+    await expectAppError(db.rpc(u, 'set_card_medals', { p_codes: ['motm_l5'] }), 'medal_locked');
+    await expect(db.as(u, `update profiles set card_medals = '{motm_l5}' where id = $1`, [u])).rejects.toThrow(/permission denied/);
     await expect(db.as(u, `update profiles set card_style = 'hall_of_fame' where id = $1`, [u])).rejects.toThrow(/permission denied/);
     expect((await db.admin(`select card_style from profiles where id = $1`, [u]))[0].card_style).toBe('silver');
   });

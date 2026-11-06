@@ -50,7 +50,7 @@ const home = {
 };
 const table = {
   groups: [{ id: GID, name: 'Wednesday Football', description: 'Weekly 5-a-side in Hackney.', visibility: 'private', join_policy: 'request', location: 'Hackney', rules: null, logo_url: null, cover_url: null, created_by: ME }],
-  profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z', terms_version: LEGAL_VERSION, terms_accepted_at: '2026-11-01T00:00:00Z', card_style: 'gold', nationality: 'XK', supported_club: 'arsenal' }],
+  profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z', terms_version: LEGAL_VERSION, terms_accepted_at: '2026-11-01T00:00:00Z', card_style: 'gold', nationality: 'XK', supported_club: 'arsenal', card_medals: ['goals_l3', 'motm_l2', 'season_champion'] }],
   session_videos: [{ id: 'v1', session_id: SID, video_id: 'dQw4w9WgXcQ', title: 'Game 1', added_by: ME, created_at: kickoff }],
   payments: [],
   session_guests: [{ id: 'g1111111-1111-4111-8111-111111111111', session_id: SID, name: 'Dave', added_by: people[1].id, status: 'confirmed', created_at: kickoff },
@@ -113,6 +113,7 @@ const rpcs = {
   },
   get_my_achievements: myAchievements,
   set_card_style: 'crimson',
+  set_card_medals: [],
   get_home_dashboard: home, get_pending_tasks: home.tasks, is_session_manager: true,
   get_session_payment_statuses: people.slice(1, 9).map((p, i) => ({ user_id: p.id, status: ['paid', 'authorised', 'unpaid', 'paid', 'failed', 'paid', 'pending', 'paid'][i], method: 'card' })),
   get_player_strengths: people.slice(0, 9).map((p, i) => ({ user_id: p.id, position: p.position, group_rating: 6 + (i % 4) * 0.5, career_rating: 6.5, form: 7, games: 10, gk_games: i === 0 ? 5 : 0 })),
@@ -185,6 +186,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.waitForTimeout(300);
       if ((await page.locator('body').innerText()).includes('The host removed you from')) failures.push(`${vpName}: removal notice did not dismiss`);
     }
+    if (name === 'profile' && !(await page.getByLabel(/^Medals: Goals Gold, Man of the Match Silver, Season Champion Legend/).count())) failures.push(`${vpName}: card medals missing`);
     if (name === 'edit-profile') {
       // your card is on top; tapping a locked style previews it on the card with how close you are
       await page.getByRole('button', { name: /^Hall of Fame card/ }).click();
@@ -195,6 +197,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.getByRole('button', { name: /^Crimson card/ }).click();
       await page.waitForTimeout(300);
       if (!/Crimson · in use/.test(await page.locator('body').innerText())) failures.push(`${vpName}: base colour not applied`);
+      if (!/Medals on your card · 3\/3/.test(await page.locator('body').innerText())) failures.push(`${vpName}: medal chooser missing`);
     }
     if (name === 'create') {
       await page.goto(base + '/session/new', { waitUntil: 'networkidle' });

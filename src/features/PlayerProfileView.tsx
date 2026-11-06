@@ -34,7 +34,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   const links = useQuery({ queryKey: ['player', userId, 'connections'], queryFn: () => rpc<Connections | null>('get_player_connections', { p_user: userId }) });
   const bests = useQuery({ queryKey: ['player', userId, 'bests'], queryFn: () => rpc<PersonalBests | null>('get_personal_bests', { p_user: userId }) });
   // card style, flag and club live on the profile row (readable by everyone signed in)
-  const style = useQuery({ queryKey: ['player', userId, 'card'], queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null } | null>(supabase.from('profiles').select('card_style, nationality, supported_club').eq('id', userId).maybeSingle()) });
+  const style = useQuery({ queryKey: ['player', userId, 'card'], queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null; card_medals: string[] } | null>(supabase.from('profiles').select('card_style, nationality, supported_club, card_medals').eq('id', userId).maybeSingle()) });
 
   if (profile.isLoading) return <View style={{ gap: space.md }}><Skeleton height={220} /><Skeleton height={100} /><Skeleton height={100} /></View>;
   if (!profile.data) return <ErrorState error={profile.error} onRetry={profile.refetch} />;
@@ -58,7 +58,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   return (
     <View style={{ gap: space.lg }}>
       <HandshakeModal them={newFriend} onClose={() => setNewFriend(null)} />
-      <PlayerCard ref={cardRef} data={{ ...p, stats: s ? { ...s, rating: s.rating } : null, achievements: points, card_style: style.data?.card_style, nationality: style.data?.nationality, supported_club: style.data?.supported_club, reliability: reliability.data?.[userId] ?? null }} />
+      <PlayerCard ref={cardRef} data={{ ...p, stats: s ? { ...s, rating: s.rating } : null, achievements: points, card_style: style.data?.card_style, nationality: style.data?.nationality, supported_club: style.data?.supported_club, medals: style.data?.card_medals, reliability: reliability.data?.[userId] ?? null }} />
 
       <Row gap={space.sm} wrap>
         {d.is_self ? (

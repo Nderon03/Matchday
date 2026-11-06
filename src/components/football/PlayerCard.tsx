@@ -4,7 +4,8 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { radius, space } from '@/theme/tokens';
 import { Avatar, Text } from '@/components/ui';
 import { POSITION_LABEL, rating } from '@/domain/format';
-import { cardStyle } from '@/domain/achievements';
+import { SEASON_CHAMPION, TRACKS, cardStyle, levelInfo, parseCode } from '@/domain/achievements';
+import { AchievementBadge } from './AchievementBadge';
 import { Ionicons } from '@expo/vector-icons';
 import { ClubShield, Flag } from './Identity';
 import { CardFX } from './CardFX';
@@ -21,6 +22,8 @@ export interface PlayerCardData {
   card_style?: string | null;
   nationality?: string | null;
   supported_club?: string | null;
+  /** up to three medal codes the player chose to show (e.g. goals_l4) */
+  medals?: string[] | null;
   /** turned-up rate, once known (5+ commitments) */
   reliability?: { pct: number | null; attended: number } | null;
 }
@@ -58,6 +61,29 @@ function ReliabilityMark({ r, accent, muted }: { r: PlayerCardData['reliability'
     <View accessible accessibilityLabel={`${r.pct}% reliable`} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
       <Ionicons name="shield-checkmark" size={12} color={accent} />
       <Text variant="caption" color={muted}>Reliable · {r.pct}%</Text>
+    </View>
+  );
+}
+
+/** The medals a player chose to show, small along the bottom of the card. */
+function CardMedals({ codes }: { codes: string[] }) {
+  const items = codes.slice(0, 3).map((c) => {
+    const { track, level } = parseCode(c);
+    const def = c === SEASON_CHAMPION.code ? { name: SEASON_CHAMPION.name, icon: SEASON_CHAMPION.icon } : TRACKS.find((t) => t.track === track);
+    return def ? { code: c, level, name: def.name, icon: def.icon } : null;
+  }).filter((x): x is NonNullable<typeof x> => !!x);
+  if (!items.length) return null;
+  return (
+    <View accessible accessibilityLabel={`Medals: ${items.map((m) => `${m.name} ${levelInfo(m.level).label}`).join(', ')}`}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      {items.map((m) => (
+        <View key={m.code} style={{ alignItems: 'center', gap: 2 }}>
+          <AchievementBadge icon={m.icon} level={m.level} size={30} />
+          <Text color={levelInfo(m.level).colour} style={{ fontSize: 8, lineHeight: 10, fontWeight: '800', letterSpacing: 0.6 }}>
+            {levelInfo(m.level).label.toUpperCase()}
+          </Text>
+        </View>
+      ))}
     </View>
   );
 }
@@ -125,7 +151,8 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text variant="overline" color={st.accent}>MATCHDAY</Text>
-          <Text variant="caption" color={st.muted} style={{ opacity: 0.75 }}>Your football. Your squad. Your statistics.</Text>
+          {data.medals?.length ? <CardMedals codes={data.medals} />
+            : <Text variant="caption" color={st.muted} style={{ opacity: 0.75 }}>Your football. Your squad. Your statistics.</Text>}
         </View>
       </View>
     </View>

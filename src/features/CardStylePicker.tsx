@@ -3,12 +3,13 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { Row, Text, useToast } from '@/components/ui';
+import { Chip, Row, Text, useToast } from '@/components/ui';
+import { AchievementBadge } from '@/components/football/AchievementBadge';
 import { CardFX } from '@/components/football/CardFX';
 import { PlayerCard, type PlayerCardData } from '@/components/football/PlayerCard';
-import { CARD_STYLES, cardStyle, medalPoints, type CardStyle } from '@/domain/achievements';
+import { CARD_STYLES, SEASON_CHAMPION, TRACKS, cardStyle, levelInfo, medalPoints, parseCode, type CardStyle } from '@/domain/achievements';
 import { plural } from '@/domain/format';
-import { keys, useMyAchievements, usePlayerProfile } from '@/hooks/queries';
+import { keys, useMyAchievements, usePlayerProfile, type MyAchievement } from '@/hooks/queries';
 import { useReliability } from '@/features/Reliability';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -56,8 +57,8 @@ export function useMyCardData(): PlayerCardData | null {
   const profile = usePlayerProfile(userId ?? '');
   const extra = useQuery({
     queryKey: ['player', userId, 'card'], enabled: !!userId,
-    queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null } | null>(
-      supabase.from('profiles').select('card_style, nationality, supported_club').eq('id', userId!).maybeSingle()),
+    queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null; card_medals: string[] } | null>(
+      supabase.from('profiles').select('card_style, nationality, supported_club, card_medals').eq('id', userId!).maybeSingle()),
   });
   const reliability = useReliability(userId ? [userId] : []);
   const d = profile.data;
@@ -66,6 +67,7 @@ export function useMyCardData(): PlayerCardData | null {
   return {
     ...d.profile, stats: d.stats ?? null, achievements: medalPoints(unlocked),
     card_style: extra.data?.card_style, nationality: extra.data?.nationality, supported_club: extra.data?.supported_club,
+    medals: extra.data?.card_medals ?? [],
     reliability: reliability.data?.[userId] ?? null,
   };
 }
@@ -82,6 +84,7 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
   const qc = useQueryClient();
   const toast = useToast();
   const [picked, setPicked] = useState<string | null>(null);
+  const [medals, setMedals] = useState<string[] | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const points = mine.data?.points ?? 0;
   const current = picked ?? mine.data?.card_style ?? 'classic';
@@ -115,7 +118,7 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
       {card ? (
         <View>
           <View style={{ opacity: locked ? 0.92 : 1 }}>
-            <PlayerCard data={{ ...card, ...overrides, card_style: shown.id }} />
+            <PlayerCard data={{ ...card, ...overrides, card_style: shown.id, medals: medals ?? card.medals }} />
           </View>
           {locked && (
             <View style={{ position: 'absolute', top: space.sm, right: space.sm, flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -149,6 +152,65 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
       {row(CARD_STYLES.filter((s) => s.base))}
       <Text variant="caption" tone="muted">Earned with medals · you have {plural(points, 'point')}</Text>
       {row(CARD_STYLES.filter((s) => !s.base))}
+      {!!mine.data && <MedalChooser items={mine.data.items} value={medals ?? card?.medals ?? []} onChange={setMedals} />}
+    </View>
+  );
+}
+
+/**
+ * Pick up to three earned medals to show along the bottom of your card, and which level of each
+ * (your best, or a lower one if you prefer the colour). Saved as you tap.
+ */
+function MedalChooser({ items, value, onChange }: { items: MyAchievement[]; value: string[]; onChange: (v: string[]) => void }) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const earned = items.filter((i) => i.unlocked_at);
+  const tracks = [
+    ...TRACKS.map((t) => ({ track: t.track, name: t.name, icon: t.icon, codes: earned.filter((i) => i.track === t.track).sort((a, b) => (a.level ?? 0) - (b.level ?? 0)).map((i) => i.code) })),
+    { track: SEASON_CHAMPION.code, name: SEASON_CHAMPION.name, icon: SEASON_CHAMPION.icon, codes: earned.some((i) => i.code === SEASON_CHAMPION.code) ? [SEASON_CHAMPION.code] : [] },
+  ].filter((t) => t.codes.length);
+
+  const save = async (next: string[]) => {
+    const before = value;
+    onChange(next);
+    haptics.tap();
+    try {
+      await rpc('set_card_medals', { p_codes: next });
+      qc.invalidateQueries({ queryKey: ['player'] });
+    } catch (e) {
+      onChange(before);
+      toast.error(e);
+    }
+  };
+  const pick = (track: { codes: string[] }, code: string | null) => {
+    const others = value.filter((c) => !track.codes.includes(c));
+    if (code && others.length >= 3) return toast.show('Up to 3 medals on your card. Turn one off first.');
+    // keep the order they were added in; a new medal goes on the end
+    const at = value.findIndex((c) => track.codes.includes(c));
+    const next = code ? (at >= 0 ? value.map((c, i) => (i === at ? code : c)) : [...value, code]) : others;
+    save(next);
+  };
+
+  return (
+    <View style={{ gap: space.sm }}>
+      <Text variant="caption" tone="muted">Medals on your card · {value.length}/3</Text>
+      {!tracks.length ? (
+        <Text variant="caption" tone="faint">Earn your first medal (play a game, score, win MOTM) and you can show it off here.</Text>
+      ) : tracks.map((t) => {
+        const chosen = value.find((c) => t.codes.includes(c)) ?? null;
+        return (
+          <View key={t.track} style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+            <AchievementBadge icon={t.icon} level={parseCode(chosen ?? t.codes[t.codes.length - 1]).level} size={30} animate={false} />
+            <Text variant="smallStrong" style={{ width: 92 }} numberOfLines={2}>{t.name}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+              <Chip label="Off" selected={!chosen} onPress={() => chosen && pick(t, null)} />
+              {t.codes.map((c) => (
+                <Chip key={c} label={t.track === SEASON_CHAMPION.code ? 'Show' : levelInfo(parseCode(c).level).label} selected={chosen === c} onPress={() => chosen !== c && pick(t, c)} />
+              ))}
+            </ScrollView>
+          </View>
+        );
+      })}
     </View>
   );
 }
