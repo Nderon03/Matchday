@@ -26,6 +26,27 @@ describe('link previews', () => {
   });
 });
 
+describe('personal friend-invite previews', () => {
+  it('show your card picture and stats only while your profile and stats are public', async () => {
+    const u = await db.createUser(uniq('fp'));
+    const code = await db.rpc<string>(u, 'create_invite_link', { p_kind: 'friend', p_target: u });
+    let r = await db.rpc<any>(null, 'get_link_preview', { p_code: code });
+    expect(r).toMatchObject({ kind: 'friend', card_style: 'classic', card_image: null });
+    expect(r.stats).toMatchObject({ games: 0, goals: 0 });
+    const at = await db.rpc<string>(u, 'set_card_image', { p_saved: true });
+    expect(at).toBeTruthy();
+    r = await db.rpc<any>(null, 'get_link_preview', { p_code: code });
+    expect(r.card_image).toMatch(new RegExp(`^${u}/card\\.jpg\\?v=\\d+$`));
+    // private profile: no picture, no stats
+    await db.admin(`insert into user_preferences (user_id, profile_visibility) values ($1, 'friends')
+                    on conflict (user_id) do update set profile_visibility = 'friends'`, [u]);
+    r = await db.rpc<any>(null, 'get_link_preview', { p_code: code });
+    expect(r.card_image).toBeNull();
+    expect(r.stats).toBeNull();
+    expect(await db.rpc(u, 'set_card_image', { p_saved: false })).toBeNull();
+  });
+});
+
 describe('calendar feed', () => {
   it('lists my games (not cancelled ones) behind a private token that can be reset', async () => {
     const host = await db.createUser(uniq('ch'));

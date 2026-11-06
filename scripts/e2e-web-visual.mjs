@@ -112,6 +112,7 @@ const rpcs = {
     most_assists: null, best_win_streak: 6, best_unbeaten: 9, best_weeks: 9,
   },
   get_my_achievements: myAchievements,
+  set_card_image: '2026-11-06T12:00:00Z',
   set_card_style: 'crimson',
   set_card_medals: [],
   set_card_title: 'baller',
@@ -135,6 +136,8 @@ const rpcs = {
 
 const browser = await chromium.launch();
 const failures = [];
+const cardUploads = [];
+const calls = [];
 async function openPage(vp, { dpr = 1, theme = 'dark' } = {}) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: dpr });
   const errors = [];
@@ -150,9 +153,11 @@ async function openPage(vp, { dpr = 1, theme = 'dark' } = {}) {
     const url = new URL(route.request().url());
     const single = (route.request().headers()['accept'] ?? '').includes('vnd.pgrst.object');
     let body = [];
+    if (url.pathname.includes('/storage/v1/object/share-cards/')) cardUploads.push({ path: url.pathname, bytes: route.request().postDataBuffer()?.length ?? 0 });
     const m = url.pathname.match(/\/rest\/v1\/(rpc\/)?([a-z_]+)/);
     if (m && m[1] && m[2] === 'mark_notifications_read') table.notifications.forEach((n) => { n.read_at = new Date().toISOString(); });
     if (url.pathname.endsWith('/functions/v1/session-weather')) body = { weather: { at: kickoff, temp_c: 10, wind_mph: 11, precip_mm: 0.6, symbol: 'lightrain', summary: 'Light rain', icon: 'rainy-outline' } };
+    if (m && m[1]) calls.push(m[2]);
     if (m && m[1]) body = rpcs[m[2]] ?? null;
     else if (m) body = table[m[2]] ?? [];
     if (single && Array.isArray(body)) body = body[0] ?? null;
@@ -191,6 +196,13 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.getByRole('button', { name: 'OK' }).last().click();
       await page.waitForTimeout(300);
       if ((await page.locator('body').innerText()).includes('The host removed you from')) failures.push(`${vpName}: removal notice did not dismiss`);
+    }
+    if (name === 'profile' && vpName === 'phone') {
+      // your card is saved as a picture for your invite-link preview
+      await page.waitForTimeout(3500);
+      const up = cardUploads.find((u) => u.path.endsWith(`/${ME}/card.jpg`));
+      if (!up || up.bytes < 5000) failures.push(`${vpName}: card picture not saved for link previews (${JSON.stringify(cardUploads)})`);
+      else if (!calls.includes('set_card_image')) failures.push(`${vpName}: card picture not recorded`);
     }
     if (name === 'profile' && !(await page.getByLabel('Title: Baller').count())) failures.push(`${vpName}: card title missing`);
     if (name === 'profile' && !(await page.getByLabel(/^Medals: Goals Gold, Man of the Match Silver, Season Champion Legend/).count())) failures.push(`${vpName}: card medals missing`);

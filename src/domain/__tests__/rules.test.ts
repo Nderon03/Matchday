@@ -68,6 +68,11 @@ describe('achievements', () => {
     expect(titleUnlocked(cardTitle('bib_collector')!, have)).toBe(true);
     expect(titleUnlocked(cardTitle('legend')!, { ...have, points: 40 })).toBe(true);
   });
+  it('the link-preview edge function knows every title', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const edge: string = require('fs').readFileSync(require('path').join(__dirname, '../../../netlify/edge-functions/link-preview.ts'), 'utf8');
+    for (const t of CARD_TITLES) expect(edge).toContain(`${t.id}: '${t.label}'`);
+  });
   it('rarity only shows with enough players', () => {
     expect(rarityLabel(1, 5)).toBeNull();
     expect(rarityLabel(3, 50)).toBe('6% of players');

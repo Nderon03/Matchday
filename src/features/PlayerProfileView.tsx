@@ -4,7 +4,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Avatar, Badge, Button, Card, EmptyState, ErrorState, IconButton, Input, Row, SectionTitle, Sheet, Skeleton, StatGrid, StatTile, SwipeSelect, Text, useToast } from '@/components/ui';
-import { PlayerCard } from '@/components/football/PlayerCard';
+import { PlayerCard, type PlayerCardData } from '@/components/football/PlayerCard';
+import { useCardSnapshot } from '@/features/CardSnapshot';
 import { FormPills, RatingChart } from '@/components/football/FormChart';
 import { usePlayerProfile, keys } from '@/hooks/queries';
 import { useAction } from '@/hooks/useAction';
@@ -36,6 +37,16 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   // card style, flag and club live on the profile row (readable by everyone signed in)
   const style = useQuery({ queryKey: ['player', userId, 'card'], queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null; card_medals: string[]; card_title: string | null } | null>(supabase.from('profiles').select('card_style, nationality, supported_club, card_medals, card_title').eq('id', userId).maybeSingle()) });
 
+  // the card as everyone sees it; your own is also saved as a picture for your invite-link preview
+  const pd = profile.data;
+  const cardData: PlayerCardData | null = pd ? {
+    ...pd.profile, stats: pd.stats ? { ...pd.stats, rating: pd.stats.rating } : null,
+    achievements: medalPoints(new Set<string>((pd.achievements ?? []).map((a: { code: string }) => a.code))),
+    card_style: style.data?.card_style, nationality: style.data?.nationality, supported_club: style.data?.supported_club,
+    medals: style.data?.card_medals, title: style.data?.card_title, reliability: reliability.data?.[userId] ?? null,
+  } : null;
+  const still = useCardSnapshot(cardRef, userId, style.data && reliability.data ? cardData : null, !!pd?.is_self);
+
   if (profile.isLoading) return <View style={{ gap: space.md }}><Skeleton height={220} /><Skeleton height={100} /><Skeleton height={100} /></View>;
   if (!profile.data) return <ErrorState error={profile.error} onRetry={profile.refetch} />;
   const d = profile.data;
@@ -58,7 +69,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   return (
     <View style={{ gap: space.lg }}>
       <HandshakeModal them={newFriend} onClose={() => setNewFriend(null)} />
-      <PlayerCard ref={cardRef} data={{ ...p, stats: s ? { ...s, rating: s.rating } : null, achievements: points, card_style: style.data?.card_style, nationality: style.data?.nationality, supported_club: style.data?.supported_club, medals: style.data?.card_medals, title: style.data?.card_title, reliability: reliability.data?.[userId] ?? null }} />
+      <PlayerCard ref={cardRef} data={cardData!} still={still} />
 
       <Row gap={space.sm} wrap>
         {d.is_self ? (

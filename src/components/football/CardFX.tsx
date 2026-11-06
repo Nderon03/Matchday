@@ -34,7 +34,7 @@ const TIERS: Record<string, Tier> = {
   hall_of_fame: { texture: null, corners: 'ornament', shine: 'quick', glow: true, rays: true, stars: 8, beam: true },
 };
 
-export function CardFX({ st, radius }: { st: CardStyle; radius: number }) {
+export function CardFX({ st, radius, still: frozen }: { st: CardStyle; radius: number; still?: boolean }) {
   const { reduceMotion } = useTheme();
   const tier = TIERS[st.id];
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -43,7 +43,7 @@ export function CardFX({ st, radius }: { st: CardStyle; radius: number }) {
   const [spin] = useState(() => new Animated.Value(0));
   const [twinkle] = useState(() => STARS.map(() => new Animated.Value(0)));
   const [rise] = useState(() => EMBERS.map(() => new Animated.Value(0)));
-  const still = reduceMotion || !tier;
+  const still = reduceMotion || !tier || !!frozen;
 
   useEffect(() => {
     if (still || !tier) return;

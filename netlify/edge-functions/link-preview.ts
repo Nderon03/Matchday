@@ -13,7 +13,46 @@ type Preview = {
   price_pence?: number;
   places_left?: number;
   members?: number;
+  // friend invites: the person's card
+  username?: string;
+  card_style?: string;
+  card_title?: string | null;
+  card_image?: string | null;
+  stats?: { games: number; goals: number; assists: number; motm: number; rating: number | null } | null;
 } | null;
+
+// mirrors src/domain/achievements.ts and src/domain/titles.ts (names only)
+const STYLE_NAMES: Record<string, string> = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum', hall_of_fame: 'Hall of Fame' };
+const TITLES: Record<string, string> = {
+  weekend_warrior: 'Weekend Warrior',
+  sunday_leaguer: 'Sunday Leaguer',
+  bib_collector: 'Bib Collector',
+  astro_turfer: 'Astro Turfer',
+  jumpers_for_goalposts: 'Jumpers for Goalposts',
+  tekkers_trainee: 'Tekkers Trainee',
+  fresh_boots: 'Fresh Boots',
+  club_regular: 'Club Regular',
+  centurion: 'Centurion',
+  off_the_mark: 'Off the Mark',
+  poacher: 'Poacher',
+  goal_machine: 'Goal Machine',
+  brace_yourself: 'Brace Yourself',
+  hat_trick_hero: 'Hat-trick Hero',
+  provider: 'The Provider',
+  architect: 'The Architect',
+  man_of_the_moment: 'Man of the Moment',
+  baller: 'Baller',
+  main_character: 'Main Character',
+  ever_present: 'Ever Present',
+  serial_winner: 'Serial Winner',
+  brick_wall: 'Brick Wall',
+  always_turns_up: 'Always Turns Up',
+  player_of_the_season: 'Player of the Season',
+  elite: 'Elite',
+  legend: 'Legend',
+};
+const titleName = (id?: string | null) => (id ? TITLES[id] ?? null : null);
+const n = (v: number, one: string) => `${v} ${one}${v === 1 ? '' : 's'}`;
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
@@ -39,7 +78,18 @@ export function describe(p: Preview): { title: string; description: string } {
   if (p.kind === 'group') {
     return { title: `Join ${p.name} on MATCHDAY`, description: `${p.members} member${p.members === 1 ? '' : 's'}${p.area ? ` · ${p.area}` : ''}. Tap to join the group.` };
   }
-  return { title: `${p.name} invited you to MATCHDAY`, description: 'Join to play together, see each other’s stats and get invited to games.' };
+  // a friend invite: make it about them
+  const style = p.card_style ? STYLE_NAMES[p.card_style] : undefined;
+  const title = titleName(p.card_title);
+  const tag = [title ? `“${title}”` : null, style ? `${style} card` : null].filter(Boolean).join(' · ');
+  const s = p.stats;
+  const line = s && s.games > 0
+    ? [s.rating != null ? `${Number(s.rating).toFixed(1)} rating` : null, n(s.games, 'game'), n(s.goals, 'goal'), s.assists ? n(s.assists, 'assist') : null, s.motm ? `${s.motm} MOTM` : null].filter(Boolean).join(' · ') + '. '
+    : '';
+  return {
+    title: `${p.name}${tag ? ` · ${tag}` : ''} on MATCHDAY`,
+    description: `${line}Add ${p.name.split(' ')[0]} as a friend to play together and compare stats.`,
+  };
 }
 
 export default async (request: Request, context: Context) => {
@@ -64,7 +114,11 @@ export default async (request: Request, context: Context) => {
     }
   }
   const { title, description } = describe(preview);
-  const image = `${url.origin}/og.png`;
+  // a friend's own card picture when they have one (only saved while their profile is public)
+  const image = preview?.kind === 'friend' && preview.card_image && base
+    ? `${base}/storage/v1/object/public/share-cards/${preview.card_image}`
+    : `${url.origin}/og.png`;
+  const generic = image.endsWith('/og.png');
   const tags = [
     `<meta property="og:type" content="website">`,
     `<meta property="og:site_name" content="MATCHDAY">`,
@@ -72,8 +126,8 @@ export default async (request: Request, context: Context) => {
     `<meta property="og:description" content="${esc(description)}">`,
     `<meta property="og:url" content="${esc(url.href)}">`,
     `<meta property="og:image" content="${image}">`,
-    `<meta property="og:image:width" content="1200">`,
-    `<meta property="og:image:height" content="630">`,
+    ...(generic ? [`<meta property="og:image:width" content="1200">`, `<meta property="og:image:height" content="630">`] : [`<meta property="og:image:type" content="image/jpeg">`]),
+    `<meta property="og:image:alt" content="${esc(title)}">`,
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="description" content="${esc(description)}">`,
   ].join('');

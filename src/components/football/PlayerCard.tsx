@@ -91,7 +91,7 @@ export function CardMedals({ codes, size = 30 }: { codes: string[]; size?: numbe
 }
 
 /** Shareable branded player card, in the player's chosen card style. */
-export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(function PlayerCard({ data }, ref) {
+export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still?: boolean }>(function PlayerCard({ data, still }, ref) {
   const st = cardStyle(data.card_style);
   // earned styles wear their name at the top
   const label = st.label ?? (st.base ? undefined : st.name.toUpperCase());
@@ -116,7 +116,7 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
         </Defs>
         <Rect width="100%" height="100%" fill={`url(#card-${st.id})`} />
       </Svg>
-      <CardFX st={st} radius={radius.xl} />
+      <CardFX st={st} radius={radius.xl} still={still} />
       {st.id === 'hall_of_fame' && (
         <View pointerEvents="none" style={{ position: 'absolute', top: 5, left: 5, right: 5, bottom: 5, borderRadius: radius.xl - 4, borderWidth: 1, borderColor: `${st.accent}55` }} />
       )}
