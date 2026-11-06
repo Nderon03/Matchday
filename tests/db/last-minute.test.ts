@@ -31,7 +31,8 @@ describe('last-minute places', () => {
   it('in the last 24 hours, offers the place for 30 minutes and holds it', async () => {
     const { host, players: [a, b, c, d], sid } = await session(3, 3);
     expect((await att(sid, c)).status).toBe('waitlisted');
-    await db.rpc(a, 'respond_to_session', { p_session: sid, p_response: 'withdrawn' });
+    // players message the host inside 24 hours; the host lets them drop out
+    await db.rpc(host, 'release_session_player', { p_session: sid, p_user: a });
     const offered = await att(sid, c);
     expect(offered.status).toBe('waitlisted');
     expect(offered.offer_expires_at).not.toBeNull();
@@ -46,7 +47,7 @@ describe('last-minute places', () => {
     expect((await att(sid, c)).offer_expires_at).toBeNull();
 
     // b drops out: d is offered it, lets it run out, nobody's left → host is told
-    await db.rpc(b, 'respond_to_session', { p_session: sid, p_response: 'withdrawn' });
+    await db.rpc(host, 'release_session_player', { p_session: sid, p_user: b });
     expect((await att(sid, d)).offer_expires_at).not.toBeNull();
     await db.admin(`update session_attendance set offer_expires_at = now() - interval '1 minute' where session_id = $1 and user_id = $2`, [sid, d]);
     expect((await db.admin(`select public.process_waitlist_offers() n`))[0].n).toBe(1);
@@ -57,8 +58,8 @@ describe('last-minute places', () => {
   });
 
   it('saying no to an offer passes it straight on', async () => {
-    const { players: [a, , c, d], sid } = await session(5, 3);
-    await db.rpc(a, 'respond_to_session', { p_session: sid, p_response: 'withdrawn' });
+    const { host, players: [a, , c, d], sid } = await session(5, 3);
+    await db.rpc(host, 'release_session_player', { p_session: sid, p_user: a });
     await db.rpc(c, 'respond_to_session', { p_session: sid, p_response: 'withdrawn' });
     expect((await att(sid, d)).offer_expires_at).not.toBeNull();
   });

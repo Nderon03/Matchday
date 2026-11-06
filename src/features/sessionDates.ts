@@ -6,14 +6,6 @@ export function nextDays(n = 21, from = new Date()) {
   });
 }
 
-export function sameWeekdayNextWeek(iso: string) {
-  const d = new Date(iso);
-  const next = new Date(d.getTime());
-  const now = new Date();
-  while (next <= now) next.setDate(next.getDate() + 7);
-  return next;
-}
-
 export function combine(date: Date, time: string) {
   const [h, m] = time.split(':').map((x) => parseInt(x, 10));
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), h || 0, m || 0);

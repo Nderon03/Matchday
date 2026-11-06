@@ -1,5 +1,5 @@
 /**
- * Create / edit session form. Optimised for speed: one control per choice (swipe through),
+ * Create / edit session form. Only the essentials: Optimised for speed: one control per choice (swipe through),
  * a calendar and a typed time, sensible defaults, prefill from templates, duplicates and groups.
  */
 import React, { useMemo, useState } from 'react';
@@ -22,7 +22,7 @@ import { radius, space } from '@/theme/tokens';
 import { toggleIn } from '@/domain/sets';
 import { useAuth } from '@/providers/AuthProvider';
 import { usePriceLabel } from '@/hooks/useFees';
-import type { PaymentMode, Recurrence, Session, SessionVisibility } from '@/types/db';
+import type { PaymentMode, Session, SessionVisibility } from '@/types/db';
 
 export interface SessionFormInitial {
   name?: string;
@@ -42,7 +42,6 @@ export interface SessionFormInitial {
   price_pence?: number;
   invitee_ids?: string[];
   template_id?: string | null;
-  motm_mode?: 'session' | 'fixture';
 }
 
 export function SessionForm({ initial, editing }: { initial?: SessionFormInitial; editing?: Session }) {
@@ -59,7 +58,6 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
   const [groupId, setGroupId] = useState<string | null>(initial?.group_id ?? null);
   const [date, setDate] = useState<Date>(startDefault ?? nextDays(2)[1]);
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [time, setTime] = useState(startDefault ? `${String(startDefault.getHours()).padStart(2, '0')}:${String(startDefault.getMinutes()).padStart(2, '0')}` : '19:00');
   const [duration, setDuration] = useState(initial?.duration_minutes ?? 60);
   const [format, setFormat] = useState(initial?.format_size ?? 5);
@@ -87,10 +85,9 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
   const [paymentMode, setPaymentMode] = useState<PaymentMode>(initial?.payment_mode ?? 'free');
   const [price, setPrice] = useState(initial?.price_pence ? (initial.price_pence / 100).toFixed(2) : '');
   const [invitees, setInvitees] = useState<Set<string>>(new Set(initial?.invitee_ids ?? []));
-  const [recurrence, setRecurrence] = useState<Recurrence>('none');
-  const [saveTemplate, setSaveTemplate] = useState(false);
-  const [deadlineHours, setDeadlineHours] = useState<number | null>(null);
-  const [motmMode, setMotmMode] = useState<'session' | 'fixture'>(initial?.motm_mode ?? 'session');
+  // the star: keep these settings as a preset to start from next time (Create → Presets)
+  const [savePreset, setSavePreset] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(!!initial?.description);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -141,9 +138,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         starts_at: startsAt.toISOString(),
         latitude: place?.latitude ?? null,
         longitude: place?.longitude ?? null,
-        motm_mode: motmMode,
         template_id: initial?.template_id ?? null,
-        rsvp_deadline: deadlineHours != null ? new Date(startsAt.getTime() - deadlineHours * 3600_000).toISOString() : '',
       };
       if (editing) {
         await rpc('update_session', { p_session: editing.id, p: body });
@@ -154,13 +149,13 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         router.back();
       } else {
         const id = await rpc<string>('create_session', { p: body });
-        if (recurrence !== 'none' || saveTemplate) {
-          await rpc('save_session_as_template', { p_session: id, p_name: name, p_recurrence: recurrence, p_auto: recurrence !== 'none' });
+        if (savePreset) {
+          await rpc('save_session_as_template', { p_session: id, p_name: name, p_recurrence: 'none', p_auto: false });
           qc.invalidateQueries({ queryKey: ['templates'] });
         }
         qc.invalidateQueries({ queryKey: ['sessions'] });
         qc.invalidateQueries({ queryKey: ['home'] });
-        toast.success(invitees.size ? `Session created · ${invitees.size} invited` : 'Session created');
+        toast.success(`Session created${invitees.size ? ` · ${invitees.size} invited` : ''}${savePreset ? ' · saved as a preset' : ''}`);
         router.replace(`/session/${id}`);
       }
     } catch (e) {
@@ -257,47 +252,38 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         />
       </View>
 
-      <View style={{ gap: space.md }}>
-        <Pressable onPress={() => setMoreOpen((o) => !o)} accessibilityRole="button" accessibilityState={{ expanded: moreOpen }}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs }}>
-          <Text variant="bodyStrong" style={{ flex: 1 }}>More options</Text>
-          <Text variant="caption" tone="faint">{moreOpen ? '' : 'Notes, MOTM, deadline, repeat'}</Text>
-          <Ionicons name={moreOpen ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
+      {notesOpen ? (
+        <Input label="Notes" value={description} onChangeText={setDescription} multiline placeholder="e.g. Bring both bibs. Astro boots only." maxLength={1000} />
+      ) : (
+        <Pressable onPress={() => setNotesOpen(true)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs }}>
+          <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+          <Text variant="bodyStrong" tone="primary">Add notes</Text>
         </Pressable>
-        {moreOpen && (
-          <View style={{ gap: space.lg }}>
-            <Input label="Notes" value={description} onChangeText={setDescription} multiline placeholder="e.g. Bring both bibs. Astro boots only." maxLength={1000} />
-            <SwipeSelect label="Man of the Match" value={motmMode} onChange={setMotmMode} options={[
-              { value: 'session', label: 'Whole session', detail: 'One vote at the end.' },
-              { value: 'fixture', label: 'Every game', detail: 'A vote for each game played.' },
-            ]} />
-            <SwipeSelect label="Can’t-make-it deadline" value={deadlineHours} onChange={setDeadlineHours} options={[
-              { value: null, label: 'None', detail: 'Players can drop out any time.' },
-              { value: 2, label: '2 hours before', detail: 'After that, players have to message you to drop out.' },
-              { value: 12, label: '12 hours before', detail: 'After that, players have to message you to drop out.' },
-              { value: 24, label: '24 hours before', detail: 'After that, players have to message you to drop out.' },
-            ]} />
-            {!editing && (
-              <SwipeSelect label="Repeat" value={recurrence === 'none' && saveTemplate ? 'template' : recurrence}
-                onChange={(v) => { setSaveTemplate(v === 'template'); setRecurrence(v === 'template' ? 'none' : (v as Recurrence)); }}
-                options={[
-                  { value: 'none', label: 'One-off' },
-                  { value: 'weekly', label: 'Every week', detail: 'The next game is created a week ahead and the squad invited again.' },
-                  { value: 'fortnightly', label: 'Every 2 weeks', detail: 'The next game is created ahead and the squad invited again.' },
-                  { value: 'monthly', label: 'Every month', detail: 'The next game is created ahead and the squad invited again.' },
-                  { value: 'template', label: 'Save as a template', detail: 'Reuse these settings later from Create.' },
-                ]} />
-            )}
-          </View>
-        )}
-      </View>
+      )}
 
+      <Text variant="caption" tone="faint">
+        Players can drop out until 24 hours before kick-off; after that they message you. Man of the Match is voted once for the whole session.
+      </Text>
+
+      <Row gap={space.sm} style={{ alignItems: 'stretch' }}>
+        {!editing && !initial?.template_id && (
+          <Pressable onPress={() => setSavePreset((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: savePreset }}
+            accessibilityLabel="Save as a preset"
+            style={({ pressed }) => ({ width: 56, borderRadius: radius.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+              borderColor: savePreset ? colors.warning : colors.border, backgroundColor: pressed ? colors.elevated : savePreset ? `${colors.warning}22` : colors.surfaceAlt })}>
+            <Ionicons name={savePreset ? 'star' : 'star-outline'} size={22} color={savePreset ? colors.warning : colors.textMuted} />
+          </Pressable>
+        )}
+        <View style={{ flex: 1 }}>
       <Button
         title={editing ? 'Save changes' : `Create session${paymentMode !== 'free' && pence ? ` · players pay ${priceLabel(pence).total}` : ''}`}
         size="lg"
         loading={busy}
         onPress={submit}
       />
+        </View>
+      </Row>
+      {savePreset && <Text variant="caption" tone="muted" style={{ marginTop: -space.md }}>★ Saved as a preset too: start from it next time in Create.</Text>}
     </View>
   );
 }

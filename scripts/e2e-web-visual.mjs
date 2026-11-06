@@ -208,6 +208,11 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.getByRole('button', { name: 'Next option' }).nth(1).click();
       await page.waitForTimeout(250);
       if (!(await page.locator('body').innerText()).includes('6-a-side')) failures.push(`${vpName}: format did not change`);
+      // only the essentials: no MOTM, deadline or repeat options; a star saves it as a preset
+      if (/Can’t-make-it deadline|Every game|Every week|More options/.test(ft)) failures.push(`${vpName}: session form still has removed options`);
+      await page.getByRole('checkbox', { name: 'Save as a preset' }).click();
+      await page.waitForTimeout(200);
+      if (!/Saved as a preset too/.test(await page.locator('body').innerText())) failures.push(`${vpName}: preset star did not toggle`);
       await page.screenshot({ path: join(OUT, `auth-${vpName}-session-form.png`), fullPage: vpName === 'phone' });
       await page.goto(base + path, { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
@@ -261,7 +266,8 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.getByRole('button', { name: 'More host tools' }).click();
       await page.waitForTimeout(300);
       const tools = await page.locator('body').innerText();
-      if (!tools.includes('Repeat next week') || !tools.includes('Cancel session')) failures.push(`${vpName}: host tools list incomplete`);
+      if (!tools.includes('Line-ups') || !tools.includes('Cancel session') || tools.includes('Repeat next week')) failures.push(`${vpName}: host tools list incomplete`);
+      if (!(await page.getByRole('button', { name: 'Save as a preset' }).count())) failures.push(`${vpName}: preset star missing`);
       await page.screenshot({ path: join(OUT, `auth-${vpName}-host-tools.png`) });
       await page.getByRole('button', { name: 'Close' }).last().click();
       await page.waitForTimeout(300);

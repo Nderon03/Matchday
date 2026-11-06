@@ -12,7 +12,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 
 const ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
-  friend_request: 'person-add', friend_accepted: 'people', group_added: 'people-circle', session_removed: 'person-remove', group_removed: 'person-remove', late_fine: 'time', payment_reminder: 'card', late_fine_waived: 'checkmark-circle', guest_request: 'person-add', guest_added: 'person-add', guest_removed: 'person-remove', guest_request_decided: 'person', group_join_approved: 'people-circle', session_invite: 'mail', session_reminder: 'alarm', attendance_confirmed: 'checkmark-circle',
+  friend_request: 'person-add', friend_accepted: 'people', group_added: 'people-circle', session_removed: 'person-remove', session_released: 'exit-outline', group_removed: 'person-remove', late_fine: 'time', payment_reminder: 'card', late_fine_waived: 'checkmark-circle', guest_request: 'person-add', guest_added: 'person-add', guest_removed: 'person-remove', guest_request_decided: 'person', group_join_approved: 'people-circle', session_invite: 'mail', session_reminder: 'alarm', attendance_confirmed: 'checkmark-circle',
   waitlist_promoted: 'arrow-up-circle', group_invite: 'mail-unread', group_invite_accepted: 'people', waitlist_offer: 'flash', spot_open: 'person-add', lineup_announced: 'shirt', session_video: 'logo-youtube', payment_required: 'card', payment_confirmed: 'card', payment_failed: 'alert-circle',
   session_finalised: 'flag', goals_awaiting_approval: 'football', goals_reviewed: 'football', goals_submit: 'football', voting_open: 'star',
   voting_reminder: 'star', achievement_unlocked: 'ribbon', season_started: 'calendar', season_award: 'trophy', session_cancelled: 'close-circle',

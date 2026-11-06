@@ -92,7 +92,7 @@ describe('guest fees', () => {
   });
 
   it('dropping out takes your guests with you', async () => {
-    const { p, sid } = await setup('after');
+    const { p, sid } = await setup('after', 3 * 24 * 60);
     await db.rpc(p, 'add_session_guest', { p_session: sid, p_name: 'Dave' });
     await db.rpc(p, 'respond_to_session', { p_session: sid, p_response: 'declined' });
     const guests = await db.admin(`select status from session_guests where session_id = $1`, [sid]);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Switch, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Avatar, Badge, Button, Card, Chip, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Segmented, Stepper, Text, useConfirm, useToast } from '@/components/ui';
+import { Avatar, Badge, Button, Card, Chip, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Stepper, Text, useConfirm, useToast } from '@/components/ui';
 import { keys, useGroup, type GroupDetail } from '@/hooks/queries';
 import { removeGroupMember } from '@/features/removePlayer';
 import { GroupAccessPicker, accessOf, accessToSettings } from '@/features/GroupAccess';
@@ -35,7 +35,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
   const [form, setForm] = useState({ name: g.name, description: g.description ?? '', location: g.location ?? '', rules: g.rules ?? '', visibility: g.visibility as GroupVisibility, join_policy: g.join_policy as GroupJoinPolicy });
   const [cfg, setCfg] = useState(settings ? {
     track_assists: settings.track_assists, leaderboard_min_appearances: settings.leaderboard_min_appearances, voting_window_hours: settings.voting_window_hours,
-    rating_min_votes: settings.rating_min_votes, default_motm_mode: settings.default_motm_mode,
+    rating_min_votes: settings.rating_min_votes,
     late_fines_enabled: settings.late_fines_enabled, late_fine_base_pence: settings.late_fine_base_pence,
     late_fine_cap_pence: settings.late_fine_cap_pence, late_fine_reset_after: settings.late_fine_reset_after,
     require_settled: settings.require_settled,
@@ -92,19 +92,6 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
                 </View>
                 <Stepper value={cfg.voting_window_hours} onChange={(v) => setCfg({ ...cfg, voting_window_hours: v })} min={1} max={336} label="Voting window hours" />
               </Row>
-              <View style={{ gap: space.sm }}>
-                <Text>Ratings needed for a session rating</Text>
-                <Row gap={space.sm} wrap>
-                  <Chip label="Automatic" selected={cfg.rating_min_votes == null} onPress={() => setCfg({ ...cfg, rating_min_votes: null })} />
-                  {[1, 2, 3, 4, 5].map((n) => <Chip key={n} label={String(n)} selected={cfg.rating_min_votes === n} onPress={() => setCfg({ ...cfg, rating_min_votes: n })} />)}
-                </Row>
-                <Text variant="caption" tone="muted">Automatic scales with attendance (40% of other players, between 2 and 5).</Text>
-              </View>
-              <View style={{ gap: space.sm }}>
-                <Text>Man of the Match</Text>
-                <Text variant="caption" tone="muted">One MOTM for the whole session, or one per game when you play several games in a session.</Text>
-                <Segmented value={cfg.default_motm_mode} onChange={(v) => setCfg({ ...cfg, default_motm_mode: v })} options={[{ value: 'session', label: 'Per session' }, { value: 'fixture', label: 'Per game' }]} />
-              </View>
             </View>
           </Card>
         </>

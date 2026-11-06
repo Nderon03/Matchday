@@ -76,13 +76,16 @@ describe('single-match journey (5-a-side)', () => {
     await db.rpc(host, 'invite_to_session', { p_session: sessionId, p_users: [waiter] });
     expect(await db.rpc(waiter, 'respond_to_session', { p_session: sessionId, p_response: 'confirmed' })).toBe('waitlisted');
     // a withdrawal in the last 24 hours offers the place to the next on the waiting list, who takes it
-    expect(await db.rpc(extra, 'respond_to_session', { p_session: sessionId, p_response: 'withdrawn' })).toBe('withdrawn');
+    // inside 24 hours players can't drop themselves out; they message the host, who lets them go
+    await expectAppError(db.rpc(extra, 'respond_to_session', { p_session: sessionId, p_response: 'withdrawn' }), 'deadline_passed');
+    await expectAppError(db.rpc(extra, 'respond_to_session', { p_session: sessionId, p_response: 'declined' }), 'deadline_passed');
+    await db.rpc(host, 'release_session_player', { p_session: sessionId, p_user: extra });
     const [w] = await db.admin(`select status, offer_expires_at from session_attendance where session_id = $1 and user_id = $2`, [sessionId, waiter]);
     expect(w.status).toBe('waitlisted');
     expect(w.offer_expires_at).not.toBeNull();
     expect((await db.admin(`select count(*)::int n from notifications where user_id = $1 and type = 'waitlist_offer'`, [waiter]))[0].n).toBe(1);
     expect(await db.rpc(waiter, 'respond_to_session', { p_session: sessionId, p_response: 'confirmed' })).toBe('confirmed');
-    await db.rpc(waiter, 'respond_to_session', { p_session: sessionId, p_response: 'withdrawn' });
+    await db.rpc(host, 'release_session_player', { p_session: sessionId, p_user: waiter });
     await db.rpc(extra, 'respond_to_session', { p_session: sessionId, p_response: 'confirmed' });
 
     // 8-9: line-ups

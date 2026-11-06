@@ -12,12 +12,13 @@ import { statusBadge } from '@/components/football/SessionCard';
 import { keys, useSessionDetail } from '@/hooks/queries';
 import { useAction } from '@/hooks/useAction';
 import { useNow } from '@/hooks/useNow';
-import { rpc } from '@/lib/api';
+import { q, rpc } from '@/lib/api';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { formatKickoff, formatPence, nameList, rating, timeUntil, plural } from '@/domain/format';
-import { sameWeekdayNextWeek } from '@/features/sessionDates';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 import { removeSessionPlayer } from '@/features/removePlayer';
 import { LateStatusCard, useLateStatus } from '@/features/FinesPanel';
 import { usePriceLabel } from '@/hooks/useFees';
@@ -43,6 +44,7 @@ export default function SessionScreen() {
   const squadReliability = useReliability(detail.data?.isManager ? detail.data.attendance.filter((a) => ['confirmed', 'waitlisted'].includes(a.status)).map((a) => a.user_id) : []);
   const now = useNow();
   const { run, busy } = useAction([keys.session(id), keys.mySessions]);
+  const qc = useQueryClient();
   // when I tapped "I'm in" this visit, so the card can celebrate it
   const [justIn, setJustIn] = useState(0);
   const [syncOpen, setSyncOpen] = useState(false);
@@ -92,7 +94,7 @@ export default function SessionScreen() {
   const waitPos = me?.status === 'waitlisted' ? groups.waitlisted.findIndex((w) => w.user_id === userId) + 1 : 0;
   // a place offered to me from the waiting list (last 24 hours before kick-off)
   const offerUntil = me?.status === 'waitlisted' && me.offer_expires_at && new Date(me.offer_expires_at).getTime() > now ? me.offer_expires_at : null;
-  const lastDay = new Date(s.starts_at).getTime() - now < 24 * 3600_000;
+  const hostName = d.host?.display_name.split(' ')[0] ?? 'the host';
   const showJustIn = me?.status === 'confirmed' && justIn > 0 && now - justIn < 60_000;
 
   const calendarEvent: CalendarEvent = {
@@ -144,6 +146,28 @@ export default function SessionScreen() {
   const blocked = me?.status === 'removed' && !reinvited;
   const guestRequests = d.guests.filter((g) => g.status === 'pending');
   const myGuests = d.guests.filter((g) => g.added_by === userId && (g.status === 'confirmed' || g.status === 'pending'));
+  // the star saves this game's settings as a preset (Create → Presets); tap again to remove it
+  const togglePreset = () => {
+    if (s.template_id) {
+      run('preset', async () => {
+        await q(supabase.from('session_templates').delete().eq('id', s.template_id!));
+        qc.invalidateQueries({ queryKey: ['templates'] });
+      }, 'Preset removed');
+    } else {
+      haptics.success();
+      run('preset', async () => {
+        await rpc('save_session_as_template', { p_session: id, p_name: s.name, p_recurrence: 'none', p_auto: false });
+        qc.invalidateQueries({ queryKey: ['templates'] });
+      }, 'Saved as a preset · find it in Create');
+    }
+  };
+  // drop-outs close 24 hours before kick-off; after that players message the host
+  const dropoutsClosed = !!s.rsvp_deadline && now > new Date(s.rsvp_deadline).getTime();
+  const releasePlayer = async (uid: string, name: string) => {
+    if (await confirm({ title: `Let ${name} drop out?`, message: 'Use this when they’ve told you they can’t make it. Their place goes to the waiting list.', confirmLabel: 'Let them drop out' })) {
+      run(`rel-${uid}`, () => rpc('release_session_player', { p_session: id, p_user: uid }), `${name} dropped out`);
+    }
+  };
   const removePlayer = (uid: string, name: string) => removeSessionPlayer({ confirm, run, sessionId: id, userId: uid, name, guests: d.guests });
   const removeGuest = async (gid: string, name: string, mine: boolean) => {
     const ok = await confirm({
@@ -160,7 +184,15 @@ export default function SessionScreen() {
       <Header
         title={s.name}
         subtitle={d.group?.name ?? `${s.format_size}-a-side`}
-        right={!!d.isManager && ['scheduled', 'in_progress'].includes(s.status) ? <IconButton icon="person-add-outline" label="Invite players" onPress={() => router.push(`/session/${id}/invite`)} /> : undefined}
+        right={d.isManager ? (
+          <Row gap={4}>
+            {s.host_id === userId && (
+              <IconButton icon={s.template_id ? 'star' : 'star-outline'} label={s.template_id ? 'Saved as a preset. Remove preset' : 'Save as a preset'}
+                tone={s.template_id ? 'primary' : undefined} onPress={togglePreset} />
+            )}
+            {['scheduled', 'in_progress'].includes(s.status) && <IconButton icon="person-add-outline" label="Invite players" onPress={() => router.push(`/session/${id}/invite`)} />}
+          </Row>
+        ) : undefined}
       />
 
       <Card>
@@ -237,11 +269,10 @@ export default function SessionScreen() {
               <Row gap={space.sm} wrap>
                 {!!canCheckIn && <Button title="Check in" icon="checkmark-circle-outline" loading={busy === 'checkin'} onPress={() => run('checkin', () => rpc('check_in', { p_session: id }), 'Checked in — see you on the pitch')} />}
                 {!!me.checked_in_at && <Badge label="Checked in" tone="success" align="center" />}
-                <Button title="Can’t make it" variant="secondary" loading={busy === 'rsvp-withdrawn'} onPress={async () => {
+                {!dropoutsClosed && <Button title="Can’t make it" variant="secondary" loading={busy === 'rsvp-withdrawn'} onPress={async () => {
                   const guestsNote = myGuests.length ? ` Your guest${myGuests.length > 1 ? 's' : ''} will be removed too.` : '';
-                  const lateNote = lastDay ? ' Dropping out this close to kick-off counts against your reliability.' : '';
-                  if (await confirm({ title: 'Can’t make it anymore?', message: `Your place goes to the next player on the waiting list.${guestsNote}${lateNote} You can rejoin later if there’s space.`, confirmLabel: 'I can’t make it', destructive: true })) respond('withdrawn');
-                }} />
+                  if (await confirm({ title: 'Can’t make it anymore?', message: `Your place goes to the next player on the waiting list.${guestsNote} You can rejoin later if there’s space.`, confirmLabel: 'I can’t make it', destructive: true })) respond('withdrawn');
+                }} />}
                 <Button title="Add a guest" icon="person-add-outline" variant="ghost" onPress={() => { setGuestName(''); setGuestOpen(true); }} />
               </Row>
             ) : offerUntil ? (
@@ -273,12 +304,15 @@ export default function SessionScreen() {
                   <Row gap={space.sm} wrap>
                     <Button title={groups.confirmed.length + guestsIn.length >= s.max_attendance ? 'Join waiting list' : notAttending ? 'Actually, I’m in' : 'I’m in'} icon="checkmark" loading={busy === 'rsvp-confirmed'} onPress={() => respond('confirmed')} />
                     {me?.status !== 'declined' && me?.status !== 'withdrawn' && <Button title="Can’t make it" variant="secondary" loading={busy === 'rsvp-declined'} onPress={() => respond('declined')} />}
-                    {me?.status !== 'unavailable' && <Button title="Unavailable" variant="ghost" onPress={() => respond('unavailable')} />}
                   </Row>
                 )}
               </View>
             )}
-            {!!s.rsvp_deadline && <Text variant="caption" tone="muted">Withdrawals close {formatKickoff(s.rsvp_deadline)}</Text>}
+            {me?.status === 'confirmed' && s.host_id !== userId && (
+              <Text variant="caption" tone="muted">
+                {dropoutsClosed ? `Drop-outs are closed. Can’t make it? Message ${hostName} and they’ll take you off.` : `You can drop out until ${formatKickoff(s.rsvp_deadline ?? s.starts_at)}. After that, message the host.`}
+              </Text>
+            )}
 
             {myGuests.length > 0 && (
               <View style={{ gap: space.xs }}>
@@ -493,7 +527,12 @@ export default function SessionScreen() {
               {s.payment_mode !== 'free' && a.user_id !== s.host_id && <PaymentBadge status={payments.get(a.user_id)} />}
               {!!balances.data?.get(a.user_id) && <Badge label={`owes ${formatPence(balances.data.get(a.user_id)!)}`} tone="warning" align="center" />}
               {!!d.isManager && a.user_id !== s.host_id && ['scheduled', 'in_progress'].includes(s.status) && (
-                <IconButton icon="person-remove-outline" label={`Remove ${a.profile.display_name}`} size={32} tone="danger" onPress={() => removePlayer(a.user_id, a.profile.display_name)} />
+                <>
+                  {s.status === 'scheduled' && dropoutsClosed && (
+                    <IconButton icon="exit-outline" label={`Let ${a.profile.display_name} drop out`} size={32} onPress={() => releasePlayer(a.user_id, a.profile.display_name)} />
+                  )}
+                  <IconButton icon="person-remove-outline" label={`Remove ${a.profile.display_name}`} size={32} tone="danger" onPress={() => removePlayer(a.user_id, a.profile.display_name)} />
+                </>
               )}
             </Row>
           ))}
@@ -543,12 +582,6 @@ export default function SessionScreen() {
           ].filter(Boolean).map((t: any) => (
             <ListItem key={t.title} title={t.title} left={<Ionicons name={t.icon} size={20} color={colors.textMuted} />} onPress={() => { setToolsOpen(false); router.push(t.go); }} />
           ))}
-          <ListItem title="Repeat next week" left={<Ionicons name="repeat" size={20} color={colors.textMuted} />} onPress={() => { setToolsOpen(false); run('dup', async () => {
-            const newId = await rpc<string>('duplicate_session', { p_session: id, p_starts_at: sameWeekdayNextWeek(s.starts_at).toISOString() });
-            router.push(`/session/${newId}`);
-          }, 'Next week’s session created'); }} />
-          {!s.template_id && <ListItem title="Save as a template" left={<Ionicons name="bookmark-outline" size={20} color={colors.textMuted} />}
-            onPress={() => { setToolsOpen(false); run('tpl', () => rpc('save_session_as_template', { p_session: id, p_name: s.name, p_recurrence: 'none', p_auto: false }), 'Saved as a template'); }} />}
           {['scheduled', 'in_progress'].includes(s.status) && (
             <ListItem title="Cancel session" danger left={<Ionicons name="close-circle-outline" size={20} color={colors.danger} />} onPress={async () => {
               setToolsOpen(false);

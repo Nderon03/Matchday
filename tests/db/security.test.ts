@@ -282,8 +282,8 @@ describe('sessions', () => {
     await db.befriend(host, friend);
     const sid = await db.rpc<string>(host, 'create_session', {
       p: {
-        name: 'Private Kickabout', starts_at: new Date(Date.now() + 86400_000).toISOString(), format_size: 6,
-        invitee_ids: [friend, stranger], rsvp_deadline: new Date(Date.now() - 1000).toISOString(),
+        name: 'Private Kickabout', starts_at: new Date(Date.now() + 12 * 3600_000).toISOString(), format_size: 6,
+        invitee_ids: [friend, stranger],
       },
     });
     // strangers are silently not invited (you may only invite friends / group members)
@@ -292,6 +292,23 @@ describe('sessions', () => {
     expect(await db.as(stranger, `select id from sessions where id = $1`, [sid])).toHaveLength(0);
     expect(await db.rpc(friend, 'respond_to_session', { p_session: sid, p_response: 'confirmed' })).toBe('confirmed');
     await expectAppError(db.rpc(friend, 'respond_to_session', { p_session: sid, p_response: 'withdrawn' }), 'deadline_passed');
+  });
+
+  it('drop-outs close 24 hours before kick-off and MOTM is per session', async () => {
+    const host = await db.createUser(uniq('h'));
+    const kickoff = new Date(Date.now() + 3 * 86400_000);
+    const sid = await db.rpc<string>(host, 'create_session', {
+      p: { name: 'Simple FC', starts_at: kickoff.toISOString(), format_size: 5, motm_mode: 'fixture', rsvp_deadline: '' },
+    });
+    const row = async () => (await db.admin(`select motm_mode, rsvp_deadline, starts_at from sessions where id = $1`, [sid]))[0];
+    let s = await row();
+    expect(s.motm_mode).toBe('session');
+    expect(new Date(s.starts_at).getTime() - new Date(s.rsvp_deadline).getTime()).toBe(86400_000);
+    // moving kick-off moves the deadline with it
+    await db.rpc(host, 'update_session', { p_session: sid, p: { starts_at: new Date(kickoff.getTime() + 3600_000).toISOString(), rsvp_deadline: '', motm_mode: 'fixture' } });
+    s = await row();
+    expect(s.motm_mode).toBe('session');
+    expect(new Date(s.starts_at).getTime() - new Date(s.rsvp_deadline).getTime()).toBe(86400_000);
   });
 
   it('rate limits abusive request patterns', async () => {
