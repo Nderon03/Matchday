@@ -233,6 +233,28 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       const t = await page.locator('body').innerText();
       if (/Make admin|Make moderator/.test(t) || !/About/.test(t) || !/game rules/i.test(t)) failures.push(`${vpName}: group settings layout unexpected`);
       await page.screenshot({ path: join(OUT, `auth-${vpName}-group-settings.png`), fullPage: true });
+      // first group: a quick skippable tour, ending in the invite sheet; ? replays it
+      await page.goto(base + `/group/${GID}?new=1`, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(1200);
+      if (!/Bring your squad/.test(await page.locator('body').innerText())) failures.push(`${vpName}: group tour not shown`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-group-tour.png`) });
+      for (let i = 0; i < 4; i++) { await page.getByRole('button', { name: 'Next' }).last().click(); await page.waitForTimeout(450); }
+      if (!/Need this again\?/.test(await page.locator('body').innerText())) failures.push(`${vpName}: group tour steps missing`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-group-tour-last.png`) });
+      await page.getByRole('button', { name: 'Invite my squad' }).click();
+      await page.waitForTimeout(600);
+      if (!/Invite players to/.test(await page.locator('body').innerText())) failures.push(`${vpName}: tour didn't lead to inviting`);
+      await page.goto(base + `/group/${GID}?new=1`, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(1200);
+      if (/Bring your squad/.test(await page.locator('body').innerText())) failures.push(`${vpName}: group tour shown twice`);
+      await page.getByRole('button', { name: 'How this page works' }).click();
+      await page.waitForTimeout(900);
+      if (!/Bring your squad/.test(await page.locator('body').innerText())) failures.push(`${vpName}: tour didn't replay`);
+      await page.getByText('Skip', { exact: true }).click();
+      await page.waitForTimeout(400);
+      if (/Bring your squad/.test(await page.locator('body').innerText())) failures.push(`${vpName}: tour didn't skip`);
+      await page.goto(base + path, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
     }
     if (name === 'edit-profile') {
       // your card is on top; tapping a locked style previews it on the card with how close you are
@@ -561,7 +583,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
 // pokes out sideways (a horizontal page scroll, or a visible element past the screen edge that
 // isn't inside something meant to scroll sideways or clip).
 const FIT_ROUTES = [
-  '/', '/matches', '/leagues', '/profile', '/create', '/achievements', '/compare', '/friends', '/notifications', '/payments', '/tasks', '/wrapped',
+  '/', '/matches', '/leagues', '/profile', '/create', '/achievements', '/compare', '/friends', '/notifications', '/payments', '/wrapped',
   `/player/${people[1].id}`, `/group/${GID}`, `/group/${GID}/settings`, '/group/discover', '/group/new',
   `/session/${SID}`, `/session/${SID}/lineup`, `/session/${SID}/attendance`, `/session/${SID}/results`, `/session/${SID}/goals`,
   `/session/${SID}/vote`, `/session/${SID}/invite`, `/session/${SID}/payments`, `/session/${SID}/edit`, '/session/new', '/session/find',

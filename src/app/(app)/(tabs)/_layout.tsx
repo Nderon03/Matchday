@@ -61,7 +61,6 @@ function Sidebar() {
   const extra: { href: string; label: string; icon: Icon; badge?: number }[] = [
     { href: '/notifications', label: 'Notifications', icon: 'notifications-outline', badge: unread },
     { href: '/friends', label: 'Friends', icon: 'people-outline' },
-    { href: '/tasks', label: 'To do', icon: 'checkbox-outline' },
     { href: '/settings', label: 'Settings', icon: 'settings-outline' },
   ];
   return (

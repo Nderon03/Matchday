@@ -24,7 +24,7 @@ export default function NewGroup() {
       const id = await rpc<string>('create_group', { p_name: name, p_description: description || null, p_visibility: visibility, p_join_policy: joinPolicy, p_location: null, p_rules: null });
       qc.invalidateQueries({ queryKey: ['groups'] });
       toast.success('Group created — invite your squad');
-      router.replace(`/group/${id}`);
+      router.replace(`/group/${id}?new=1`);
     } catch (e) {
       toast.error(e);
     } finally {

@@ -67,7 +67,7 @@ export function Header({ title, subtitle, right, back = true }: { title: string;
         />
       )}
       <View style={{ flex: 1 }}>
-        <Text variant="h2" numberOfLines={1} accessibilityRole="header">{title}</Text>
+        <Text variant="h2" numberOfLines={2} accessibilityRole="header">{title}</Text>
         {!!subtitle && <Text variant="small" tone="muted" numberOfLines={2}>{subtitle}</Text>}
       </View>
       {right}

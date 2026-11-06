@@ -47,6 +47,25 @@ describe('personal friend-invite previews', () => {
   });
 });
 
+describe('host weekly summary', () => {
+  it('tells each host about their games this week, once', async () => {
+    const host = await db.createUser(uniq('hs'));
+    const a = await db.createUser(uniq('ha'));
+    const b = await db.createUser(uniq('hb'));
+    for (const u of [a, b]) await db.befriend(host, u);
+    const sid = await db.rpc<string>(host, 'create_session', {
+      p: { name: 'Summary FC', starts_at: new Date(Date.now() + 3 * 86400_000).toISOString(), format_size: 5, invitee_ids: [a, b] },
+    });
+    await db.rpc(a, 'respond_to_session', { p_session: sid, p_response: 'confirmed' });
+    await db.admin(`select public.send_host_weekly_summaries()`);
+    await db.admin(`select public.send_host_weekly_summaries()`);
+    const n = await db.admin(`select title, body from notifications where user_id = $1 and type = 'host_summary'`, [host]);
+    expect(n).toHaveLength(1);
+    expect(n[0].title).toMatch(/^Summary FC · /);
+    expect(n[0].body).toBe('2/10 in · 1 yet to reply.');
+  });
+});
+
 describe('calendar feed', () => {
   it('lists my games (not cancelled ones) behind a private token that can be reset', async () => {
     const host = await db.createUser(uniq('ch'));

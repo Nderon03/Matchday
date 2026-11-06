@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar, Badge, Button, Card, EmptyState, ErrorState, IconButton, Row, Screen, SectionTitle, Skeleton, StatTile, Text } from '@/components/ui';
 import { TaskCard } from '@/components/football/TaskCard';
-import { FeedItemCard } from '@/components/football/FeedItem';
-import { useFeed, useFriends, useHome, useMyAchievements } from '@/hooks/queries';
+import { useFriends, useHome, useMyAchievements } from '@/hooks/queries';
 import { StreakFlame } from '@/components/football/Streak';
 import { GetStarted } from '@/features/GetStarted';
 import { useAuth } from '@/providers/AuthProvider';
@@ -29,14 +28,14 @@ export default function Home() {
   const { colors } = useTheme();
   const { isWide } = useLayout();
   const home = useHome();
-  const feed = useFeed();
+  const [allTasks, setAllTasks] = useState(false);
   const price = usePriceLabel();
   const d = home.data;
   const next = d?.next_session;
   const career = d?.career;
 
   return (
-    <Screen onRefresh={() => { home.refetch(); feed.refetch(); }} refreshing={home.isRefetching}>
+    <Screen onRefresh={() => home.refetch()} refreshing={home.isRefetching}>
       <Row style={{ justifyContent: 'space-between', paddingTop: space.sm }}>
         <Row gap={space.md}>
           <Avatar uri={profile?.avatar_url} name={profile?.display_name} size={44} />
@@ -76,8 +75,8 @@ export default function Home() {
 
           {d.tasks.length > 0 && (
             <View style={{ gap: space.sm }}>
-              <SectionTitle title={`To do · ${d.tasks.length}`} action={d.tasks.length > 3 ? 'See all' : undefined} onAction={() => router.push('/tasks')} />
-              {d.tasks.slice(0, 3).map((t: any, i: number) => <TaskCard key={`${t.kind}-${t.session_id}-${i}`} task={t} />)}
+              <SectionTitle title={`To do · ${d.tasks.length}`} action={d.tasks.length > 3 ? (allTasks ? 'Show less' : 'Show all') : undefined} onAction={() => setAllTasks((v) => !v)} />
+              {(allTasks ? d.tasks : d.tasks.slice(0, 3)).map((t: any, i: number) => <TaskCard key={`${t.kind}-${t.session_id}-${i}`} task={t} />)}
             </View>
           )}
 
@@ -150,11 +149,6 @@ export default function Home() {
           )}
 
 
-          <View style={{ gap: space.sm }}>
-            <SectionTitle title="Activity" />
-            {feed.data?.pages[0]?.slice(0, 3).map((item) => <FeedItemCard key={item.id} item={item} />)}
-            {!!feed.data && feed.data.pages[0].length === 0 && <Text tone="muted" variant="small">Activity from your friends and groups will appear here.</Text>}
-          </View>
         </>
       )}
     </Screen>

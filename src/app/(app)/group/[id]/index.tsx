@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ScrollView, View, Pressable } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { ScrollView, View, Pressable, type HostInstance } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -22,6 +22,7 @@ import { shareText } from '@/lib/share';
 import { removeGroupMember } from '@/features/removePlayer';
 import { FinesPanel } from '@/features/FinesPanel';
 import { useOnce } from '@/features/moments/useOnce';
+import { Coachmarks, type CoachStep } from '@/features/Coachmarks';
 import { useGroupBalances } from '@/features/SettleUp';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -37,7 +38,7 @@ const AWARD_LABEL: Record<string, string> = {
 };
 
 export default function GroupScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, new: isNew } = useLocalSearchParams<{ id: string; new?: string }>();
   const { colors } = useTheme();
   const group = useGroup(id);
   const reqReliability = useReliability(group.data?.joinRequests.map((r) => r.user_id) ?? []);
@@ -47,6 +48,13 @@ export default function GroupScreen() {
   const sessions = useGroupSessions(id);
   const [tab, setTab] = useState<Tab>('overview');
   const [inviteOpen, setInviteOpen] = useState(false);
+  // the quick tour: shown once after creating your first group, and again from the ? button
+  const inviteRef = useRef<HostInstance>(null);
+  const settingsRef = useRef<HostInstance>(null);
+  const createRef = useRef<HostInstance>(null);
+  const tabsRef = useRef<HostInstance>(null);
+  const helpRef = useRef<HostInstance>(null);
+  const [tourOpen, setTourOpen] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const friends = useFriends();
   const [seasonOpen, setSeasonOpen] = useState(false);
@@ -75,6 +83,21 @@ export default function GroupScreen() {
   const finesHint = useOnce(`matchday.finesHint.${id}`,
     !!gd && (gd.myRole === 'owner' || gd.myRole === 'admin') && !gd.settings?.late_fines_enabled && (sessions.data ?? []).some((x) => x.payment_mode !== 'free'));
 
+  const firstTour = useOnce('matchday.groupTour', isNew === '1' && gd?.myRole === 'owner');
+  const tourSteps: CoachStep[] = [
+    { target: inviteRef, emoji: '👋', title: 'Bring your squad', body: 'Invite players here: by link, QR code or from your friends. They get a request to join.' },
+    { target: createRef, emoji: '⚽', title: 'Set up a game', body: 'Create the group’s games here. Everyone in the group gets the invite and can tap “I’m in”.' },
+    { target: tabsRef, emoji: '📊', title: 'Everything in one place', body: 'Games, tables and history live in these tabs, with members at the end.' },
+    { target: settingsRef, emoji: '⚙️', title: 'Make it yours', body: 'Change who can join, stats, payments and late fines any time.' },
+    { target: helpRef, emoji: '❓', title: 'Need this again?', body: 'Tap here to replay this quick tour whenever you like.' },
+  ];
+  const endTour = (finished: boolean) => {
+    setTourOpen(false);
+    firstTour.markDone();
+    // straight from creating the group to inviting people
+    if (finished && isNew === '1') setInviteOpen(true);
+  };
+
   if (group.isLoading) return <Screen><Header title="Group" /><Loading /></Screen>;
   if (!group.data) return <Screen><Header title="Group" /><ErrorState error={group.error} onRetry={group.refetch} /></Screen>;
   const { group: g, members, seasons, myRole, joinRequests, settings } = group.data;
@@ -98,8 +121,9 @@ export default function GroupScreen() {
     <Screen edges={['top', 'bottom']} onRefresh={() => { group.refetch(); sessions.refetch(); }} refreshing={group.isRefetching}>
       <Header title={g.name} subtitle={`${plural(members.length, 'member')}${g.location ? ` · ${g.location}` : ''}`}
         right={<Row>
-          {!!myRole && <IconButton icon="person-add-outline" label="Invite players" onPress={() => setInviteOpen(true)} />}
-          {!!isAdmin && <IconButton icon="settings-outline" label="Group settings" onPress={() => router.push(`/group/${id}/settings`)} />}
+          {!!myRole && <View ref={helpRef} collapsable={false}><IconButton size={36} icon="help-circle-outline" label="How this page works" onPress={() => { setTab('overview'); setTourOpen(true); }} /></View>}
+          {!!myRole && <View ref={inviteRef} collapsable={false}><IconButton size={36} icon="person-add-outline" label="Invite players" onPress={() => setInviteOpen(true)} /></View>}
+          {!!isAdmin && <View ref={settingsRef} collapsable={false}><IconButton size={36} icon="settings-outline" label="Group settings" onPress={() => router.push(`/group/${id}/settings`)} /></View>}
         </Row>} />
 
       {!!g.cover_url && <Image source={{ uri: g.cover_url }} style={{ height: 140, borderRadius: radius.lg }} contentFit="cover" />}
@@ -128,12 +152,14 @@ export default function GroupScreen() {
         </Card>
       )}
 
+      <View ref={tabsRef} collapsable={false}>
       <Segmented scroll value={tab} onChange={setTab} options={[
         { value: 'overview', label: 'Overview' }, { value: 'games', label: 'Games' }, { value: 'tables', label: 'Tables' },
         { value: 'history', label: 'History' },
         // last, so it's easy to find (inviting, leaving, removing, fines)
         { value: 'members', label: `Members · ${members.length}` },
       ]} />
+      </View>
       {!!userId && !!myRole && (
         <GroupWelcome userId={userId} group={g} members={members} nextGame={upcoming[0] ? { id: upcoming[0].id, name: upcoming[0].name, starts_at: upcoming[0].starts_at } : null} />
       )}
@@ -148,7 +174,7 @@ export default function GroupScreen() {
               <StatTile compact label="Members ›" value={members.length} />
             </Pressable>
           </Row>
-          {!!myRole && <Button title="Create a session for this group" icon="add" onPress={() => router.push({ pathname: '/session/new', params: { groupId: id } })} />}
+          {!!myRole && <View ref={createRef} collapsable={false}><Button title="Create a session for this group" icon="add" onPress={() => router.push({ pathname: '/session/new', params: { groupId: id } })} /></View>}
           {finesHint.due && (
             <Card variant="alt">
               <Row gap={space.sm}>
@@ -357,6 +383,7 @@ export default function GroupScreen() {
         </View>
       )}
 
+      <Coachmarks steps={tourSteps} visible={tourOpen || firstTour.due} onDone={endTour} finishLabel={isNew === '1' ? 'Invite my squad' : 'Got it'} />
       <Sheet visible={inviteOpen} onClose={() => { setInviteOpen(false); setPicked(new Set()); }} title={`Invite players to ${g.name}`}>
         <ScrollView contentContainerStyle={{ gap: space.md }}>
           {canAdd ? (
