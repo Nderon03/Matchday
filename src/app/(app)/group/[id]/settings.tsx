@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Switch, View } from 'react-native';
+import { Pressable, Switch, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Avatar, Badge, Button, Card, ErrorState, Header, IconButton, Input, ListItem, Loading, Row, Screen, SectionTitle, Sheet, Stepper, SwipeSelect, Text, useConfirm, useToast } from '@/components/ui';
+import { Avatar, Button, Card, ErrorState, Header, Input, ListItem, Loading, Row, Screen, SectionTitle, Sheet, Stepper, SwipeSelect, Text, useConfirm, useToast } from '@/components/ui';
 import { Ionicons } from '@expo/vector-icons';
 import { keys, useGroup, type GroupDetail } from '@/hooks/queries';
 import { removeGroupMember } from '@/features/removePlayer';
@@ -25,6 +25,27 @@ export default function GroupSettings() {
   return <GroupSettingsForm id={id} data={group.data} />;
 }
 
+const ROLE_LABEL: Record<GroupRole, string> = { owner: 'Owner', admin: 'Admin', moderator: 'Moderator', member: 'Member' };
+const ROLE_HINT: Record<GroupRole, string> = {
+  owner: 'Full control.', admin: 'Settings, members, games and fines.', moderator: 'Removes comments and handles reports.', member: 'Plays and invites friends.',
+};
+
+/** One compact settings line: icon, title, a short hint, and the control on the right. */
+function SettingRow({ icon, title, hint, children, last }: { icon: keyof typeof Ionicons.glyphMap; title: string; hint: string; children: React.ReactNode; last?: boolean }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.md, paddingVertical: space.sm + 2,
+      borderBottomWidth: last ? 0 : 1, borderBottomColor: colors.border }}>
+      <Ionicons name={icon} size={18} color={colors.textMuted} />
+      <View style={{ flex: 1 }}>
+        <Text variant="bodyStrong" numberOfLines={1}>{title}</Text>
+        <Text variant="caption" tone="muted" numberOfLines={2}>{hint}</Text>
+      </View>
+      {children}
+    </View>
+  );
+}
+
 function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
   const { colors } = useTheme();
   const { userId } = useAuth();
@@ -34,7 +55,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
   const { run, busy } = useAction([keys.group(id), keys.groups]);
   const reports = useQuery({ queryKey: ['group', id, 'reports'], queryFn: () => q<any[]>(supabase.from('reports').select('*').eq('group_id', id).eq('status', 'open').order('created_at', { ascending: false })) });
   const { myRole, members, group: g, settings } = data;
-  const [form, setForm] = useState({ name: g.name, description: g.description ?? '', location: g.location ?? '', rules: g.rules ?? '', visibility: g.visibility as GroupVisibility, join_policy: g.join_policy as GroupJoinPolicy });
+  const [form, setForm] = useState({ name: g.name, description: g.description ?? '', location: g.location ?? '', visibility: g.visibility as GroupVisibility, join_policy: g.join_policy as GroupJoinPolicy });
   const [cfg, setCfg] = useState(settings ? {
     track_assists: settings.track_assists, leaderboard_min_appearances: settings.leaderboard_min_appearances, voting_window_hours: settings.voting_window_hours,
     rating_min_votes: settings.rating_min_votes,
@@ -45,7 +66,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
   const isOwner = myRole === 'owner';
 
   const save = () => run('save', async () => {
-    await q(supabase.from('groups').update({ name: form.name, description: form.description || null, location: form.location || null, rules: form.rules || null, visibility: form.visibility, join_policy: form.join_policy }).eq('id', id).select().single());
+    await q(supabase.from('groups').update({ name: form.name, description: form.description || null, location: form.location || null, visibility: form.visibility, join_policy: form.join_policy }).eq('id', id).select().single());
     if (cfg) await q(supabase.from('group_settings').update(cfg).eq('group_id', id).select().single());
   }, 'Saved');
 
@@ -57,116 +78,94 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
   return (
     <Screen edges={['top', 'bottom']} maxWidth={680}>
       <Header title="Group settings" subtitle={g.name} />
-      <Row gap={space.md}>
-        <Avatar uri={g.logo_url} name={g.name} size={64} />
-        <View style={{ gap: space.xs }}>
-          <Button title="Change logo" size="sm" variant="secondary" loading={busy === 'logo_url'} onPress={() => upload('logo_url')} />
-          <Button title="Change cover" size="sm" variant="ghost" loading={busy === 'cover_url'} onPress={() => upload('cover_url')} />
+      <Row gap={space.md} style={{ alignItems: 'flex-start' }}>
+        <Pressable onPress={() => upload('logo_url')} accessibilityRole="button" accessibilityLabel="Change logo">
+          <Avatar uri={g.logo_url} name={g.name} size={64} />
+          <View style={{ position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+            backgroundColor: colors.primary, borderWidth: 2, borderColor: colors.bg }}>
+            <Ionicons name={busy === 'logo_url' ? 'hourglass-outline' : 'camera'} size={12} color={colors.onPrimary} />
+          </View>
+        </Pressable>
+        <View style={{ flex: 1, gap: 4 }}>
+          <Input label="Name" value={form.name} onChangeText={(v) => setForm({ ...form, name: v })} />
+          <Text variant="caption" tone="primary" accessibilityRole="button" onPress={() => upload('cover_url')}>{busy === 'cover_url' ? 'Uploading…' : 'Change cover photo'}</Text>
         </View>
       </Row>
-      <Input label="Name" value={form.name} onChangeText={(v) => setForm({ ...form, name: v })} />
-      <Input label="Description" value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} multiline />
-      <Input label="Rules" value={form.rules} onChangeText={(v) => setForm({ ...form, rules: v })} multiline hint="Shown to members on the group page, e.g. pay before kick-off." />
+      <Input label="About" value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} multiline maxLength={2000}
+        placeholder="Who you are, where you play and any house rules (e.g. pay before kick-off)" />
       <GroupAccessPicker value={accessOf(form)} onChange={(a) => setForm({ ...form, ...accessToSettings(a) })} />
       {!!cfg && (
         <>
-          <SectionTitle title="Statistics" />
-          <Card>
-            <View style={{ gap: space.lg }}>
-              <Row style={{ justifyContent: 'space-between' }}>
-                <View style={{ flex: 1 }}>
-                  <Text>Track assists</Text>
-                  <Text variant="caption" tone="muted">Players can claim assists as well as goals, and assists appear on leaderboards.</Text>
-                </View>
-                <Switch value={cfg.track_assists} onValueChange={(v) => setCfg({ ...cfg, track_assists: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Track assists" />
-              </Row>
-              <Row style={{ justifyContent: 'space-between' }}>
-                <View style={{ flex: 1 }}>
-                  <Text>Games needed for average tables</Text>
-                  <Text variant="caption" tone="muted">How many games someone must play to appear in win %, rating and per-game tables, so one lucky game doesn’t top them.</Text>
-                </View>
-                <Stepper value={cfg.leaderboard_min_appearances} onChange={(v) => setCfg({ ...cfg, leaderboard_min_appearances: v })} min={1} max={100} label="Minimum appearances" />
-              </Row>
-              <Row style={{ justifyContent: 'space-between' }}>
-                <View style={{ flex: 1 }}>
-                  <Text>Voting window (hours)</Text>
-                  <Text variant="caption" tone="muted">How long players have after full time to vote for MOTM and rate each other.</Text>
-                </View>
-                <Stepper value={cfg.voting_window_hours} onChange={(v) => setCfg({ ...cfg, voting_window_hours: v })} min={1} max={336} label="Voting window hours" />
-              </Row>
-            </View>
-          </Card>
-        </>
-      )}
-      {cfg && (
-        <>
-          <SectionTitle title="Payments" />
-          <Card>
-            <Row style={{ justifyContent: 'space-between' }}>
-              <View style={{ flex: 1 }}>
-                <Text variant="bodyStrong">Settle up before playing</Text>
-                <Text variant="caption" tone="muted">Players with an unpaid bill from an earlier game can’t join the next one until they pay or you mark it paid in cash. Hosts can still add someone directly.</Text>
+          <SectionTitle title="Game rules" />
+          <Card padded={false}>
+            <SettingRow icon="git-merge-outline" title="Track assists" hint="Players can claim assists">
+              <Switch value={cfg.track_assists} onValueChange={(v) => setCfg({ ...cfg, track_assists: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Track assists" />
+            </SettingRow>
+            <SettingRow icon="podium-outline" title="Games for tables" hint="Minimum to rank on win % and rating">
+              <Stepper size="sm" value={cfg.leaderboard_min_appearances} onChange={(v) => setCfg({ ...cfg, leaderboard_min_appearances: v })} min={1} max={100} label="Games needed for average tables" />
+            </SettingRow>
+            <SettingRow icon="star-outline" title="Voting window" hint="For MOTM and ratings">
+              <View style={{ width: 124 }}>
+                <SwipeSelect compact dots={false} accessibilityLabel="Voting window" value={cfg.voting_window_hours} onChange={(v) => setCfg({ ...cfg, voting_window_hours: v })}
+                  options={[...new Set([6, 12, 24, 48, 72, 168, cfg.voting_window_hours])].sort((x, y) => x - y).map((h) => ({ value: h, label: h === 168 ? '1 week' : `${h} h` }))} />
               </View>
+            </SettingRow>
+            <SettingRow icon="wallet-outline" title="Settle up before playing" hint="Unpaid bills block the next game">
               <Switch value={cfg.require_settled} onValueChange={(v) => setCfg({ ...cfg, require_settled: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Settle up before playing" />
-            </Row>
-          </Card>
-          <SectionTitle title="Late fines" />
-          <Card>
-            <View style={{ gap: space.lg }}>
-              <Row style={{ justifyContent: 'space-between' }}>
-                <View style={{ flex: 1 }}>
-                  <Text variant="bodyStrong">Fine players who arrive late</Text>
-                  <Text variant="caption" tone="muted">Paid sessions only. Hosts mark lateness on the attendance screen and can waive any fine.</Text>
-                </View>
-                <Switch value={cfg.late_fines_enabled} onValueChange={(v) => setCfg({ ...cfg, late_fines_enabled: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Late fines" />
-              </Row>
-              {cfg.late_fines_enabled && (
-                <>
-                  <Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
-                    <SwipeSelect compact label="First fine" value={cfg.late_fine_base_pence} onChange={(v) => setCfg({ ...cfg, late_fine_base_pence: v })}
-                      options={[...new Set([50, 100, 200, cfg.late_fine_base_pence])].sort((x, y) => x - y).map((v) => ({ value: v, label: formatPence(v) }))} />
-                    <SwipeSelect compact label="Maximum fine" value={cfg.late_fine_cap_pence} onChange={(v) => setCfg({ ...cfg, late_fine_cap_pence: v })}
-                      options={[...new Set([400, 800, 1000, 1500, cfg.late_fine_cap_pence])].sort((x, y) => x - y).map((v) => ({ value: v, label: formatPence(v) }))} />
-                  </Row>
-                  <Row style={{ justifyContent: 'space-between' }}>
-                    <View style={{ flex: 1 }}><Text>On-time sessions in a row to reset</Text></View>
-                    <Stepper value={cfg.late_fine_reset_after} onChange={(v) => setCfg({ ...cfg, late_fine_reset_after: v })} min={1} max={20} label="On-time sessions to reset" />
-                  </Row>
-                  <Text variant="caption" tone="muted">
-                    Each late arrival doubles the fine: {[0, 1, 2, 3, 4].map((n) => formatPence(Math.min(cfg.late_fine_cap_pence, cfg.late_fine_base_pence * 2 ** n))).join(' → ')}.
-                    {' '}Fines are added to the player’s next payment in this group.
-                  </Text>
-                </>
-              )}
-            </View>
+            </SettingRow>
+            <SettingRow icon="time-outline" title="Late fines" hint="Paid games only" last={!cfg.late_fines_enabled}>
+              <Switch value={cfg.late_fines_enabled} onValueChange={(v) => setCfg({ ...cfg, late_fines_enabled: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Late fines" />
+            </SettingRow>
+            {cfg.late_fines_enabled && (
+              <View style={{ paddingHorizontal: space.md, paddingBottom: space.md, gap: space.sm }}>
+                <Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
+                  <SwipeSelect compact label="First fine" value={cfg.late_fine_base_pence} onChange={(v) => setCfg({ ...cfg, late_fine_base_pence: v })}
+                    options={[...new Set([50, 100, 200, cfg.late_fine_base_pence])].sort((x, y) => x - y).map((v) => ({ value: v, label: formatPence(v) }))} />
+                  <SwipeSelect compact label="Maximum" value={cfg.late_fine_cap_pence} onChange={(v) => setCfg({ ...cfg, late_fine_cap_pence: v })}
+                    options={[...new Set([400, 800, 1000, 1500, cfg.late_fine_cap_pence])].sort((x, y) => x - y).map((v) => ({ value: v, label: formatPence(v) }))} />
+                </Row>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <Text variant="small" style={{ flex: 1 }}>On-time games to reset</Text>
+                  <Stepper size="sm" value={cfg.late_fine_reset_after} onChange={(v) => setCfg({ ...cfg, late_fine_reset_after: v })} min={1} max={20} label="On-time sessions to reset" />
+                </Row>
+                <Text variant="caption" tone="muted">
+                  Doubles each time: {[0, 1, 2, 3].map((n) => formatPence(Math.min(cfg.late_fine_cap_pence, cfg.late_fine_base_pence * 2 ** n))).join(' → ')}. Added to their next payment in this group.
+                </Text>
+              </View>
+            )}
           </Card>
         </>
       )}
       <Button title="Save changes" size="lg" loading={busy === 'save'} onPress={save} />
 
-      <SectionTitle title="Members & roles" />
-      <Text variant="caption" tone="muted">Owner: full control. Admin: manage settings, members, sessions and fines. Moderator: remove comments and handle reports. Member: play and invite friends.</Text>
+      <SectionTitle title={`Members · ${members.length}`} />
       <Card padded={false}>
-        {members.map((m, i) => (
-          <View key={m.user_id} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, gap: space.sm }}>
-            <Row gap={space.md}>
+        {members.map((m, i) => {
+          const canManage = m.role !== 'owner' && m.user_id !== userId;
+          return (
+            <Pressable key={m.user_id} disabled={!canManage} onPress={() => setManaging(m)} accessibilityRole={canManage ? 'button' : undefined}
+              accessibilityLabel={canManage ? `${m.profile.display_name}, ${m.role}. Manage` : undefined}
+              style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.md, paddingVertical: space.sm,
+                borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}>
               <Avatar uri={m.profile.avatar_url} name={m.profile.display_name} size={32} />
-              <Text variant="bodyStrong" style={{ flex: 1 }}>{m.profile.display_name}{m.user_id === userId ? ' (you)' : ''}</Text>
-              <Badge label={m.role} tone={m.role === 'owner' ? 'primary' : 'neutral'} />
-              {m.role !== 'owner' && m.user_id !== userId && (
-                <IconButton icon="ellipsis-horizontal" size={32} label={`Manage ${m.profile.display_name}`} onPress={() => setManaging(m)} />
-              )}
-            </Row>
-          </View>
-        ))}
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong" numberOfLines={1}>{m.profile.display_name}{m.user_id === userId ? ' (you)' : ''}</Text>
+                <Text variant="caption" tone={m.role === 'owner' ? 'primary' : 'muted'}>{ROLE_LABEL[m.role as GroupRole] ?? m.role}</Text>
+              </View>
+              {canManage && <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />}
+            </Pressable>
+          );
+        })}
       </Card>
       <Sheet visible={!!managing} onClose={() => setManaging(null)} title={managing?.profile.display_name ?? ''}>
         {!!managing && (
           <View>
-            {(isOwner ? (['admin', 'moderator', 'member'] as GroupRole[]) : (['moderator', 'member'] as GroupRole[])).filter((r) => r !== managing.role).map((r) => (
-              <ListItem key={r} title={`Make ${r}`} left={<Ionicons name="person-circle-outline" size={20} color={colors.textMuted} />}
-                onPress={() => { const m = managing; setManaging(null); run(`role-${m.user_id}`, () => rpc('set_member_role', { p_group: id, p_user: m.user_id, p_role: r }), 'Role updated'); }} />
-            ))}
+            <View style={{ paddingBottom: space.sm }}>
+              <SwipeSelect label="Role" value={managing.role as GroupRole}
+                onChange={(r) => { const m = managing; setManaging({ ...m, role: r }); run(`role-${m.user_id}`, () => rpc('set_member_role', { p_group: id, p_user: m.user_id, p_role: r }), 'Role updated'); }}
+                options={(isOwner ? (['member', 'moderator', 'admin'] as GroupRole[]) : (['member', 'moderator'] as GroupRole[])).concat(
+                  !isOwner && managing.role === 'admin' ? ['admin' as GroupRole] : []).map((r) => ({ value: r, label: ROLE_LABEL[r], detail: ROLE_HINT[r] }))} />
+            </View>
             {!!isOwner && (
               <ListItem title="Transfer ownership" left={<Ionicons name="key-outline" size={20} color={colors.textMuted} />} onPress={async () => {
                 const m = managing;

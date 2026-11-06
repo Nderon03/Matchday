@@ -59,6 +59,8 @@ const table = {
   motm_awards: [], session_player_statistics: [],
   notifications: [{ id: 'n1', type: 'session_removed', title: 'Removed from Sunday Kickabout', body: '', data: { session_id: SID, session_name: 'Sunday Kickabout', reason: 'Too many no-shows' }, read_at: null, created_at: kickoff }], activity_feed: [],
   group_members: [{ role: 'owner', user_id: ME, joined_at: '2026-01-01T00:00:00Z', profile: people[0], group: { id: GID, name: 'Wednesday Football', logo_url: null, location: 'Hackney', group_members: [{ count: 14 }] } }],
+  group_settings: [{ group_id: GID, track_assists: true, leaderboard_min_appearances: 3, voting_window_hours: 24, rating_min_votes: null, default_motm_mode: 'session',
+    late_fines_enabled: false, late_fine_base_pence: 100, late_fine_cap_pence: 800, late_fine_reset_after: 3, require_settled: true }],
   achievements: [], friendships: [], friend_requests: [], user_blocks: [], session_templates: [], user_preferences: [{ user_id: ME, profile_visibility: 'public', show_stats: true, push_enabled: true, email_enabled: true, notification_prefs: {}, theme: 'dark' }],
 };
 const ago = (days) => new Date(Date.now() - days * 86400_000).toISOString();
@@ -184,6 +186,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['achievements', '/achievements', 'Hall of Fame'],
     ['help', '/help', 'Help & FAQ'],
     ['edit-profile', '/settings/profile', 'Club you support'],
+    ['group-settings', `/group/${GID}/settings`, 'Members ·'],
   ]) {
     await page.goto(base + path, { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
@@ -224,6 +227,12 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       table.friendships = [];
       await page.goto(base + path, { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
+    }
+    if (name === 'group-settings') {
+      // one About box (no separate rules), compact rows, members open a small sheet
+      const t = await page.locator('body').innerText();
+      if (/Make admin|Make moderator/.test(t) || !/About/.test(t) || !/game rules/i.test(t)) failures.push(`${vpName}: group settings layout unexpected`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-group-settings.png`), fullPage: true });
     }
     if (name === 'edit-profile') {
       // your card is on top; tapping a locked style previews it on the card with how close you are

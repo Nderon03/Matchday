@@ -33,7 +33,7 @@ export const profileSchema = z.object({
 
 export const groupSchema = z.object({
   name: z.string().trim().min(2, 'At least 2 characters').max(60),
-  description: z.string().trim().max(1000).optional(),
+  description: z.string().trim().max(2000).optional(),
   visibility: z.enum(['public', 'private']),
   join_policy: z.enum(['open', 'request', 'invite_only']),
   location: z.string().trim().max(120).optional(),

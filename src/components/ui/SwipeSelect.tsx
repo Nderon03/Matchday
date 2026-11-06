@@ -14,7 +14,7 @@ export interface SwipeOption<T> { value: T; label: string; detail?: string; icon
  * One tidy control instead of a row of buttons: shows the current choice; swipe left/right or tap
  * the arrows to change it. Dots show where you are; an optional line explains the current choice.
  */
-export function SwipeSelect<T extends string | number | null>({ label, options, value, onChange, compact, accessibilityLabel }: {
+export function SwipeSelect<T extends string | number | null>({ label, options, value, onChange, compact, accessibilityLabel, dots = true }: {
   label?: string;
   options: SwipeOption<T>[];
   value: T;
@@ -22,6 +22,8 @@ export function SwipeSelect<T extends string | number | null>({ label, options, 
   /** smaller, for putting two side by side */
   compact?: boolean;
   accessibilityLabel?: string;
+  /** the position dots under the control (off for small inline use) */
+  dots?: boolean;
 }) {
   const { colors, reduceMotion } = useTheme();
   const index = Math.max(0, options.findIndex((o) => o.value === value));
@@ -80,7 +82,7 @@ export function SwipeSelect<T extends string | number | null>({ label, options, 
         </Animated.View>
         {arrow(1)}
       </View>
-      {options.length > 1 && options.length <= 12 && (
+      {dots && options.length > 1 && options.length <= 12 && (
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 4 }}>
           {options.map((o, i) => (
             <View key={String(o.value)} style={{ width: i === index ? 12 : 4, height: 4, borderRadius: 2, backgroundColor: i === index ? colors.primary : colors.borderStrong }} />

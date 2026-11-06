@@ -21,6 +21,7 @@ import { formatDate, formatPence, plural } from '@/domain/format';
 import { shareText } from '@/lib/share';
 import { removeGroupMember } from '@/features/removePlayer';
 import { FinesPanel } from '@/features/FinesPanel';
+import { useOnce } from '@/features/moments/useOnce';
 import { useGroupBalances } from '@/features/SettleUp';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -68,6 +69,11 @@ export default function GroupScreen() {
     enabled: !!group.data?.myRole,
     queryFn: () => q<any[]>(supabase.from('group_invitations').select('user_id, invited_by, created_at, profile:profiles!group_invitations_user_id_fkey(id, username, display_name, avatar_url)').eq('group_id', id).eq('status', 'pending').order('created_at', { ascending: false })),
   });
+
+  // paid groups without late fines: a one-time nudge for owners/admins that the option exists
+  const gd = group.data;
+  const finesHint = useOnce(`matchday.finesHint.${id}`,
+    !!gd && (gd.myRole === 'owner' || gd.myRole === 'admin') && !gd.settings?.late_fines_enabled && (sessions.data ?? []).some((x) => x.payment_mode !== 'free'));
 
   if (group.isLoading) return <Screen><Header title="Group" /><Loading /></Screen>;
   if (!group.data) return <Screen><Header title="Group" /><ErrorState error={group.error} onRetry={group.refetch} /></Screen>;
@@ -143,6 +149,17 @@ export default function GroupScreen() {
             </Pressable>
           </Row>
           {!!myRole && <Button title="Create a session for this group" icon="add" onPress={() => router.push({ pathname: '/session/new', params: { groupId: id } })} />}
+          {finesHint.due && (
+            <Card variant="alt">
+              <Row gap={space.sm}>
+                <Ionicons name="time-outline" size={18} color={colors.textMuted} />
+                <Text variant="small" style={{ flex: 1 }} onPress={() => { finesHint.markDone(); router.push(`/group/${id}/settings`); }} accessibilityRole="button">
+                  Players turning up late? <Text variant="small" tone="primary">Turn on late fines</Text> in group settings.
+                </Text>
+                <IconButton icon="close" size={28} label="Dismiss" onPress={finesHint.markDone} />
+              </Row>
+            </Card>
+          )}
           {!!isAdmin && joinRequests.length > 0 && (
             <View style={{ gap: space.sm }}>
               <SectionTitle title={`Join requests · ${joinRequests.length}`} />
@@ -166,7 +183,6 @@ export default function GroupScreen() {
           {upcoming[0] ? <SessionCard session={upcoming[0]} /> : <Text tone="muted" variant="small">Nothing scheduled.</Text>}
           {!!results[0] && (<><SectionTitle title="Latest result" /><SessionCard session={results[0]} /></>)}
           {!!myRole && <TeamOfMonth groupId={id} groupName={g.name} />}
-          {!!g.rules && (<><SectionTitle title="Rules" /><Card><Text variant="small">{g.rules}</Text></Card></>)}
           <SectionTitle title="Activity" />
           {feed.data?.pages.flat().map((item) => <FeedItemCard key={item.id} item={item} />)}
           {!!feed.data && feed.data.pages[0].length === 0 && <Text variant="small" tone="muted">Results, MOTMs and achievements will show up here.</Text>}
@@ -256,7 +272,7 @@ export default function GroupScreen() {
           </View>
         )}
         {!!myRole && myRole !== 'owner' && <Button title="Leave group" icon="exit-outline" variant="ghost" loading={busy === 'leave'} onPress={leave} />}
-        {myRole === 'owner' && <Text variant="caption" tone="faint" align="center">You own this group. To leave, hand it to another member first (Group settings → Members → Transfer ownership).</Text>}
+        {myRole === 'owner' && <Text variant="caption" tone="faint" align="center">You own this group. To leave, hand it to another member first (Group settings → tap them under Members → Transfer ownership).</Text>}
         </View>
       )}
 
