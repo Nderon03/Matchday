@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { ScrollView, View, type HostInstance } from 'react-native';
+import { View, type HostInstance } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { Avatar, Button, Chip, ErrorState, Header, Loading, Row, Screen, Text, useToast } from '@/components/ui';
+import { Avatar, Button, ErrorState, Header, Loading, Row, Screen, SwipeSelect, Text, useToast } from '@/components/ui';
 import { rpc } from '@/lib/api';
 import { shareViewAsImage } from '@/lib/share';
 import { useAuth } from '@/providers/AuthProvider';
@@ -43,9 +43,7 @@ export default function Wrapped() {
   return (
     <Screen edges={['top', 'bottom']} maxWidth={560}>
       <Header title="MATCHDAY Wrapped" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-        {ps.map((x) => <Chip key={x.key} label={x.label} selected={x.key === key} onPress={() => setKey(x.key)} />)}
-      </ScrollView>
+      <SwipeSelect accessibilityLabel="Period" value={key} onChange={setKey} options={ps.map((x) => ({ value: x.key, label: x.label }))} />
       {!!w.isLoading && <Loading />}
       {!!w.error && <ErrorState error={w.error} onRetry={w.refetch} />}
       {!!d && (

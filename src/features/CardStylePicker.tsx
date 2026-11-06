@@ -3,7 +3,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { Chip, Row, Text, useToast } from '@/components/ui';
+import { Chip, Row, SwipeSelect, Text, useToast } from '@/components/ui';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
 import { CARD_TITLES, cardTitle, titleUnlocked } from '@/domain/titles';
 import { CardFX } from '@/components/football/CardFX';
@@ -281,12 +281,8 @@ function MedalChooser({ items, value, onChange, st }: { items: MyAchievement[]; 
           <View key={t.track} style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
             <AchievementBadge icon={t.icon} level={parseCode(chosen ?? t.codes[t.codes.length - 1]).level} size={30} animate={false} />
             <Text variant="smallStrong" style={{ width: 92 }} numberOfLines={2}>{t.name}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-              <Chip label="Off" selected={!chosen} onPress={() => chosen && pick(t, null)} />
-              {t.codes.map((c) => (
-                <Chip key={c} label={t.track === SEASON_CHAMPION.code ? 'Show' : levelInfo(parseCode(c).level).label} selected={chosen === c} onPress={() => chosen !== c && pick(t, c)} />
-              ))}
-            </ScrollView>
+            <SwipeSelect compact accessibilityLabel={`${t.name} on your card`} value={chosen ?? 'off'} onChange={(v) => pick(t, v === 'off' ? null : v)}
+              options={[{ value: 'off', label: 'Off' }, ...t.codes.map((c) => ({ value: c, label: t.track === SEASON_CHAMPION.code ? 'Show' : levelInfo(parseCode(c).level).label }))]} />
           </View>
         );
       })}

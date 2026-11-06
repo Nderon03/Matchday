@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Badge, Button, Card, Chip, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Sheet, Stepper, Text } from '@/components/ui';
+import { Badge, Button, Card, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Sheet, Stepper, SwipeSelect, Text } from '@/components/ui';
 import { keys, useSessionDetail } from '@/hooks/queries';
 import { useAction } from '@/hooks/useAction';
 import { rpc } from '@/lib/api';
@@ -119,10 +119,8 @@ export default function ResultsScreen() {
           Scores lock, attendance is settled (players in a line-up are verified unless you marked them absent), and players are asked to submit goals, vote for MOTM and rate each other.
           {s.payment_mode === 'after' ? ' Payment requests are sent now.' : ''}
         </Text>
-        <Text variant="smallStrong">Voting window</Text>
-        <Row gap={space.sm} wrap>
-          {[12, 24, 48, 72].map((h) => <Chip key={h} label={`${h}h`} selected={votingHours === h} onPress={() => setVotingHours(h)} />)}
-        </Row>
+        <SwipeSelect label="Voting window" value={votingHours} onChange={setVotingHours}
+          options={[12, 24, 48, 72].map((h) => ({ value: h, label: `${h} hours`, detail: h === 24 ? 'Usually long enough for everyone to vote.' : undefined }))} />
         <Button title="Complete & open voting" icon="flag" loading={busy === 'complete'} onPress={async () => {
           const ok = await run('complete', () => rpc('complete_session', { p_session: id, p_voting_hours: votingHours }), 'Full time! Voting is open.');
           if (ok !== undefined) { setCompleteOpen(false); router.replace(`/session/${id}`); }

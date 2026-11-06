@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Pressable, ScrollView, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Avatar, Card, Chip, EmptyState, ErrorState, Header, Loading, Row, Screen, SectionTitle, Text } from '@/components/ui';
+import { Avatar, Card, EmptyState, ErrorState, Header, Input, ListItem, Loading, Row, Screen, SectionTitle, Sheet, SwipeSelect, Text } from '@/components/ui';
 import { q, rpc } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
@@ -31,17 +32,44 @@ function Bar({ label, a, b, format = (v: number) => String(v), lowerIsBetter }: 
   );
 }
 
-function PlayerPicker({ label, people, value, exclude, onChange }: { label: string; people: PublicProfile[]; value?: string; exclude?: string; onChange: (id: string) => void }) {
+/**
+ * One side of the VS header: tap to search for a player, or swipe sideways to flick through them.
+ */
+function Slot({ person, label, onOpen, onSwipe }: { person?: PublicProfile; label: string; onOpen: () => void; onSwipe: (dir: 1 | -1) => void }) {
+  const { colors } = useTheme();
+  const [start, setStart] = useState<number | null>(null);
   return (
-    <View style={{ gap: space.xs }}>
-      <Text variant="overline" tone="muted">{label}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-        {people.filter((p) => p.id !== exclude).map((p) => (
-          <Chip key={p.id} label={p.display_name} selected={value === p.id} onPress={() => onChange(p.id)}
-            icon={<Avatar uri={p.avatar_url} name={p.display_name} size={20} />} />
+    <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={person ? `${label}: ${person.display_name}. Change` : `Pick ${label}`}
+      onTouchStart={(e) => setStart(e.nativeEvent.pageX)}
+      onTouchEnd={(e) => { if (start != null && Math.abs(e.nativeEvent.pageX - start) > 40) onSwipe(e.nativeEvent.pageX < start ? 1 : -1); setStart(null); }}
+      style={({ pressed }) => ({ flex: 1, alignItems: 'center', gap: 6, paddingVertical: space.sm, borderRadius: radius.md, opacity: pressed ? 0.8 : 1 })}>
+      {person ? <Avatar uri={person.avatar_url} name={person.display_name} size={64} /> : (
+        <View style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderStyle: 'dashed', borderColor: colors.borderStrong, alignItems: 'center', justifyContent: 'center' }}>
+          <Ionicons name="search" size={22} color={colors.textMuted} />
+        </View>
+      )}
+      <Text variant="bodyStrong" numberOfLines={1}>{person ? person.display_name : 'Pick a player'}</Text>
+      <Row gap={4}><Ionicons name="swap-horizontal" size={12} color={colors.textFaint} /><Text variant="caption" tone="faint">Tap or swipe</Text></Row>
+    </Pressable>
+  );
+}
+
+/** Search sheet for picking a player. */
+function PickSheet({ visible, people, exclude, onPick, onClose }: { visible: boolean; people: PublicProfile[]; exclude?: string; onPick: (id: string) => void; onClose: () => void }) {
+  const [term, setTerm] = useState('');
+  const t = term.trim().toLowerCase();
+  const list = people.filter((p) => p.id !== exclude && (!t || p.display_name.toLowerCase().includes(t) || p.username.toLowerCase().includes(t)));
+  return (
+    <Sheet visible={visible} onClose={onClose} title="Pick a player">
+      <Input value={term} onChangeText={setTerm} placeholder="Search by name or @username" icon="search" autoCapitalize="none" autoCorrect={false} />
+      <ScrollView style={{ maxHeight: 380 }} keyboardShouldPersistTaps="handled">
+        {list.map((p) => (
+          <ListItem key={p.id} title={p.display_name} subtitle={`@${p.username}`} left={<Avatar uri={p.avatar_url} name={p.display_name} size={36} />}
+            onPress={() => { onPick(p.id); setTerm(''); onClose(); }} />
         ))}
+        {!list.length && <Text tone="muted" style={{ padding: space.lg }}>No one matches “{term}”.</Text>}
       </ScrollView>
-    </View>
+    </Sheet>
   );
 }
 
@@ -55,6 +83,7 @@ export default function Compare() {
   const [a, setA] = useState<string | undefined>(params.a ?? userId ?? undefined);
   const [b, setB] = useState<string | undefined>(params.b);
   const groupId = source === 'friends' ? null : source;
+  const [picking, setPicking] = useState<'a' | 'b' | null>(null);
 
   const members = useQuery({
     queryKey: ['group', groupId, 'members-lite'],
@@ -77,6 +106,13 @@ export default function Compare() {
     return [...unique.values()].sort((x, y) => (x.id === userId ? -1 : y.id === userId ? 1 : x.display_name.localeCompare(y.display_name)));
   }, [groupId, members.data, friends.data, linked.data, profile, userId]);
   const byId = useMemo(() => new Map(people.map((p) => [p.id, p])), [people]);
+  // swipe a side to the next / previous player (skipping whoever is on the other side)
+  const cycle = (cur: string | undefined, dir: 1 | -1, other?: string) => {
+    const list = people.filter((p) => p.id !== other);
+    if (!list.length) return cur;
+    const at = list.findIndex((p) => p.id === cur);
+    return list[(at + dir + list.length) % list.length].id;
+  };
   const pa = a ? byId.get(a) : undefined;
   const pb = b ? byId.get(b) : undefined;
 
@@ -98,41 +134,30 @@ export default function Compare() {
       <Header title="Compare players" subtitle={sourceName ? `Within ${sourceName}` : 'Career stats'} />
 
       <View style={{ gap: space.xs }}>
-        <Text variant="overline" tone="muted">Compare from</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-          <Chip label="Friends · career" selected={source === 'friends'} onPress={() => setSource('friends')} />
-          {groups.data?.map((g) => <Chip key={g.id} label={g.name} selected={source === g.id} onPress={() => setSource(g.id)} />)}
-        </ScrollView>
+        <SwipeSelect accessibilityLabel="Compare within" value={source} onChange={setSource}
+          options={[{ value: 'friends', label: 'Friends · career', icon: 'people-outline' as const }, ...(groups.data ?? []).map((g) => ({ value: g.id as string, label: g.name, icon: 'shield-outline' as const }))]} />
         {!!groupId && <Text variant="caption" tone="faint">Stats, form and rivalry only count this group’s games.</Text>}
       </View>
 
       {(groupId ? members.isLoading : friends.isLoading) ? <Loading /> : people.length < 2 ? (
         <EmptyState icon="people-outline" title="Not enough players" message={groupId ? 'This group needs at least two members.' : 'Add friends to compare players.'} />
       ) : (
-        <>
-          <PlayerPicker label="Player A" people={people} value={a} exclude={b} onChange={setA} />
-          <PlayerPicker label="Player B" people={people} value={b} exclude={a} onChange={setB} />
-        </>
+        <Card>
+          <Row style={{ alignItems: 'center' }}>
+            <Slot person={pa} label="Player A" onOpen={() => setPicking('a')} onSwipe={(dir) => setA(cycle(a, dir, b))} />
+            <Text variant="h2" tone="faint">VS</Text>
+            <Slot person={pb} label="Player B" onOpen={() => setPicking('b')} onSwipe={(dir) => setB(cycle(b, dir, a))} />
+          </Row>
+        </Card>
       )}
+      <PickSheet visible={!!picking} people={people} exclude={picking === 'a' ? b : a} onClose={() => setPicking(null)}
+        onPick={(id) => (picking === 'a' ? setA(id) : setB(id))} />
 
       {(!pa || !pb) && people.length >= 2 && <Text tone="muted">Pick two players to compare.</Text>}
       {!!pa && !!pb && h2h.isLoading && <Loading />}
       {!!h2h.error && <ErrorState error={h2h.error} onRetry={h2h.refetch} />}
       {!!d && !!pa && !!pb && (
         <>
-          <Card>
-            <Row style={{ justifyContent: 'space-around' }}>
-              <View style={{ alignItems: 'center', gap: 6, flex: 1 }}>
-                <Avatar uri={pa.avatar_url} name={pa.display_name} size={64} />
-                <Text variant="bodyStrong" numberOfLines={1} onPress={() => router.push(`/player/${pa.id}`)}>{nameA}</Text>
-              </View>
-              <Text variant="h2" tone="faint">VS</Text>
-              <View style={{ alignItems: 'center', gap: 6, flex: 1 }}>
-                <Avatar uri={pb.avatar_url} name={pb.display_name} size={64} />
-                <Text variant="bodyStrong" numberOfLines={1} onPress={() => router.push(`/player/${pb.id}`)}>{nameB}</Text>
-              </View>
-            </Row>
-          </Card>
           <SectionTitle title={sourceName ? `${sourceName} record` : 'Career'} />
           <Card>
             <View style={{ gap: space.lg }}>

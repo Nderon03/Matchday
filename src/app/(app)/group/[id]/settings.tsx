@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Switch, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Avatar, Badge, Button, Card, Chip, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Stepper, Text, useConfirm, useToast } from '@/components/ui';
+import { Avatar, Badge, Button, Card, ErrorState, Header, IconButton, Input, ListItem, Loading, Row, Screen, SectionTitle, Sheet, Stepper, SwipeSelect, Text, useConfirm, useToast } from '@/components/ui';
+import { Ionicons } from '@expo/vector-icons';
 import { keys, useGroup, type GroupDetail } from '@/hooks/queries';
 import { removeGroupMember } from '@/features/removePlayer';
 import { GroupAccessPicker, accessOf, accessToSettings } from '@/features/GroupAccess';
@@ -29,6 +30,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
   const { userId } = useAuth();
   const toast = useToast();
   const confirm = useConfirm();
+  const [managing, setManaging] = useState<GroupDetail['members'][number] | null>(null);
   const { run, busy } = useAction([keys.group(id), keys.groups]);
   const reports = useQuery({ queryKey: ['group', id, 'reports'], queryFn: () => q<any[]>(supabase.from('reports').select('*').eq('group_id', id).eq('status', 'open').order('created_at', { ascending: false })) });
   const { myRole, members, group: g, settings } = data;
@@ -120,18 +122,12 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
               </Row>
               {cfg.late_fines_enabled && (
                 <>
-                  <View style={{ gap: space.sm }}>
-                    <Text>First fine</Text>
-                    <Row gap={space.sm} wrap>
-                      {[50, 100, 200].map((v) => <Chip key={v} label={formatPence(v)} selected={cfg.late_fine_base_pence === v} onPress={() => setCfg({ ...cfg, late_fine_base_pence: v })} />)}
-                    </Row>
-                  </View>
-                  <View style={{ gap: space.sm }}>
-                    <Text>Maximum fine</Text>
-                    <Row gap={space.sm} wrap>
-                      {[400, 800, 1000, 1500].map((v) => <Chip key={v} label={formatPence(v)} selected={cfg.late_fine_cap_pence === v} onPress={() => setCfg({ ...cfg, late_fine_cap_pence: v })} />)}
-                    </Row>
-                  </View>
+                  <Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
+                    <SwipeSelect compact label="First fine" value={cfg.late_fine_base_pence} onChange={(v) => setCfg({ ...cfg, late_fine_base_pence: v })}
+                      options={[...new Set([50, 100, 200, cfg.late_fine_base_pence])].sort((x, y) => x - y).map((v) => ({ value: v, label: formatPence(v) }))} />
+                    <SwipeSelect compact label="Maximum fine" value={cfg.late_fine_cap_pence} onChange={(v) => setCfg({ ...cfg, late_fine_cap_pence: v })}
+                      options={[...new Set([400, 800, 1000, 1500, cfg.late_fine_cap_pence])].sort((x, y) => x - y).map((v) => ({ value: v, label: formatPence(v) }))} />
+                  </Row>
                   <Row style={{ justifyContent: 'space-between' }}>
                     <View style={{ flex: 1 }}><Text>On-time sessions in a row to reset</Text></View>
                     <Stepper value={cfg.late_fine_reset_after} onChange={(v) => setCfg({ ...cfg, late_fine_reset_after: v })} min={1} max={20} label="On-time sessions to reset" />
@@ -157,19 +153,34 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
               <Avatar uri={m.profile.avatar_url} name={m.profile.display_name} size={32} />
               <Text variant="bodyStrong" style={{ flex: 1 }}>{m.profile.display_name}{m.user_id === userId ? ' (you)' : ''}</Text>
               <Badge label={m.role} tone={m.role === 'owner' ? 'primary' : 'neutral'} />
+              {m.role !== 'owner' && m.user_id !== userId && (
+                <IconButton icon="ellipsis-horizontal" size={32} label={`Manage ${m.profile.display_name}`} onPress={() => setManaging(m)} />
+              )}
             </Row>
-            {m.role !== 'owner' && m.user_id !== userId && (
-              <Row gap={space.sm} wrap>
-                {(isOwner ? (['admin', 'moderator', 'member'] as GroupRole[]) : (['moderator', 'member'] as GroupRole[])).filter((r) => r !== m.role).map((r) => (
-                  <Chip key={r} label={`Make ${r}`} onPress={() => run(`role-${m.user_id}`, () => rpc('set_member_role', { p_group: id, p_user: m.user_id, p_role: r }), 'Role updated')} />
-                ))}
-                {!!isOwner && <Chip label="Transfer ownership" onPress={() => run(`own-${m.user_id}`, () => rpc('transfer_group_ownership', { p_group: id, p_new_owner: m.user_id }), 'Ownership transferred')} />}
-                <Chip label="Remove" onPress={() => removeGroupMember({ confirm, run, groupId: id, userId: m.user_id, name: m.profile.display_name })} />
-              </Row>
-            )}
           </View>
         ))}
       </Card>
+      <Sheet visible={!!managing} onClose={() => setManaging(null)} title={managing?.profile.display_name ?? ''}>
+        {!!managing && (
+          <View>
+            {(isOwner ? (['admin', 'moderator', 'member'] as GroupRole[]) : (['moderator', 'member'] as GroupRole[])).filter((r) => r !== managing.role).map((r) => (
+              <ListItem key={r} title={`Make ${r}`} left={<Ionicons name="person-circle-outline" size={20} color={colors.textMuted} />}
+                onPress={() => { const m = managing; setManaging(null); run(`role-${m.user_id}`, () => rpc('set_member_role', { p_group: id, p_user: m.user_id, p_role: r }), 'Role updated'); }} />
+            ))}
+            {!!isOwner && (
+              <ListItem title="Transfer ownership" left={<Ionicons name="key-outline" size={20} color={colors.textMuted} />} onPress={async () => {
+                const m = managing;
+                setManaging(null);
+                if (await confirm({ title: `Make ${m.profile.display_name} the owner?`, message: 'You’ll become an admin. Only the new owner can give it back.', confirmLabel: 'Transfer' })) {
+                  run(`own-${m.user_id}`, () => rpc('transfer_group_ownership', { p_group: id, p_new_owner: m.user_id }), 'Ownership transferred');
+                }
+              }} />
+            )}
+            <ListItem title="Remove from group" danger left={<Ionicons name="person-remove-outline" size={20} color={colors.danger} />}
+              onPress={() => { const m = managing; setManaging(null); removeGroupMember({ confirm, run, groupId: id, userId: m.user_id, name: m.profile.display_name }); }} />
+          </View>
+        )}
+      </Sheet>
 
       {data.removals.length > 0 && (
         <>

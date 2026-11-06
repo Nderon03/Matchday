@@ -194,6 +194,25 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     }
     if (name === 'profile' && !(await page.getByLabel('Title: Baller').count())) failures.push(`${vpName}: card title missing`);
     if (name === 'profile' && !(await page.getByLabel(/^Medals: Goals Gold, Man of the Match Silver, Season Champion Legend/).count())) failures.push(`${vpName}: card medals missing`);
+    if (name === 'achievements') {
+      // Compare: one swipe for where from, then tap a side and search for a player
+      table.friendships = people.slice(1, 6).map((p) => ({ user_a: ME, user_b: p.id, a: people[0], b: p }));
+      await page.goto(base + '/compare', { waitUntil: 'networkidle' });
+      await page.waitForTimeout(600);
+      await page.getByRole('button', { name: /^Pick Player B/ }).click();
+      await page.waitForTimeout(300);
+      await page.getByPlaceholder('Search by name or @username').fill('jor');
+      await page.waitForTimeout(200);
+      const listed = await page.locator('body').innerText();
+      if (!/Jordan Pike/.test(listed) || /Chris Obi/.test(listed)) failures.push(`${vpName}: compare search not filtering`);
+      await page.getByText('Jordan Pike').last().click();
+      await page.waitForTimeout(500);
+      if (!(await page.getByRole('button', { name: /^Player B: Jordan Pike/ }).count())) failures.push(`${vpName}: compare pick not applied`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-compare.png`) });
+      table.friendships = [];
+      await page.goto(base + path, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+    }
     if (name === 'edit-profile') {
       // your card is on top; tapping a locked style previews it on the card with how close you are
       await page.getByRole('button', { name: /^Hall of Fame card/ }).click();

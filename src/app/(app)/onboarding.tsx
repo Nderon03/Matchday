@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { Avatar, Button, Chip, Input, Screen, Text, useToast } from '@/components/ui';
+import { Avatar, Button, Input, Screen, SwipeSelect, Text, useToast } from '@/components/ui';
 import { useAuth } from '@/providers/AuthProvider';
 import { rpc } from '@/lib/api';
 import { pickAndUpload } from '@/lib/storage';
@@ -77,14 +77,7 @@ export default function Onboarding() {
         error={check.state === 'taken' || check.state === 'invalid' ? check.message : null}
         hint={check.message ?? undefined}
       />
-      <View style={{ gap: space.sm }}>
-        <Text variant="smallStrong" tone="muted">Preferred position</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
-          {(['GK', 'DEF', 'MID', 'FWD', 'ANY'] as PlayerPosition[]).map((p) => (
-            <Chip key={p} label={POSITION_LABEL[p]} selected={position === p} onPress={() => setPosition(p)} />
-          ))}
-        </View>
-      </View>
+      <SwipeSelect label="Preferred position" value={position} onChange={setPosition} options={(['ANY', 'GK', 'DEF', 'MID', 'FWD'] as PlayerPosition[]).map((p) => ({ value: p, label: POSITION_LABEL[p], icon: (p === 'GK' ? 'hand-left-outline' : p === 'ANY' ? 'shuffle-outline' : 'football-outline') as 'football-outline' }))} />
       <TermsCheckbox checked={agreed} onChange={setAgreed} />
       <Button title="Let’s play" size="lg" loading={busy} disabled={!agreed || check.state === 'taken' || check.state === 'invalid' || check.state === 'checking'} onPress={finish} />
     </Screen>

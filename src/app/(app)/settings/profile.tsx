@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, Card, Chip, Divider, Header, Input, ListItem, Screen, Text, useToast } from '@/components/ui';
+import { Button, Card, Divider, Header, Input, ListItem, Screen, SwipeSelect, Text, useToast } from '@/components/ui';
 import { ClubShield, Flag } from '@/components/football/Identity';
 import { CardStylePicker } from '@/features/CardStylePicker';
 import { ClubPicker, CountryPicker, clubName, countryName } from '@/features/IdentityPickers';
@@ -80,10 +80,7 @@ export default function EditProfile() {
       <Input label="Username" value={username} onChangeText={(v) => setUsername(v.replace(/\s/g, ''))} autoCapitalize="none" icon="at"
         error={check.state === 'taken' || check.state === 'invalid' ? check.message : null} hint={check.message ?? undefined} />
       <Input label="Bio" value={bio} onChangeText={setBio} multiline maxLength={280} error={errors.bio} placeholder="e.g. Left foot only. Always up for a game." />
-      <Text variant="smallStrong" tone="muted">Preferred position</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
-        {(['GK', 'DEF', 'MID', 'FWD', 'ANY'] as PlayerPosition[]).map((p) => <Chip key={p} label={POSITION_LABEL[p]} selected={position === p} onPress={() => setPosition(p)} />)}
-      </View>
+      <SwipeSelect label="Preferred position" value={position} onChange={setPosition} options={(['ANY', 'GK', 'DEF', 'MID', 'FWD'] as PlayerPosition[]).map((p) => ({ value: p, label: POSITION_LABEL[p], icon: (p === 'GK' ? 'hand-left-outline' : p === 'ANY' ? 'shuffle-outline' : 'football-outline') as 'football-outline' }))} />
       <Text variant="smallStrong" tone="muted">On your player card (optional)</Text>
       <Card padded={false} style={{ paddingHorizontal: space.lg }}>
         <ListItem title="Nationality" subtitle={countryName(nationality) ?? 'Not shown'} left={nationality ? <Flag code={nationality} height={18} /> : undefined} onPress={() => setPicker('country')} />

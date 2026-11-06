@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Avatar, Badge, Button, Card, Chip, ErrorState, Header, Loading, Row, Screen, SectionTitle, Sheet, Text } from '@/components/ui';
+import { Avatar, Badge, Button, Card, ErrorState, Header, IconButton, Loading, Row, Screen, SectionTitle, Sheet, SwipeSelect, Text } from '@/components/ui';
 import { PeoplePicker } from '@/components/football/PeoplePicker';
 import { keys, useFriends, useSessionDetail, type PublicProfile } from '@/hooks/queries';
 import { useAction } from '@/hooks/useAction';
@@ -76,17 +76,20 @@ export default function AttendanceScreen() {
                   <Text variant="caption" tone="muted">{a.checked_in_at ? 'Checked in' : 'Not checked in'}{a.replacement_for ? ' · replacement' : ''}</Text>
                 </Row>
               </View>
-              {a.verification === 'verified' && <Badge label={a.late_arrival ? 'Verified · late' : 'Verified'} tone="success" />}
-              {a.verification === 'absent' && <Badge label="Absent" tone="danger" />}
+              {locked && a.verification === 'verified' && <Badge label={a.late_arrival ? 'Played · late' : 'Played'} tone="success" />}
+              {locked && a.verification === 'absent' && <Badge label="Absent" tone="danger" />}
+              {!locked && <IconButton icon="swap-horizontal" size={34} label={`Replace ${a.profile.display_name}`} onPress={() => { setPick(new Set()); setAdding({ replacementFor: a.user_id }); }} />}
             </Row>
             {!locked && (
-              <Row gap={space.sm} wrap>
-                <Chip label="Played" selected={a.verification === 'verified' && !a.late_arrival} onPress={() => setV(a.user_id, 'verified')} />
-                <Chip label="Arrived late" selected={a.verification === 'verified' && a.late_arrival} onPress={() => setV(a.user_id, 'verified', true)} />
-                <Chip label="Absent" selected={a.verification === 'absent'} onPress={() => setV(a.user_id, 'absent')} />
-                {a.verification !== 'unverified' && <Chip label="Undo" onPress={() => setV(a.user_id, 'unverified')} />}
-                <Chip label="Replace" onPress={() => { setPick(new Set()); setAdding({ replacementFor: a.user_id }); }} />
-              </Row>
+              <SwipeSelect accessibilityLabel={`${a.profile.display_name}'s attendance`}
+                value={a.verification === 'absent' ? 'absent' : a.verification === 'verified' ? (a.late_arrival ? 'late' : 'played') : 'unmarked'}
+                onChange={(v) => (v === 'unmarked' ? setV(a.user_id, 'unverified') : v === 'absent' ? setV(a.user_id, 'absent') : setV(a.user_id, 'verified', v === 'late'))}
+                options={[
+                  { value: 'unmarked', label: 'Not marked', icon: 'ellipse-outline' },
+                  { value: 'played', label: 'Played', icon: 'checkmark-circle-outline' },
+                  { value: 'late', label: 'Arrived late', icon: 'time-outline' },
+                  { value: 'absent', label: 'Absent', icon: 'close-circle-outline' },
+                ]} />
             )}
           </View>
         </Card>

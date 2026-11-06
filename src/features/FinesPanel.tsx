@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Avatar, Badge, Button, Card, Chip, EmptyState, ErrorState, Input, Loading, Row, SectionTitle, Sheet, Text, useConfirm } from '@/components/ui';
+import { Avatar, Badge, Button, Card, EmptyState, ErrorState, IconButton, Input, ListItem, Loading, Row, SectionTitle, Sheet, Text, useConfirm } from '@/components/ui';
+import { Ionicons } from '@expo/vector-icons';
 import { rpc } from '@/lib/api';
 import { useAction } from '@/hooks/useAction';
 import { formatDate, formatPence, poundsToPence } from '@/domain/format';
@@ -66,6 +67,8 @@ export function FinesPanel({ groupId, isAdmin }: { groupId: string; isAdmin: boo
   });
   const { run, busy } = useAction([['group-fines', groupId], ['late-status', groupId]]);
   const [adjust, setAdjust] = useState<{ id: string; name: string; amount: string } | null>(null);
+  const [menu, setMenu] = useState<any | null>(null);
+  const { colors } = useTheme();
 
   const act = (fineId: string, action: 'waive' | 'paid_cash', label: string, note?: string | null) =>
     run(`${action}-${fineId}`, () => rpc('update_late_fine', { p_fine: fineId, p_action: action, p_note: note ?? null }), label);
@@ -131,19 +134,8 @@ export function FinesPanel({ groupId, isAdmin }: { groupId: string; isAdmin: boo
                       </Text>
                     </View>
                     <Badge label={STATUS[f.status]?.label.split(' ·')[0] ?? f.status} tone={STATUS[f.status]?.tone ?? 'neutral'} align="center" />
+                    {open && <IconButton icon="ellipsis-horizontal" size={32} label={`Manage ${f.display_name}’s fine`} onPress={() => setMenu(f)} />}
                   </Row>
-                  {open && (
-                    <Row gap={space.sm} wrap>
-                      <Chip label="Waive" onPress={async () => {
-                        const r = await confirm({ title: `Waive ${f.display_name}’s fine?`, message: 'They won’t be charged, and this late arrival won’t make future fines bigger.', confirmLabel: 'Waive', reasonLabel: 'Note (optional, shown to them)' });
-                        if (r) act(f.fine_id, 'waive', 'Fine waived', typeof r === 'object' ? r.reason : null);
-                      }} />
-                      <Chip label="Change amount" onPress={() => setAdjust({ id: f.fine_id, name: f.display_name, amount: (f.amount_pence / 100).toFixed(2) })} />
-                      <Chip label="Paid in cash" onPress={async () => {
-                        if (await confirm({ title: 'Mark as paid in cash?', message: `${f.display_name} paid ${formatPence(f.amount_pence)} outside the app.`, confirmLabel: 'Mark paid' })) act(f.fine_id, 'paid_cash', 'Marked as paid');
-                      }} />
-                    </Row>
-                  )}
                 </View>
               </Card>
             );
@@ -151,6 +143,23 @@ export function FinesPanel({ groupId, isAdmin }: { groupId: string; isAdmin: boo
         </>
       )}
 
+      <Sheet visible={!!menu} onClose={() => setMenu(null)} title={menu ? `${menu.display_name} · ${formatPence(menu.amount_pence)}` : ''}>
+        {!!menu && (
+          <View>
+            <ListItem title="Waive" left={<Ionicons name="hand-left-outline" size={20} color={colors.textMuted} />} onPress={async () => {
+              const f = menu; setMenu(null);
+              const r = await confirm({ title: `Waive ${f.display_name}’s fine?`, message: 'They won’t be charged, and this late arrival won’t make future fines bigger.', confirmLabel: 'Waive', reasonLabel: 'Note (optional, shown to them)' });
+              if (r) act(f.fine_id, 'waive', 'Fine waived', typeof r === 'object' ? r.reason : null);
+            }} />
+            <ListItem title="Change amount" left={<Ionicons name="create-outline" size={20} color={colors.textMuted} />}
+              onPress={() => { const f = menu; setMenu(null); setAdjust({ id: f.fine_id, name: f.display_name, amount: (f.amount_pence / 100).toFixed(2) }); }} />
+            <ListItem title="Paid in cash" left={<Ionicons name="cash-outline" size={20} color={colors.textMuted} />} onPress={async () => {
+              const f = menu; setMenu(null);
+              if (await confirm({ title: 'Mark as paid in cash?', message: `${f.display_name} paid ${formatPence(f.amount_pence)} outside the app.`, confirmLabel: 'Mark paid' })) act(f.fine_id, 'paid_cash', 'Marked as paid');
+            }} />
+          </View>
+        )}
+      </Sheet>
       <Sheet visible={!!adjust} onClose={() => setAdjust(null)} title={`Change ${adjust?.name ?? ''}’s fine`}>
         <Input label="New amount (£)" value={adjust?.amount ?? ''} onChangeText={(v) => setAdjust((a) => (a ? { ...a, amount: v } : a))} keyboardType="decimal-pad" />
         <Button title="Save" loading={busy === 'adjust'} onPress={async () => {
