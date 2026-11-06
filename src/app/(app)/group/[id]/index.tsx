@@ -29,7 +29,7 @@ import { TeamOfMonth } from '@/features/TeamOfMonth';
 import { ReliabilityChip, useReliability } from '@/features/Reliability';
 import { GroupWelcome } from '@/features/GroupWelcome';
 
-type Tab = 'overview' | 'members' | 'fixtures' | 'results' | 'tables' | 'awards' | 'seasons' | 'feed' | 'records' | 'fines';
+type Tab = 'overview' | 'games' | 'tables' | 'history' | 'members';
 const AWARD_LABEL: Record<string, string> = {
   player_of_season: 'Player of the Season', golden_boot: 'Golden Boot', most_motm: 'Most MOTM Awards', highest_rating: 'Highest Average Rating',
   most_appearances: 'Most Appearances', most_wins: 'Most Wins', best_win_pct: 'Best Win Percentage', most_improved: 'Most Improved Player', most_assists: 'Playmaker (Most Assists)',
@@ -51,17 +51,17 @@ export default function GroupScreen() {
   const [seasonOpen, setSeasonOpen] = useState(false);
   const [season, setSeason] = useState({ name: '', starts: new Date().toISOString().slice(0, 10), ends: `${new Date().getFullYear()}-12-31` });
   const { run, busy } = useAction([keys.group(id), keys.groups]);
-  const records = useQuery({ queryKey: ['group', id, 'records'], enabled: tab === 'records' || tab === 'overview', queryFn: () => rpc<any>('get_group_records', { p_group: id }) });
+  const records = useQuery({ queryKey: ['group', id, 'records'], enabled: tab === 'history' || tab === 'overview', queryFn: () => rpc<any>('get_group_records', { p_group: id }) });
   const awards = useQuery({
     queryKey: ['group', id, 'awards'],
-    enabled: tab === 'awards',
+    enabled: tab === 'history',
     queryFn: async () => {
       const { data, error } = await supabase.from('season_awards').select('*, season:seasons!inner(id, name, group_id), profile:profiles(id, username, display_name, avatar_url)').eq('season.group_id', id);
       if (error) throw error;
       return data as any[];
     },
   });
-  const feed = useFeed(tab === 'feed' ? id : undefined);
+  const feed = useFeed(tab === 'overview' ? id : undefined);
   // invitations sent but not answered yet (members can see who's been invited)
   const invites = useQuery({
     queryKey: ['group', id, 'invites'],
@@ -123,14 +123,11 @@ export default function GroupScreen() {
       )}
 
       <Segmented scroll value={tab} onChange={setTab} options={[
-        { value: 'overview', label: 'Overview' }, { value: 'fixtures', label: 'Fixtures' }, { value: 'results', label: 'Results' },
-        { value: 'tables', label: 'Tables' }, { value: 'awards', label: 'Awards' },
-        { value: 'seasons', label: 'Seasons' }, { value: 'feed', label: 'Feed' }, { value: 'records', label: 'Records' },
-        ...(myRole && (isAdmin || settings?.late_fines_enabled) ? [{ value: 'fines' as const, label: 'Fines' }] : []),
-        // last, so it's easy to find (leaving, inviting, removing)
+        { value: 'overview', label: 'Overview' }, { value: 'games', label: 'Games' }, { value: 'tables', label: 'Tables' },
+        { value: 'history', label: 'History' },
+        // last, so it's easy to find (inviting, leaving, removing, fines)
         { value: 'members', label: `Members · ${members.length}` },
       ]} />
-      {tab === 'fines' && !!myRole && <FinesPanel groupId={id} isAdmin={isAdmin} />}
       {!!userId && !!myRole && (
         <GroupWelcome userId={userId} group={g} members={members} nextGame={upcoming[0] ? { id: upcoming[0].id, name: upcoming[0].name, starts_at: upcoming[0].starts_at } : null} />
       )}
@@ -170,18 +167,24 @@ export default function GroupScreen() {
           {!!results[0] && (<><SectionTitle title="Latest result" /><SessionCard session={results[0]} /></>)}
           {!!myRole && <TeamOfMonth groupId={id} groupName={g.name} />}
           {!!g.rules && (<><SectionTitle title="Rules" /><Card><Text variant="small">{g.rules}</Text></Card></>)}
+          <SectionTitle title="Activity" />
+          {feed.data?.pages.flat().map((item) => <FeedItemCard key={item.id} item={item} />)}
+          {!!feed.data && feed.data.pages[0].length === 0 && <Text variant="small" tone="muted">Results, MOTMs and achievements will show up here.</Text>}
+          {!!feed.hasNextPage && <Button title="Show more" variant="ghost" onPress={() => feed.fetchNextPage()} loading={feed.isFetchingNextPage} />}
         </View>
       )}
 
-      {tab === 'fixtures' && (
+      {tab === 'games' && (
         <View style={{ gap: space.md }}>
+          <SectionTitle title="Coming up" />
           {upcoming.length === 0 && <EmptyState icon="calendar-outline" title="No upcoming fixtures" action={myRole ? { label: 'Create a session', onPress: () => router.push({ pathname: '/session/new', params: { groupId: id } }) } : undefined} />}
           {upcoming.map((s) => <SessionCard key={s.id} session={s} />)}
         </View>
       )}
 
-      {tab === 'results' && (
+      {tab === 'games' && (
         <View style={{ gap: space.md }}>
+          <SectionTitle title="Results" />
           {results.length === 0 && <EmptyState icon="football-outline" title="No results yet" />}
           {results.map((s) => (
             <Card key={s.id} onPress={() => router.push(`/session/${s.id}`)}>
@@ -246,13 +249,20 @@ export default function GroupScreen() {
             </Card>
           </View>
         )}
+        {!!myRole && (isAdmin || settings?.late_fines_enabled) && (
+          <View style={{ gap: space.sm }}>
+            <SectionTitle title="Late fines" />
+            <FinesPanel groupId={id} isAdmin={isAdmin} />
+          </View>
+        )}
         {!!myRole && myRole !== 'owner' && <Button title="Leave group" icon="exit-outline" variant="ghost" loading={busy === 'leave'} onPress={leave} />}
         {myRole === 'owner' && <Text variant="caption" tone="faint" align="center">You own this group. To leave, hand it to another member first (Group settings → Members → Transfer ownership).</Text>}
         </View>
       )}
 
-      {tab === 'awards' && (
+      {tab === 'history' && (
         <View style={{ gap: space.md }}>
+          <SectionTitle title="Awards" />
           {!!awards.isLoading && <Loading />}
           {awards.data?.length === 0 && <EmptyState icon="trophy-outline" title="No awards yet" message="Awards are calculated when an admin finalises a season." />}
           {seasons.filter((s) => s.status === 'completed').map((s) => {
@@ -279,8 +289,9 @@ export default function GroupScreen() {
         </View>
       )}
 
-      {tab === 'seasons' && (
+      {tab === 'history' && (
         <View style={{ gap: space.md }}>
+          <SectionTitle title="Seasons" />
           {!!isAdmin && <Button title="Start a new season" icon="add" variant="secondary" onPress={() => setSeasonOpen(true)} />}
           {seasons.length === 0 && <EmptyState icon="calendar-number-outline" title="No seasons yet" message="Seasons add separate tables and awards. Career history is never reset." />}
           {seasons.map((s) => (
@@ -300,16 +311,10 @@ export default function GroupScreen() {
         </View>
       )}
 
-      {tab === 'feed' && (
-        <View style={{ gap: space.md }}>
-          {feed.data?.pages.flat().map((item) => <FeedItemCard key={item.id} item={item} />)}
-          {!!feed.data && feed.data.pages[0].length === 0 && <EmptyState icon="newspaper-outline" title="Quiet so far" message="Results, MOTMs and achievements will show up here." />}
-          {!!feed.hasNextPage && <Button title="Load more" variant="secondary" onPress={() => feed.fetchNextPage()} loading={feed.isFetchingNextPage} />}
-        </View>
-      )}
 
-      {tab === 'records' && (
+      {tab === 'history' && (
         <View style={{ gap: space.sm }}>
+          <SectionTitle title="Records" />
           {!!records.isLoading && <Loading />}
           {!!records.error && <ErrorState error={records.error} onRetry={records.refetch} compact />}
           {!!records.data && ([

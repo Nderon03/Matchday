@@ -1,9 +1,9 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Linking, Platform, View, type HostInstance } from 'react-native';
+import { Linking, Platform, ScrollView, View, type HostInstance } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  Avatar, Badge, Button, Card, Chip, Divider, ErrorState, Header, IconButton, Input, Loading, Row, Screen, SectionTitle, Sheet, Text, useConfirm,
+  Avatar, Badge, Button, Card, Chip, ErrorState, Header, IconButton, Input, ListItem, Loading, Row, Screen, SectionTitle, Sheet, Text, useConfirm,
 } from '@/components/ui';
 import { PaymentBadge } from '@/components/football/PaymentBadge';
 import { ResultCard } from '@/components/football/ResultCard';
@@ -16,7 +16,7 @@ import { rpc } from '@/lib/api';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
-import { formatKickoff, formatPence, rating, timeUntil, plural } from '@/domain/format';
+import { formatKickoff, formatPence, nameList, rating, timeUntil, plural } from '@/domain/format';
 import { sameWeekdayNextWeek } from '@/features/sessionDates';
 import { removeSessionPlayer } from '@/features/removePlayer';
 import { LateStatusCard, useLateStatus } from '@/features/FinesPanel';
@@ -46,6 +46,8 @@ export default function SessionScreen() {
   // when I tapped "I'm in" this visit, so the card can celebrate it
   const [justIn, setJustIn] = useState(0);
   const [syncOpen, setSyncOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [squadOpen, setSquadOpen] = useState(false);
   const [finaliseOpen, setFinaliseOpen] = useState(false);
   // set when the host closes voting here, so Finalise unlocks immediately (the clock only ticks every 30s)
   const [closedHere, setClosedHere] = useState(false);
@@ -400,63 +402,34 @@ export default function SessionScreen() {
         </View>
       )}
 
-      {/* Host panel */}
-      {!!d.isManager && s.status !== 'cancelled' && (
-        <View style={{ gap: space.sm }}>
-          <SectionTitle title="Host controls" />
-          <Card>
-            <View style={{ gap: space.sm }}>
-              {s.status !== 'finalised' && (
-                <Row gap={space.sm} wrap>
-                  <Button title="Line-ups" icon="shirt-outline" variant="secondary" size="sm" onPress={() => router.push(`/session/${id}/lineup`)} />
-                  <Button title="Scores" icon="football-outline" variant="secondary" size="sm" onPress={() => router.push(`/session/${id}/results`)} />
-                  <Button title="Attendance" icon="checkbox-outline" variant="secondary" size="sm" onPress={() => router.push(`/session/${id}/attendance`)} />
-                  {['scheduled', 'in_progress'].includes(s.status) && <Button title="Edit" icon="create-outline" variant="secondary" size="sm" onPress={() => router.push(`/session/${id}/edit`)} />}
-                </Row>
-              )}
-              <Row gap={space.sm} wrap>
-                {s.status !== 'scheduled' && <Button title={`Goals${pendingClaims ? ` · ${pendingClaims} to approve` : ''}`} icon="checkmark-done-outline" variant={pendingClaims ? 'primary' : 'secondary'} size="sm" onPress={() => router.push(`/session/${id}/goals`)} />}
-                {s.payment_mode !== 'free' && <Button title="Payments" icon="card-outline" variant="secondary" size="sm" onPress={() => router.push(`/session/${id}/payments`)} />}
-                <Button title="Repeat next week" icon="repeat" variant="secondary" size="sm" loading={busy === 'dup'} onPress={() => run('dup', async () => {
-                  const newId = await rpc<string>('duplicate_session', { p_session: id, p_starts_at: sameWeekdayNextWeek(s.starts_at).toISOString() });
-                  router.push(`/session/${newId}`);
-                }, 'Next week’s session created')} />
-                {!s.template_id && <Button title="Save template" icon="bookmark-outline" variant="ghost" size="sm" onPress={() => run('tpl', () => rpc('save_session_as_template', { p_session: id, p_name: s.name, p_recurrence: 'none', p_auto: false }), 'Saved as a template')} />}
-              </Row>
-              {['scheduled', 'in_progress'].includes(s.status) && (
-                <>
-                  <Divider />
-                  <Button title="Full time — complete session" icon="flag" loading={busy === 'complete'} onPress={() => router.push(`/session/${id}/results`)} />
-                </>
-              )}
-              {s.status === 'completed' && (
-                <>
-                  <Divider />
-                  <Text variant="small" tone="muted">
-                    {votingOpen ? `Voting closes in ${timeUntil(s.voting_closes_at!)}. Results finalise automatically when it closes (if all goal claims are resolved).` : 'Voting has closed. Finalise to publish the results and update statistics.'}
-                  </Text>
-                  <Row gap={space.sm} wrap>
-                    {!!votingOpen && <Button title="Close voting now" variant="secondary" size="sm" loading={busy === 'close'} onPress={async () => {
-                      const ok = await run('close', async () => { await rpc('close_voting', { p_session: id }); return true; }, 'Voting closed — you can finalise now');
-                      if (ok) setClosedHere(true);
-                    }} />}
-                    <Button title="Finalise results" icon="lock-closed" size="sm" disabled={votingOpen} onPress={openFinalise} />
-                  </Row>
-                </>
-              )}
-              {s.status === 'finalised' && (
-                <Button title="Make a correction" icon="construct-outline" variant="ghost" size="sm" onPress={() => router.push(`/session/${id}/results?correct=1`)} />
-              )}
-              {['scheduled', 'in_progress'].includes(s.status) && (
-                <Button title="Cancel session" variant="danger" size="sm" onPress={async () => {
-                  const r = await confirm({ title: 'Cancel this session?', message: 'Everyone will be notified and any payments refunded or released.', confirmLabel: 'Cancel session', cancelLabel: 'Keep it', destructive: true, reasonLabel: 'Reason (optional, shown to players)' });
-                  if (r) run('cancel', () => rpc('cancel_session', { p_session: id, p_reason: typeof r === 'object' && r.reason ? r.reason : null }), 'Session cancelled');
-                }} />
-              )}
-            </View>
-          </Card>
-        </View>
-      )}
+      {/* Host panel: the one thing to do next, everything else in a list */}
+      {!!d.isManager && s.status !== 'cancelled' && (() => {
+        const next = d.fixtures.find((f) => !f.played) ?? d.fixtures[d.fixtures.length - 1];
+        const teamsReady = !!next?.lineup_confirmed_at;
+        const step: { title: string; detail: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void; disabled?: boolean } | null =
+          s.status === 'scheduled' && !teamsReady ? { title: 'Pick the teams', detail: 'Balance the squad and announce the line-ups.', icon: 'shirt', onPress: () => router.push(`/session/${id}/lineup`) }
+          : ['scheduled', 'in_progress'].includes(s.status) ? { title: 'Full time: enter the scores', detail: 'Record each game’s score to open voting.', icon: 'flag', onPress: () => router.push(`/session/${id}/results`) }
+          : s.status === 'completed' && pendingClaims ? { title: `Approve ${plural(pendingClaims, 'goal claim')}`, detail: 'Results can’t be finalised until every claim is decided.', icon: 'checkmark-done', onPress: () => router.push(`/session/${id}/goals`) }
+          : s.status === 'completed' && votingOpen ? { title: 'Close voting now', detail: `Voting closes in ${timeUntil(s.voting_closes_at!)}; results finalise automatically then.`, icon: 'timer-outline', onPress: () => run('close', async () => { await rpc('close_voting', { p_session: id }); setClosedHere(true); return true; }, 'Voting closed: you can finalise now') }
+          : s.status === 'completed' ? { title: 'Finalise results', detail: 'Publishes the result and updates everyone’s stats.', icon: 'lock-closed', onPress: openFinalise }
+          : null;
+        return (
+          <View style={{ gap: space.sm }}>
+            <SectionTitle title="Host controls" />
+            <Card>
+              <View style={{ gap: space.md }}>
+                {!!step && (
+                  <View style={{ gap: space.xs }}>
+                    <Button title={step.title} icon={step.icon} size="lg" loading={busy === 'close'} onPress={step.onPress} />
+                    <Text variant="caption" tone="muted" align="center">{step.detail}</Text>
+                  </View>
+                )}
+                <Button title="More host tools" icon="ellipsis-horizontal" variant="secondary" onPress={() => setToolsOpen(true)} />
+              </View>
+            </Card>
+          </View>
+        );
+      })()}
 
       {/* Line-ups status for players */}
       {!d.isManager && d.me?.status === 'confirmed' && ['scheduled', 'in_progress'].includes(s.status) && (() => {
@@ -483,8 +456,30 @@ export default function SessionScreen() {
 
       {/* Squad */}
       <View style={{ gap: space.sm }}>
-        <SectionTitle title={`Squad · ${groups.confirmed.length}`} action="Line-ups" onAction={() => router.push(`/session/${id}/lineup`)} />
-        <Card padded={false}>
+        <SectionTitle title={`Squad · ${groups.confirmed.length + guestsIn.length}`} action={squadOpen ? 'Hide' : 'See squad'} onAction={() => setSquadOpen((o) => !o)} />
+        {!squadOpen && (
+          <Card onPress={() => setSquadOpen(true)} accessibilityLabel="See the full squad">
+            {groups.confirmed.length + guestsIn.length === 0 ? (
+              <Text tone="muted">No one has confirmed yet.</Text>
+            ) : (
+              <View style={{ gap: space.sm }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                  {[...groups.confirmed.map((a) => ({ key: a.user_id, name: a.profile.display_name, uri: a.profile.avatar_url })), ...guestsIn.map((g) => ({ key: g.id, name: g.name, uri: null }))]
+                    .slice(0, 12).map((x, i) => (
+                      <View key={x.key} style={{ marginLeft: i ? -8 : 0, borderRadius: 999, borderWidth: 2, borderColor: colors.surface }}>
+                        <Avatar uri={x.uri} name={x.name} size={34} />
+                      </View>
+                    ))}
+                </View>
+                <Text variant="small" tone="muted" numberOfLines={2}>
+                  {nameList([...groups.confirmed.map((a) => a.profile.display_name.split(' ')[0]), ...guestsIn.map((g) => `${g.name} (guest)`)], 4)}
+                </Text>
+              </View>
+            )}
+          </Card>
+        )}
+        {squadOpen && (
+          <Card padded={false}>
           {groups.confirmed.map((a, i) => (
             <Row key={a.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
               <Avatar uri={a.profile.avatar_url} name={a.profile.display_name} size={36} />
@@ -517,6 +512,7 @@ export default function SessionScreen() {
           ))}
           {!groups.confirmed.length && <Text tone="muted" style={{ padding: space.lg }}>No one has confirmed yet.</Text>}
         </Card>
+        )}
         {!!d.isManager && guestRequests.map((g) => (
           <Card key={g.id} variant="alt">
             <Row gap={space.md}>
@@ -534,6 +530,34 @@ export default function SessionScreen() {
         {groups.out.length > 0 && <Text variant="small" tone="faint">Not playing: {groups.out.map((p) => p.profile.display_name).join(', ')}</Text>}
       </View>
 
+      <Sheet visible={toolsOpen} onClose={() => setToolsOpen(false)} title="Host tools">
+        <ScrollView style={{ maxHeight: 460 }}>
+          {[
+            s.status !== 'finalised' && { icon: 'shirt-outline', title: 'Line-ups', go: `/session/${id}/lineup` },
+            s.status !== 'finalised' && { icon: 'football-outline', title: 'Scores', go: `/session/${id}/results` },
+            s.status !== 'scheduled' && { icon: 'checkmark-done-outline', title: `Goals${pendingClaims ? ` · ${pendingClaims} to approve` : ''}`, go: `/session/${id}/goals` },
+            s.status !== 'finalised' && { icon: 'checkbox-outline', title: 'Attendance', go: `/session/${id}/attendance` },
+            s.payment_mode !== 'free' && { icon: 'card-outline', title: 'Payments', go: `/session/${id}/payments` },
+            ['scheduled', 'in_progress'].includes(s.status) && { icon: 'create-outline', title: 'Edit details', go: `/session/${id}/edit` },
+            s.status === 'finalised' && { icon: 'construct-outline', title: 'Make a correction', go: `/session/${id}/results?correct=1` },
+          ].filter(Boolean).map((t: any) => (
+            <ListItem key={t.title} title={t.title} left={<Ionicons name={t.icon} size={20} color={colors.textMuted} />} onPress={() => { setToolsOpen(false); router.push(t.go); }} />
+          ))}
+          <ListItem title="Repeat next week" left={<Ionicons name="repeat" size={20} color={colors.textMuted} />} onPress={() => { setToolsOpen(false); run('dup', async () => {
+            const newId = await rpc<string>('duplicate_session', { p_session: id, p_starts_at: sameWeekdayNextWeek(s.starts_at).toISOString() });
+            router.push(`/session/${newId}`);
+          }, 'Next week’s session created'); }} />
+          {!s.template_id && <ListItem title="Save as a template" left={<Ionicons name="bookmark-outline" size={20} color={colors.textMuted} />}
+            onPress={() => { setToolsOpen(false); run('tpl', () => rpc('save_session_as_template', { p_session: id, p_name: s.name, p_recurrence: 'none', p_auto: false }), 'Saved as a template'); }} />}
+          {['scheduled', 'in_progress'].includes(s.status) && (
+            <ListItem title="Cancel session" danger left={<Ionicons name="close-circle-outline" size={20} color={colors.danger} />} onPress={async () => {
+              setToolsOpen(false);
+              const r = await confirm({ title: 'Cancel this session?', message: 'Everyone will be notified and any payments refunded or released.', confirmLabel: 'Cancel session', cancelLabel: 'Keep it', destructive: true, reasonLabel: 'Reason (optional, shown to players)' });
+              if (r) run('cancel', () => rpc('cancel_session', { p_session: id, p_reason: typeof r === 'object' && r.reason ? r.reason : null }), 'Session cancelled');
+            }} />
+          )}
+        </ScrollView>
+      </Sheet>
       <CalendarSyncSheet visible={syncOpen} onClose={() => setSyncOpen(false)} />
       <Sheet visible={calendarOpen} onClose={() => setCalendarOpen(false)} title="Add to calendar">
         <Text tone="muted">Includes the venue, a link back to this session and a reminder 2 hours before kick-off (calendar file).</Text>

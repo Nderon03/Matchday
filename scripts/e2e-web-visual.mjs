@@ -250,11 +250,24 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     if (name === 'session') {
       const text0 = await page.locator('body').innerText();
       if (!/Guest request: Marco/i.test(text0)) failures.push(`${vpName}: guest request not shown`);
-      if (!/Dave/.test(text0)) failures.push(`${vpName}: guest not in squad`);
+      // squad is faces + names; the full list (with guests) opens on demand
+      await page.getByText('See squad').first().click();
+      await page.waitForTimeout(300);
+      const squadText = await page.locator('body').innerText();
+      if (!/Dave/.test(squadText)) failures.push(`${vpName}: guest not in squad`);
+      if (!/77% reliable/.test(squadText) || /95% reliable/.test(squadText)) failures.push(`${vpName}: host reliability warning wrong`);
+      // host tools: one next step, the rest in a list
+      if (!/Pick the teams|Full time: enter the scores/.test(text0)) failures.push(`${vpName}: host next step missing`);
+      await page.getByRole('button', { name: 'More host tools' }).click();
+      await page.waitForTimeout(300);
+      const tools = await page.locator('body').innerText();
+      if (!tools.includes('Repeat next week') || !tools.includes('Cancel session')) failures.push(`${vpName}: host tools list incomplete`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-host-tools.png`) });
+      await page.getByRole('button', { name: 'Close' }).last().click();
+      await page.waitForTimeout(300);
       if (!/Watch the game/i.test(text0)) failures.push(`${vpName}: match videos section missing`);
       if (!/10°C · Light rain/.test(text0)) failures.push(`${vpName}: kick-off weather missing`);
       if (!/Squad complete/.test(text0)) failures.push(`${vpName}: squad complete missing`);
-      if (!/77% reliable/.test(text0) || /95% reliable/.test(text0)) failures.push(`${vpName}: host reliability warning wrong`);
       await page.getByRole('button', { name: 'Can’t make it' }).first().click();
       await page.waitForTimeout(400);
       if (!(await page.locator('body').innerText()).includes('Can’t make it anymore?')) failures.push(`${vpName}: in-app confirm sheet did not open`);
