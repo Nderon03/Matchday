@@ -79,7 +79,13 @@ describe('single-match journey (5-a-side)', () => {
     // inside 24 hours players can't drop themselves out; they message the host, who lets them go
     await expectAppError(db.rpc(extra, 'respond_to_session', { p_session: sessionId, p_response: 'withdrawn' }), 'deadline_passed');
     await expectAppError(db.rpc(extra, 'respond_to_session', { p_session: sessionId, p_response: 'declined' }), 'deadline_passed');
+    // one tap tells the host, who lets them go
+    await db.rpc(extra, 'request_dropout', { p_session: sessionId, p_message: 'Hamstring' });
+    const [req] = await db.admin(`select title, body from notifications where user_id = $1 and type = 'dropout_request'`, [host]);
+    expect(req.body).toContain('Hamstring');
+    expect((await db.admin(`select dropout_requested_at from session_attendance where session_id = $1 and user_id = $2`, [sessionId, extra]))[0].dropout_requested_at).not.toBeNull();
     await db.rpc(host, 'release_session_player', { p_session: sessionId, p_user: extra });
+    expect((await db.admin(`select dropout_requested_at from session_attendance where session_id = $1 and user_id = $2`, [sessionId, extra]))[0].dropout_requested_at).toBeNull();
     const [w] = await db.admin(`select status, offer_expires_at from session_attendance where session_id = $1 and user_id = $2`, [sessionId, waiter]);
     expect(w.status).toBe('waitlisted');
     expect(w.offer_expires_at).not.toBeNull();
@@ -387,24 +393,16 @@ describe('seasons, records, head-to-head and the scheduler', () => {
     expect(s.status).toBe('finalised');
   });
 
-  it('creates recurring sessions from templates, with fresh attendance', async () => {
+  it('presets are saved but never create games on their own', async () => {
     const { host, rest, groupId } = await setupGroup(3);
     const sid = await createSession(host, groupId, rest, { starts_at: new Date(Date.now() + 3600_000).toISOString() });
     await db.rpc(rest[0], 'respond_to_session', { p_session: sid, p_response: 'confirmed' });
     const tpl = await db.rpc<string>(host, 'save_session_as_template', { p_session: sid, p_name: 'Wednesday Football', p_recurrence: 'weekly', p_auto: true });
     expect(tpl).toBeTruthy();
+    const [t] = await db.admin(`select invitee_ids from session_templates where id = $1`, [tpl]);
+    expect(t.invitee_ids).toEqual([rest[0]]);
     const r = await db.admin(`select public.process_session_deadlines() r`);
-    expect(r[0].r.created).toBe(1);
-    const sessions = await db.admin(`select id from sessions where template_id = $1 order by starts_at`, [tpl]);
-    expect(sessions).toHaveLength(2);
-    // invited again, but not assumed to be attending
-    const att = await db.admin(`select user_id from session_attendance where session_id = $1`, [sessions[1].id]);
-    expect(att.map((x) => x.user_id)).toEqual([host]);
-    const inv = await db.admin(`select count(*)::int n from session_invitations where session_id = $1`, [sessions[1].id]);
-    expect(inv[0].n).toBe(1);
-
-    // duplicate (repeat previous session) in one tap
-    const dup = await db.rpc<string>(host, 'duplicate_session', { p_session: sid, p_starts_at: new Date(Date.now() + 86400_000 * 14).toISOString() });
-    expect(dup).toBeTruthy();
+    expect(r[0].r.created).toBe(0);
+    expect(await db.admin(`select id from sessions where template_id = $1`, [tpl])).toHaveLength(1);
   });
 });

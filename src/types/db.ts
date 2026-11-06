@@ -123,6 +123,7 @@ export interface Attendance {
   /** a place offered from the waiting list, held until this time */
   offer_expires_at?: string | null;
   late_withdrawal?: boolean;
+  dropout_requested_at?: string | null;
 }
 
 export interface Fixture {

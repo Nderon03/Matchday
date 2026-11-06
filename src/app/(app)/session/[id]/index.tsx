@@ -273,6 +273,13 @@ export default function SessionScreen() {
                   const guestsNote = myGuests.length ? ` Your guest${myGuests.length > 1 ? 's' : ''} will be removed too.` : '';
                   if (await confirm({ title: 'Can’t make it anymore?', message: `Your place goes to the next player on the waiting list.${guestsNote} You can rejoin later if there’s space.`, confirmLabel: 'I can’t make it', destructive: true })) respond('withdrawn');
                 }} />}
+                {dropoutsClosed && s.host_id !== userId && !me.dropout_requested_at && (
+                  <Button title="Can’t make it" variant="secondary" loading={busy === 'dropout'} onPress={async () => {
+                    const r = await confirm({ title: `Tell ${hostName} you can’t make it?`, message: `Drop-outs closed 24 hours before kick-off, so ${hostName} takes you off. They’ll get a notification straight away.`,
+                      confirmLabel: `Tell ${hostName}`, reasonLabel: 'Message (optional)' });
+                    if (r) run('dropout', () => rpc('request_dropout', { p_session: id, p_message: typeof r === 'object' ? r.reason || null : null }), `${hostName} has been told`);
+                  }} />
+                )}
                 <Button title="Add a guest" icon="person-add-outline" variant="ghost" onPress={() => { setGuestName(''); setGuestOpen(true); }} />
               </Row>
             ) : offerUntil ? (
@@ -310,7 +317,9 @@ export default function SessionScreen() {
             )}
             {me?.status === 'confirmed' && s.host_id !== userId && (
               <Text variant="caption" tone="muted">
-                {dropoutsClosed ? `Drop-outs are closed. Can’t make it? Message ${hostName} and they’ll take you off.` : `You can drop out until ${formatKickoff(s.rsvp_deadline ?? s.starts_at)}. After that, message the host.`}
+                {me.dropout_requested_at ? `You told ${hostName} you can’t make it. You’re still in the squad until they take you off.`
+                  : dropoutsClosed ? `Drop-outs closed 24 hours before kick-off. Tap “Can’t make it” to tell ${hostName}.`
+                  : `You can drop out until ${formatKickoff(s.rsvp_deadline ?? s.starts_at)}. After that, you tell the host instead.`}
               </Text>
             )}
 
@@ -552,6 +561,19 @@ export default function SessionScreen() {
           {!groups.confirmed.length && <Text tone="muted" style={{ padding: space.lg }}>No one has confirmed yet.</Text>}
         </Card>
         )}
+        {!!d.isManager && s.status === 'scheduled' && groups.confirmed.filter((a) => a.dropout_requested_at).map((a) => (
+          <Card key={`drop-${a.user_id}`} variant="alt">
+            <Row gap={space.md}>
+              <Avatar uri={a.profile.avatar_url} name={a.profile.display_name} size={32} />
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong">{a.profile.display_name} can’t make it</Text>
+                <Text variant="caption" tone="muted">Their place goes to the waiting list</Text>
+              </View>
+              <Button title="Let them drop out" size="sm" loading={busy === `rel-${a.user_id}`}
+                onPress={() => run(`rel-${a.user_id}`, () => rpc('release_session_player', { p_session: id, p_user: a.user_id }), `${a.profile.display_name} dropped out`)} />
+            </Row>
+          </Card>
+        ))}
         {!!d.isManager && guestRequests.map((g) => (
           <Card key={g.id} variant="alt">
             <Row gap={space.md}>

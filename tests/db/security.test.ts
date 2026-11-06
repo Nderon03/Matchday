@@ -311,6 +311,13 @@ describe('sessions', () => {
     expect(new Date(s.starts_at).getTime() - new Date(s.rsvp_deadline).getTime()).toBe(86400_000);
   });
 
+  it('presets never repeat', async () => {
+    const host = await db.createUser(uniq('h'));
+    const sid = await db.rpc<string>(host, 'create_session', { p: { name: 'Preset FC', starts_at: new Date(Date.now() + 3 * 86400_000).toISOString(), format_size: 5 } });
+    const tid = await db.rpc<string>(host, 'save_session_as_template', { p_session: sid, p_name: 'Preset FC', p_recurrence: 'weekly', p_auto: true });
+    expect((await db.admin(`select recurrence, auto_schedule from session_templates where id = $1`, [tid]))[0]).toEqual({ recurrence: 'none', auto_schedule: false });
+  });
+
   it('rate limits abusive request patterns', async () => {
     const a = await db.createUser(uniq('spam'));
     const targets: string[] = [];

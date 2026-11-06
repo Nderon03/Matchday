@@ -262,7 +262,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
       )}
 
       <Text variant="caption" tone="faint">
-        Players can drop out until 24 hours before kick-off; after that they message you. Man of the Match is voted once for the whole session.
+        Players can drop out until 24 hours before kick-off; after that they tap to let you know and you take them off. Man of the Match is voted once for the whole session.
       </Text>
 
       <Row gap={space.sm} style={{ alignItems: 'stretch' }}>
