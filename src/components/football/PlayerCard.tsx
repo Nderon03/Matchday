@@ -106,7 +106,7 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
     ['Goals', s ? s.goals : '–'], ['Assists', s ? s.assists : '–'], ['G/A', s ? s.goals + s.assists : '–'], ['Medals', data.achievements ?? 0],
   ];
   return (
-    <View ref={ref} collapsable={false} onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ borderRadius: radius.xl, overflow: 'hidden', backgroundColor: st.to, borderWidth: st.border ? (st.id === 'hall_of_fame' ? 2 : 1) : 0, borderColor: st.border ?? undefined }}>
+    <View ref={ref} collapsable={false} onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ width: '100%', maxWidth: 520, alignSelf: 'center', borderRadius: radius.xl, overflow: 'hidden', backgroundColor: st.to, borderWidth: st.border ? (st.id === 'hall_of_fame' ? 2 : 1) : 0, borderColor: st.border ?? undefined }}>
       <Svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
         <Defs>
           <LinearGradient id={`card-${st.id}`} x1="0" y1="0" x2="1" y2="1">
