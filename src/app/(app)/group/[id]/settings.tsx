@@ -38,7 +38,7 @@ function SettingRow({ icon, title, hint, children, last }: { icon: keyof typeof 
       borderBottomWidth: last ? 0 : 1, borderBottomColor: colors.border }}>
       <Ionicons name={icon} size={18} color={colors.textMuted} />
       <View style={{ flex: 1 }}>
-        <Text variant="bodyStrong" numberOfLines={1}>{title}</Text>
+        <Text variant="bodyStrong" numberOfLines={2}>{title}</Text>
         <Text variant="caption" tone="muted" numberOfLines={2}>{hint}</Text>
       </View>
       {children}
