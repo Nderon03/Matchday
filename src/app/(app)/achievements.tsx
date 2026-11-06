@@ -53,7 +53,7 @@ export default function Achievements() {
               <Card style={{ width: cardWidth as any, opacity: champion.unlocked_at ? 1 : 0.85 }} accessibilityLabel={`Season Champion${champion.value ? `, won ${plural(champion.value, 'time')}` : ', not yet won'}`}>
                 <View style={{ alignItems: 'center', gap: 6 }}>
                   <AchievementBadge icon={SEASON_CHAMPION.icon} level={champion.unlocked_at ? 5 : 0} size={54} />
-                  <Text variant="smallStrong" align="center" numberOfLines={1}>Season Champion</Text>
+                  <Text variant="smallStrong" align="center" numberOfLines={2}>Season Champion</Text>
                   <Text variant="caption" tone={champion.unlocked_at ? 'gold' : 'faint'} align="center">
                     {champion.unlocked_at ? `Player of the Season${champion.value > 1 ? ` ×${champion.value}` : ''}` : 'Win Player of the Season'}
                   </Text>
