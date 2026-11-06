@@ -1,23 +1,24 @@
 /**
- * Create / edit session form. Optimised for speed: sensible defaults, chips instead of
- * pickers, prefill from templates, duplicates and groups.
+ * Create / edit session form. Optimised for speed: one control per choice (swipe through),
+ * a calendar and a typed time, sensible defaults, prefill from templates, duplicates and groups.
  */
-import React, { useMemo, useRef, useState } from 'react';
-import { ScrollView, Switch, View, type ScrollViewInstance } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Platform, Pressable, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Card, Chip, Input, Row, SectionTitle, Segmented, Stepper, Text, useToast } from '@/components/ui';
+import { Button, Input, Row, SectionTitle, SwipeSelect, Text, useToast } from '@/components/ui';
 import { PeoplePicker } from '@/components/football/PeoplePicker';
 import { useFriends, useMyGroups, type PublicProfile } from '@/hooks/queries';
 import { supabase } from '@/lib/supabase';
 import { q, rpc } from '@/lib/api';
 import { fieldErrors, sessionSchema } from '@/domain/validation';
 import { formatPence, poundsToPence } from '@/domain/format';
-import { combine, dayLabel, isValidTime, nextDays, sameDay } from '@/features/sessionDates';
+import { DURATIONS, combine, dayLabel, isValidTime, nextDays, tidyTime, typeTime } from '@/features/sessionDates';
 import { DatePickerSheet } from '@/features/DatePickerSheet';
 import { lookupPostcode, normalisePostcode, type Place } from '@/lib/postcodes';
 import { useTheme } from '@/theme/ThemeProvider';
-import { space } from '@/theme/tokens';
+import { radius, space } from '@/theme/tokens';
 import { toggleIn } from '@/domain/sets';
 import { useAuth } from '@/providers/AuthProvider';
 import { usePriceLabel } from '@/hooks/useFees';
@@ -58,11 +59,12 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
   const [groupId, setGroupId] = useState<string | null>(initial?.group_id ?? null);
   const [date, setDate] = useState<Date>(startDefault ?? nextDays(2)[1]);
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const daysRef = useRef<ScrollViewInstance>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [time, setTime] = useState(startDefault ? `${String(startDefault.getHours()).padStart(2, '0')}:${String(startDefault.getMinutes()).padStart(2, '0')}` : '19:00');
   const [duration, setDuration] = useState(initial?.duration_minutes ?? 60);
   const [format, setFormat] = useState(initial?.format_size ?? 5);
-  const [maxAttendance, setMax] = useState(initial?.max_attendance ?? (initial?.format_size ?? 5) * 2);
+  // a 5-a-side is 10 players, 6-a-side 12 and so on (an existing game keeps its size unless the format changes)
+  const maxAttendance = editing && format === (initial?.format_size ?? format) && initial?.max_attendance ? initial.max_attendance : format * 2;
   const [venue, setVenue] = useState(initial?.venue ?? '');
   const [location, setLocation] = useState(initial?.location ?? '');
   const [postcode, setPostcode] = useState(initial?.postcode ?? '');
@@ -77,7 +79,8 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
     const found = await lookupPostcode(value);
     setPlace(found);
     setPlaceState(found ? 'ok' : 'unknown');
-    if (found?.area && !location.trim()) setLocation(found.area);
+    // the area comes from the postcode (shown on the game and used by "Find a game")
+    if (found?.area) setLocation(found.area);
   };
   const [visibility, setVisibility] = useState<SessionVisibility>(initial?.visibility ?? (initial?.group_id ? 'group' : 'private'));
   const [description, setDescription] = useState(initial?.description ?? '');
@@ -116,9 +119,9 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
 
   const submit = async () => {
     const pricePence = paymentMode === 'free' ? 0 : poundsToPence(price) ?? -1;
-    if (!isValidTime(time)) return setErrors({ time: 'Use 24-hour time, e.g. 19:30' });
+    if (!isValidTime(tidyTime(time))) return setErrors({ time: 'Enter a time like 19:30' });
     if (pricePence < 0) return setErrors({ price_pence: 'Enter an amount like 6 or 6.50' });
-    const startsAt = combine(date, time);
+    const startsAt = combine(date, tidyTime(time));
     const payload = {
       name, starts_at: startsAt, duration_minutes: duration, location: location || undefined, venue: venue || undefined, postcode: place?.postcode ?? '',
       format_size: format, max_attendance: maxAttendance, visibility, description: description || undefined,
@@ -167,134 +170,85 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
     }
   };
 
-  const days = nextDays(14);
-  const pickedLater = !days.some((d) => sameDay(d, date));
+  const groupOptions = [{ value: null as string | null, label: 'No group', icon: 'person-outline' as const }, ...(groups.data ?? []).map((g) => ({ value: g.id as string | null, label: g.name, icon: 'people-outline' as const }))];
+  const visibilityOptions = [
+    { value: 'private' as SessionVisibility, label: 'Invite only', icon: 'lock-closed-outline' as const, detail: 'Only people you invite can see and join.' },
+    ...(groupId ? [{ value: 'group' as SessionVisibility, label: 'Group', icon: 'people-outline' as const, detail: 'Members of the group can see and join.' }] : []),
+    { value: 'public' as SessionVisibility, label: 'Public', icon: 'globe-outline' as const, detail: 'Anyone on MATCHDAY can find it in “Find a game” and join.' },
+  ];
+  const pence = poundsToPence(price);
 
   return (
     <View style={{ gap: space.xl }}>
       <Input label="Session name" value={name} onChangeText={setName} placeholder="e.g. Wednesday Football" maxLength={60} error={errors.name} />
 
-      {!!groups.data?.length && (
-        <View style={{ gap: space.sm }}>
-          <SectionTitle title="Group" />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-            <Chip label="No group" selected={!groupId} onPress={() => selectGroup(null)} />
-            {groups.data.map((g) => <Chip key={g.id} label={g.name} selected={groupId === g.id} onPress={() => selectGroup(g.id)} />)}
-          </ScrollView>
-        </View>
-      )}
+      {!!groups.data?.length && <SwipeSelect label="Group" value={groupId} onChange={selectGroup} options={groupOptions} />}
 
-      <View style={{ gap: space.sm }}>
-        <SectionTitle title="When" />
-        <ScrollView ref={daysRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-          {pickedLater && <Chip label={dayLabel(date)} selected onPress={() => setCalendarOpen(true)} />}
-          {days.map((d) => <Chip key={d.toDateString()} label={dayLabel(d)} selected={sameDay(d, date)} onPress={() => setDate(d)} />)}
-          <Chip label="📅 Pick a date" onPress={() => setCalendarOpen(true)} />
-        </ScrollView>
-        {calendarOpen && <DatePickerSheet visible value={date} onClose={() => setCalendarOpen(false)} onPick={(d) => { setDate(d); setTimeout(() => daysRef.current?.scrollTo({ x: 0, animated: true }), 60); }} />}
-        {!!errors.starts_at && <Text variant="caption" tone="danger">{errors.starts_at}</Text>}
-        <Row gap={space.sm} wrap>
-          {['18:00', '19:00', '20:00', '21:00'].map((t) => <Chip key={t} label={t} selected={time === t} onPress={() => setTime(t)} />)}
-          <View style={{ width: 110 }}>
-            <Input value={time} onChangeText={setTime} placeholder="19:30" keyboardType="numbers-and-punctuation" maxLength={5} accessibilityLabel="Kick-off time" error={errors.time} />
+      <View style={{ gap: space.xs }}>
+        <Text variant="smallStrong" tone="muted">Kick-off</Text>
+        <Row gap={space.sm}>
+          <Pressable onPress={() => setCalendarOpen(true)} accessibilityRole="button" accessibilityLabel={`Date: ${dayLabel(date)}. Change`}
+            style={({ pressed }) => ({ flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm, height: 52, paddingHorizontal: space.md,
+              borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: pressed ? colors.elevated : colors.surfaceAlt })}>
+            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+            <Text variant="bodyStrong" style={{ flex: 1 }} numberOfLines={1}>{dayLabel(date)}</Text>
+            <Ionicons name="chevron-down" size={16} color={colors.textFaint} />
+          </Pressable>
+          <View style={{ width: 118, flexDirection: 'row', alignItems: 'center', gap: 6, height: 52, paddingHorizontal: space.md,
+            borderRadius: radius.md, borderWidth: 1, borderColor: errors.time ? colors.danger : colors.border, backgroundColor: colors.surfaceAlt }}>
+            <Ionicons name="time-outline" size={18} color={colors.primary} />
+            <TextInput value={time} onChangeText={(v) => setTime(typeTime(v))} onBlur={() => setTime(tidyTime(time))}
+              placeholder="19:00" placeholderTextColor={colors.textFaint} keyboardType="number-pad" maxLength={5} accessibilityLabel="Kick-off time"
+              style={[{ flex: 1, color: colors.text, fontSize: 18, fontWeight: '700', height: 50, padding: 0, includeFontPadding: false }, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object)]} />
           </View>
         </Row>
-        <Row gap={space.sm} wrap>
-          {([[45, '45 min'], [60, '1 hour'], [90, '1h 30'], [120, '2 hours']] as const).map(([m, label]) => <Chip key={m} label={label} selected={duration === m} onPress={() => setDuration(m)} />)}
-        </Row>
+        {!!(errors.time || errors.starts_at) && <Text variant="caption" tone="danger">{errors.time ?? errors.starts_at}</Text>}
+        {calendarOpen && <DatePickerSheet visible value={date} onClose={() => setCalendarOpen(false)} onPick={setDate} />}
       </View>
 
-      <View style={{ gap: space.sm }}>
-        <SectionTitle title="Format" />
-        <Row gap={space.sm} wrap>
-          {[5, 6, 7, 8, 9, 10, 11].map((n) => <Chip key={n} label={`${n}-a-side`} selected={format === n} onPress={() => { setFormat(n); if (!editing) setMax(n * 2); }} />)}
-        </Row>
-        <Card variant="alt">
-          <Row style={{ justifyContent: 'space-between' }}>
-            <View style={{ flex: 1 }}>
-              <Text variant="bodyStrong">Maximum players</Text>
-              <Text variant="small" tone="muted">Extra players join the waiting list.</Text>
-            </View>
-            <Stepper value={maxAttendance} onChange={setMax} min={2} max={60} label="Maximum players" />
-          </Row>
-        </Card>
-      </View>
+      <Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
+        <SwipeSelect compact label="Format" value={format} onChange={setFormat}
+          options={[5, 6, 7, 8, 9, 10, 11].map((n) => ({ value: n, label: `${n}-a-side` }))} />
+        <SwipeSelect compact label="Length" value={duration} onChange={setDuration}
+          options={DURATIONS.some((d) => d.value === duration) ? DURATIONS : [...DURATIONS, { value: duration, label: `${duration} min` }].sort((a, b) => a.value - b.value)} />
+      </Row>
+      <Text variant="caption" tone="faint" style={{ marginTop: -space.md }}>Up to {maxAttendance} players; anyone else joins the waiting list.</Text>
 
       <View style={{ gap: space.md }}>
-        <SectionTitle title="Where" />
-        <Input label="Venue name" value={venue} onChangeText={setVenue} placeholder="e.g. Powerleague Mill Hill, Pitch 3" icon="business-outline"
-          hint="If the pitch has a name. Leave blank for a park or school pitch." />
-        <Input label="Postcode (required)" value={postcode} autoCapitalize="characters" autoCorrect={false} maxLength={9} icon="navigate-outline" placeholder="e.g. NW7 2EU"
+        <Input label="Venue" value={venue} onChangeText={setVenue} placeholder="e.g. Powerleague Mill Hill, Pitch 3" icon="business-outline" />
+        <Input label="Postcode" value={postcode} autoCapitalize="characters" autoCorrect={false} maxLength={9} icon="navigate-outline" placeholder="e.g. NW7 2EU"
           onChangeText={(v) => { setPostcode(v); if (normalisePostcode(v)) checkPostcode(v); else { setPlace(null); setPlaceState('idle'); } }}
           onBlur={() => checkPostcode(postcode)}
           error={errors.postcode ?? (placeState === 'unknown' ? 'We couldn’t find that postcode. Check it and try again.' : null)}
-          hint={placeState === 'checking' ? 'Checking…' : placeState === 'ok' && place ? `✓ ${place.postcode}${place.area ? ` · ${place.area}` : ''}` : 'Lets players find the game and get directions.'} />
-        <Input label="Area / address (optional)" value={location} onChangeText={setLocation} placeholder="e.g. Mill Hill, London" icon="location-outline"
-          hint={visibility === 'public' ? 'Filled in from the postcode. Players can search “Find a game” by postcode, area or venue.' : 'Filled in from the postcode. Edit it if you like.'} />
+          hint={placeState === 'checking' ? 'Checking…' : placeState === 'ok' && place ? `✓ ${place.postcode}${place.area ? ` · ${place.area}` : ''}` : 'For directions, the forecast and nearby search.'} />
       </View>
 
       <View style={{ gap: space.sm }}>
-        <SectionTitle title="Payment" />
-        <Segmented value={paymentMode} onChange={setPaymentMode} options={[{ value: 'free', label: 'Free' }, { value: 'upfront', label: 'Pay upfront' }, { value: 'after', label: 'Pay after' }]} />
+        <SwipeSelect label="Payment" value={paymentMode} onChange={setPaymentMode} options={[
+          { value: 'free', label: 'Free', icon: 'happy-outline', detail: 'No payment in the app.' },
+          { value: 'upfront', label: 'Pay upfront', icon: 'card-outline', detail: 'Players’ cards are held when they join (from 6 days before) and only charged once you confirm the game happened.' },
+          { value: 'after', label: 'Pay after', icon: 'receipt-outline', detail: 'Players get a payment request once you complete the session.' },
+        ]} />
         {paymentMode !== 'free' && (
           <>
-            <Input label="Your price per player (£)" value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="e.g. 6.00" icon="cash-outline" error={errors.price_pence}
-              hint="This is what you receive from each player." />
-            {!!poundsToPence(price) && (
-              <Card variant="alt">
-                <View style={{ gap: 4 }}>
-                  <Row style={{ justifyContent: 'space-between' }}>
-                    <Text variant="small">You receive</Text>
-                    <Text variant="smallStrong">{formatPence(poundsToPence(price)!)}</Text>
-                  </Row>
-                  <Row style={{ justifyContent: 'space-between' }}>
-                    <Text variant="small" tone="muted">Booking fee (paid by the player)</Text>
-                    <Text variant="small" tone="muted">{formatPence(priceLabel(poundsToPence(price)!).feePence)}</Text>
-                  </Row>
-                  <Row style={{ justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 4 }}>
-                    <Text variant="smallStrong">Each player pays</Text>
-                    <Text variant="smallStrong">{priceLabel(poundsToPence(price)!).total}</Text>
-                  </Row>
-                  <Text variant="caption" tone="faint">The booking fee covers card processing and keeps MATCHDAY running. Players see the full price before they join.</Text>
-                </View>
-              </Card>
+            <Input label="Your price per player (£)" value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="e.g. 6.00" icon="cash-outline" error={errors.price_pence} />
+            {!!pence && (
+              <Text variant="caption" tone="muted">
+                You receive {formatPence(pence)} · players pay {priceLabel(pence).total} (incl. {formatPence(priceLabel(pence).feePence)} booking fee). Payouts go to your Stripe account (Settings → Payouts).
+              </Text>
             )}
-            <Text variant="caption" tone="muted">
-              {paymentMode === 'upfront'
-                ? 'Players authorise their card when they confirm (from 6 days before kick-off). They are only charged once you confirm the game took place. Holds are released automatically if you don’t confirm within 24 hours.'
-                : 'Players get a payment request once you complete the session.'}{' '}
-              Payments go straight to your Stripe account — set it up in Settings → Payouts.
-            </Text>
           </>
         )}
       </View>
 
-      <View style={{ gap: space.sm }}>
-        <SectionTitle title="Who can see & join" />
-        <Segmented
-          value={visibility}
-          onChange={setVisibility}
-          options={[
-            { value: 'private', label: 'Invite only' },
-            ...(groupId ? [{ value: 'group' as const, label: 'Group' }] : []),
-            { value: 'public', label: 'Public' },
-          ]}
-        />
-        <Text variant="caption" tone="muted">
-          {visibility === 'public' ? 'Anyone on MATCHDAY can find this game in “Find a game” and join, so make sure the venue and area are filled in.'
-            : visibility === 'group' ? 'Members of the group can see and join.' : 'Only people you invite can see and join.'}
-        </Text>
+      <View style={{ gap: space.xs }}>
+        <SwipeSelect label="Who can join" value={visibility} onChange={setVisibility} options={visibilityOptions} />
         {!!errors.visibility && <Text variant="caption" tone="danger">{errors.visibility}</Text>}
-        <Row gap={space.sm} wrap>
-          <Text variant="small" tone="muted">Withdrawal deadline:</Text>
-          {[null, 2, 12, 24].map((h) => <Chip key={String(h)} label={h == null ? 'None' : `${h}h before`} selected={deadlineHours === h} onPress={() => setDeadlineHours(h)} />)}
-        </Row>
       </View>
 
       <View style={{ gap: space.sm }}>
         <SectionTitle title={`Invite players${invitees.size ? ` · ${invitees.size}` : ''}`} action={people.length ? (invitees.size === people.length ? 'Clear' : 'Select all') : undefined}
           onAction={() => setInvitees(invitees.size === people.length ? new Set() : new Set(people.map((p) => p.id)))} />
-        {!editing && <Text variant="caption" tone="muted">You’re in the squad automatically as host.</Text>}
         <PeoplePicker
           people={people}
           selected={invitees}
@@ -303,37 +257,43 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         />
       </View>
 
-      <Input label="Notes (optional)" value={description} onChangeText={setDescription} multiline placeholder="e.g. Bring both bibs. Astro boots only." maxLength={1000} />
-
-      <View style={{ gap: space.sm }}>
-        <SectionTitle title="Man of the Match" />
-        <Segmented value={motmMode} onChange={setMotmMode} options={[{ value: 'session', label: 'Whole session' }, { value: 'fixture', label: 'Every game' }]} />
-      </View>
-
-      {!editing && (
-        <Card variant="alt">
-          <View style={{ gap: space.md }}>
-            <Text variant="bodyStrong">Make it a regular game</Text>
-            <Row gap={space.sm} wrap>
-              {(['none', 'weekly', 'fortnightly', 'monthly'] as Recurrence[]).map((r) => (
-                <Chip key={r} label={r === 'none' ? 'One-off' : r[0].toUpperCase() + r.slice(1)} selected={recurrence === r} onPress={() => setRecurrence(r)} />
-              ))}
-            </Row>
-            {recurrence !== 'none' && (
-              <Text variant="caption" tone="muted">The next game is created automatically a week ahead and the squad is invited again. Everyone confirms each week separately.</Text>
-            )}
-            {recurrence === 'none' && (
-              <Row style={{ justifyContent: 'space-between' }}>
-                <Text variant="small">Save as a reusable template</Text>
-                <Switch value={saveTemplate} onValueChange={setSaveTemplate} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Save as template" />
-              </Row>
+      <View style={{ gap: space.md }}>
+        <Pressable onPress={() => setMoreOpen((o) => !o)} accessibilityRole="button" accessibilityState={{ expanded: moreOpen }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs }}>
+          <Text variant="bodyStrong" style={{ flex: 1 }}>More options</Text>
+          <Text variant="caption" tone="faint">{moreOpen ? '' : 'Notes, MOTM, deadline, repeat'}</Text>
+          <Ionicons name={moreOpen ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textMuted} />
+        </Pressable>
+        {moreOpen && (
+          <View style={{ gap: space.lg }}>
+            <Input label="Notes" value={description} onChangeText={setDescription} multiline placeholder="e.g. Bring both bibs. Astro boots only." maxLength={1000} />
+            <SwipeSelect label="Man of the Match" value={motmMode} onChange={setMotmMode} options={[
+              { value: 'session', label: 'Whole session', detail: 'One vote at the end.' },
+              { value: 'fixture', label: 'Every game', detail: 'A vote for each game played.' },
+            ]} />
+            <SwipeSelect label="Can’t-make-it deadline" value={deadlineHours} onChange={setDeadlineHours} options={[
+              { value: null, label: 'None', detail: 'Players can drop out any time.' },
+              { value: 2, label: '2 hours before', detail: 'After that, players have to message you to drop out.' },
+              { value: 12, label: '12 hours before', detail: 'After that, players have to message you to drop out.' },
+              { value: 24, label: '24 hours before', detail: 'After that, players have to message you to drop out.' },
+            ]} />
+            {!editing && (
+              <SwipeSelect label="Repeat" value={recurrence === 'none' && saveTemplate ? 'template' : recurrence}
+                onChange={(v) => { setSaveTemplate(v === 'template'); setRecurrence(v === 'template' ? 'none' : (v as Recurrence)); }}
+                options={[
+                  { value: 'none', label: 'One-off' },
+                  { value: 'weekly', label: 'Every week', detail: 'The next game is created a week ahead and the squad invited again.' },
+                  { value: 'fortnightly', label: 'Every 2 weeks', detail: 'The next game is created ahead and the squad invited again.' },
+                  { value: 'monthly', label: 'Every month', detail: 'The next game is created ahead and the squad invited again.' },
+                  { value: 'template', label: 'Save as a template', detail: 'Reuse these settings later from Create.' },
+                ]} />
             )}
           </View>
-        </Card>
-      )}
+        )}
+      </View>
 
       <Button
-        title={editing ? 'Save changes' : `Create session${paymentMode !== 'free' && poundsToPence(price) ? ` · players pay ${priceLabel(poundsToPence(price)!).total}` : ''}`}
+        title={editing ? 'Save changes' : `Create session${paymentMode !== 'free' && pence ? ` · players pay ${priceLabel(pence).total}` : ''}`}
         size="lg"
         loading={busy}
         onPress={submit}

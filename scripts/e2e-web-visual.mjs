@@ -187,7 +187,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     if (name === 'create') {
       await page.goto(base + '/session/new', { waitUntil: 'networkidle' });
       await page.waitForTimeout(600);
-      await page.getByText('📅 Pick a date').first().click();
+      await page.getByRole('button', { name: /^Date: / }).first().click();
       await page.waitForTimeout(400);
       const t = await page.locator('body').innerText();
       if (!/Pick a date/.test(t) || !/Mon/.test(t)) failures.push(`${vpName}: calendar did not open`);
@@ -195,9 +195,20 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.getByRole('button', { name: 'Next month' }).click();
       await page.waitForTimeout(200);
       await page.getByRole('button', { name: /^(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day 15 / }).first().click();
-      await page.waitForTimeout(900);
-      if (!/15 /.test(await page.locator('body').innerText())) failures.push(`${vpName}: picked date not shown as a chip`);
-      await page.screenshot({ path: join(OUT, `auth-${vpName}-calendar-picked.png`) });
+      await page.waitForTimeout(600);
+      if (!/15 /.test(await page.locator('body').innerText())) failures.push(`${vpName}: picked date not shown`);
+      // typing a time puts the colon in
+      const timeBox = page.getByLabel('Kick-off time');
+      await timeBox.fill('');
+      await timeBox.pressSequentially('2045');
+      if ((await timeBox.inputValue()) !== '20:45') failures.push(`${vpName}: typed time not formatted (${await timeBox.inputValue()})`);
+      // format and length are single swipe controls; no max-players or area fields
+      const ft = await page.locator('body').innerText();
+      if (!ft.includes('5-a-side') || !ft.includes('1 hour') || /Maximum players|Area \/ address/.test(ft)) failures.push(`${vpName}: session form layout unexpected`);
+      await page.getByRole('button', { name: 'Next option' }).nth(1).click();
+      await page.waitForTimeout(250);
+      if (!(await page.locator('body').innerText()).includes('6-a-side')) failures.push(`${vpName}: format did not change`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-session-form.png`), fullPage: vpName === 'phone' });
       await page.goto(base + path, { waitUntil: 'networkidle' });
       await page.waitForTimeout(400);
     }

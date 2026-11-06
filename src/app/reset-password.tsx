@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import { Button, Header, Input, Screen, Text, useToast } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { finishRecovery } from '@/lib/recovery';
-import { OpenAppPrompt, isMobileWeb } from '@/features/OpenAppPrompt';
 import { passwordSchema } from '@/domain/validation';
 import { friendlyAuthError } from '@/features/auth';
 import { space } from '@/theme/tokens';
@@ -14,7 +13,6 @@ export default function ResetPassword() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<string | null>(null);
   const toast = useToast();
   const submit = async () => {
     const parsed = passwordSchema.safeParse(password);
@@ -26,13 +24,8 @@ export default function ResetPassword() {
     if (e) return setError(friendlyAuthError(e));
     finishRecovery();
     toast.success('Password updated');
-    if (isMobileWeb()) {
-      const { data } = await supabase.auth.getUser();
-      return setDone(data.user?.email ?? '');
-    }
     router.replace('/');
   };
-  if (done !== null) return <OpenAppPrompt title="Password updated" email={done} message="Open the MATCHDAY app and sign in with your new password." />;
   return (
     <Screen edges={['top', 'bottom']} maxWidth={480}>
       <Header title="Choose a new password" />

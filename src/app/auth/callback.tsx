@@ -20,8 +20,12 @@ export default function AuthCallback() {
   const params = useLocalSearchParams<{ code?: string; token_hash?: string; error_description?: string; type?: string }>();
   const { colors } = useTheme();
   const [error, setError] = useState<string | null>(params.error_description ?? null);
-  const [confirmed, setConfirmed] = useState<string | null>(null);
+  // on a phone's browser, hand email links to the app (it uses the one-time code and signs in
+  // there) unless the person chooses to carry on in the browser
+  const handOff = isMobileWeb() && !!params.token_hash && OTP_TYPES.includes(params.type as OtpType);
+  const [useWeb, setUseWeb] = useState(!handOff);
   useEffect(() => {
+    if (!useWeb) return;
     (async () => {
       if (params.type === 'recovery') startRecovery();
       if (params.token_hash && OTP_TYPES.includes(params.type as OtpType)) {
@@ -41,13 +45,20 @@ export default function AuthCallback() {
       const { data } = await supabase.auth.getSession();
       if (!data.session) return setError((prev) => prev ?? 'This link is invalid or has expired.');
       if (isRecovering()) return router.replace('/reset-password');
-      // email confirmed on a phone's browser: offer to jump back into the app
-      if (isMobileWeb() && (params.type === 'email' || params.type === 'signup')) return setConfirmed(data.session.user.email ?? '');
       router.replace('/');
     })();
-  }, [params.code, params.token_hash, params.type]);
-  if (confirmed !== null && !error) {
-    return <OpenAppPrompt title="Email confirmed" email={confirmed} message="You’re all set. Open the MATCHDAY app and sign in with your password." />;
+  }, [useWeb, params.code, params.token_hash, params.type]);
+  if (!useWeb) {
+    const appLink = `matchday:///auth/callback?token_hash=${encodeURIComponent(params.token_hash!)}&type=${encodeURIComponent(params.type!)}`;
+    const recovery = params.type === 'recovery';
+    return (
+      <OpenAppPrompt
+        title={recovery ? 'Reset your password' : 'Confirm your email'}
+        message={recovery ? 'Open MATCHDAY to choose a new password.' : 'Open MATCHDAY to finish: you’ll be signed in straight away.'}
+        appLink={appLink}
+        onContinueWeb={() => setUseWeb(true)}
+      />
+    );
   }
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center', padding: space.xxl, gap: space.md }}>

@@ -64,9 +64,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
       </Row>
       <Input label="Name" value={form.name} onChangeText={(v) => setForm({ ...form, name: v })} />
       <Input label="Description" value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} multiline />
-      <Input label="Area" value={form.location} onChangeText={(v) => setForm({ ...form, location: v })} placeholder="e.g. Mill Hill, London" hint="Helps people find the group in Discover." />
       <Input label="Rules" value={form.rules} onChangeText={(v) => setForm({ ...form, rules: v })} multiline hint="Shown to members on the group page, e.g. pay before kick-off." />
-      <SectionTitle title="Who can join" />
       <GroupAccessPicker value={accessOf(form)} onChange={(a) => setForm({ ...form, ...accessToSettings(a) })} />
       {!!cfg && (
         <>
