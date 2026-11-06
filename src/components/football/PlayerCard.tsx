@@ -6,6 +6,7 @@ import { Avatar, Text } from '@/components/ui';
 import { POSITION_LABEL, rating } from '@/domain/format';
 import { SEASON_CHAMPION, TRACKS, cardStyle, levelInfo, parseCode } from '@/domain/achievements';
 import { AchievementBadge } from './AchievementBadge';
+import { cardTitle } from '@/domain/titles';
 import { Ionicons } from '@expo/vector-icons';
 import { ClubShield, Flag } from './Identity';
 import { CardFX } from './CardFX';
@@ -22,6 +23,8 @@ export interface PlayerCardData {
   card_style?: string | null;
   nationality?: string | null;
   supported_club?: string | null;
+  /** the title the player picked (id from CARD_TITLES) */
+  title?: string | null;
   /** up to three medal codes the player chose to show (e.g. goals_l4) */
   medals?: string[] | null;
   /** turned-up rate, once known (5+ commitments) */
@@ -53,7 +56,6 @@ function ReliabilityMark({ r, accent, muted }: { r: PlayerCardData['reliability'
             <Ionicons name="star" size={9} color="#F5C542" />
           </View>
         </View>
-        <Text variant="caption" color="#E9D9A6" numberOfLines={1} style={{ marginTop: 2, fontSize: 10 }}>Always turns up</Text>
       </View>
     );
   }
@@ -66,7 +68,7 @@ function ReliabilityMark({ r, accent, muted }: { r: PlayerCardData['reliability'
 }
 
 /** The medals a player chose to show, small along the bottom of the card. */
-function CardMedals({ codes }: { codes: string[] }) {
+export function CardMedals({ codes }: { codes: string[] }) {
   const items = codes.slice(0, 3).map((c) => {
     const { track, level } = parseCode(c);
     const def = c === SEASON_CHAMPION.code ? { name: SEASON_CHAMPION.name, icon: SEASON_CHAMPION.icon } : TRACKS.find((t) => t.track === track);
@@ -139,6 +141,12 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
             <Text variant="small" color={st.muted} numberOfLines={1}>@{data.username}</Text>
             <Text variant="caption" color={st.muted}>{POSITION_LABEL[data.position] ?? data.position}</Text>
             <ReliabilityMark r={data.reliability} accent={st.accent} muted={st.muted} />
+            {!!cardTitle(data.title) && (
+              <Text numberOfLines={1} color={st.accent} accessibilityLabel={`Title: ${cardTitle(data.title)!.label}`}
+                style={{ marginTop: 6, fontSize: 11, lineHeight: 14, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+                {cardTitle(data.title)!.label}
+              </Text>
+            )}
           </View>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: space.md }}>

@@ -1,4 +1,5 @@
 /** Achievements v2: weekly streaks, progress and rarity for the achievements screen, quiet awarding. */
+import { CARD_TITLES } from '../../src/domain/titles';
 import { Db, uniq, expectAppError } from './helpers';
 
 const db = new Db();
@@ -103,6 +104,21 @@ describe('achievements', () => {
     await expectAppError(db.rpc(u, 'set_card_medals', { p_codes: goals.slice(0, 2) }), 'invalid');
     await expectAppError(db.rpc(u, 'set_card_medals', { p_codes: ['motm_l5'] }), 'medal_locked');
     await expect(db.as(u, `update profiles set card_medals = '{motm_l5}' where id = $1`, [u])).rejects.toThrow(/permission denied/);
+
+    // titles: free ones for all, the rest unlock with medals / points / reliability, checked here too
+    expect(await db.rpc(u, 'set_card_title', { p_title: 'bib_collector' })).toBe('bib_collector');
+    expect(await db.rpc(u, 'set_card_title', { p_title: 'fresh_boots' })).toBe('fresh_boots');
+    await expectAppError(db.rpc(u, 'set_card_title', { p_title: 'legend' }), 'title_locked');
+    await expectAppError(db.rpc(u, 'set_card_title', { p_title: 'main_character' }), 'title_locked');
+    await expectAppError(db.rpc(u, 'set_card_title', { p_title: 'always_turns_up' }), 'title_locked');
+    await expectAppError(db.rpc(u, 'set_card_title', { p_title: 'goat' }), 'invalid');
+    await expect(db.as(u, `update profiles set card_title = 'legend' where id = $1`, [u])).rejects.toThrow(/permission denied/);
+    expect(await db.rpc(u, 'set_card_title', { p_title: null })).toBeNull();
+    // the app's list and the server's rules match
+    for (const t of CARD_TITLES) {
+      const want = t.req.kind === 'medal' ? `medal:${t.req.code}` : t.req.kind === 'points' ? `points:${t.req.points}` : t.req.kind;
+      expect((await db.admin(`select card_title_requirement($1) r`, [t.id]))[0].r).toBe(want);
+    }
     await expect(db.as(u, `update profiles set card_style = 'hall_of_fame' where id = $1`, [u])).rejects.toThrow(/permission denied/);
     expect((await db.admin(`select card_style from profiles where id = $1`, [u]))[0].card_style).toBe('silver');
   });

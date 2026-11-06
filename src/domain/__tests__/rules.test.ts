@@ -1,5 +1,6 @@
 import { lineupOps, arrangeOutfield } from '../lineup';
 import { decideMotm } from '../motm';
+import { CARD_TITLES, cardTitle, titleUnlocked } from '../titles';
 import { CARD_STYLES, MAX_POINTS, TRACKS, cardStyle, medalPoints, nearlyThere, parseCode, qualifyingCodes, rarityLabel, trackProgress } from '../achievements';
 import { rank, formatValue } from '../leaderboard';
 import { validateGoalClaim, sessionSchema, signUpSchema, fieldErrors } from '../validation';
@@ -50,6 +51,22 @@ describe('achievements', () => {
     expect([...pts].sort((a, b) => a - b)).toEqual(pts);
     expect(cardStyle('hall_of_fame').points).toBe(MAX_POINTS);
     expect(cardStyle('nonsense').id).toBe('classic');
+  });
+  it('card titles are unique and only need medals that exist', () => {
+    expect(new Set(CARD_TITLES.map((t) => t.id)).size).toBe(CARD_TITLES.length);
+    expect(new Set(CARD_TITLES.map((t) => t.label)).size).toBe(CARD_TITLES.length);
+    for (const t of CARD_TITLES) {
+      expect(t.label.length).toBeLessThanOrEqual(22);
+      if (t.req.kind === 'medal') {
+        const { track, level } = parseCode(t.req.code);
+        expect(t.req.code === 'season_champion' || (TRACKS.some((x) => x.track === track) && level >= 1 && level <= 5)).toBe(true);
+      }
+    }
+    const have = { codes: new Set(['goals_l1']), points: 3, perfectlyReliable: false };
+    expect(titleUnlocked(cardTitle('off_the_mark')!, have)).toBe(true);
+    expect(titleUnlocked(cardTitle('poacher')!, have)).toBe(false);
+    expect(titleUnlocked(cardTitle('bib_collector')!, have)).toBe(true);
+    expect(titleUnlocked(cardTitle('legend')!, { ...have, points: 40 })).toBe(true);
   });
   it('rarity only shows with enough players', () => {
     expect(rarityLabel(1, 5)).toBeNull();

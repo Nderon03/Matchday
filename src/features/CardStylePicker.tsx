@@ -5,8 +5,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Chip, Row, Text, useToast } from '@/components/ui';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
+import { CARD_TITLES, cardTitle, titleUnlocked } from '@/domain/titles';
 import { CardFX } from '@/components/football/CardFX';
-import { PlayerCard, type PlayerCardData } from '@/components/football/PlayerCard';
+import { CardMedals, PERFECT_RELIABILITY_GAMES, PlayerCard, type PlayerCardData } from '@/components/football/PlayerCard';
 import { CARD_STYLES, SEASON_CHAMPION, TRACKS, cardStyle, levelInfo, medalPoints, parseCode, type CardStyle } from '@/domain/achievements';
 import { plural } from '@/domain/format';
 import { keys, useMyAchievements, usePlayerProfile, type MyAchievement } from '@/hooks/queries';
@@ -57,8 +58,8 @@ export function useMyCardData(): PlayerCardData | null {
   const profile = usePlayerProfile(userId ?? '');
   const extra = useQuery({
     queryKey: ['player', userId, 'card'], enabled: !!userId,
-    queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null; card_medals: string[] } | null>(
-      supabase.from('profiles').select('card_style, nationality, supported_club, card_medals').eq('id', userId!).maybeSingle()),
+    queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null; card_medals: string[]; card_title: string | null } | null>(
+      supabase.from('profiles').select('card_style, nationality, supported_club, card_medals, card_title').eq('id', userId!).maybeSingle()),
   });
   const reliability = useReliability(userId ? [userId] : []);
   const d = profile.data;
@@ -68,6 +69,7 @@ export function useMyCardData(): PlayerCardData | null {
     ...d.profile, stats: d.stats ?? null, achievements: medalPoints(unlocked),
     card_style: extra.data?.card_style, nationality: extra.data?.nationality, supported_club: extra.data?.supported_club,
     medals: extra.data?.card_medals ?? [],
+    title: extra.data?.card_title ?? null,
     reliability: reliability.data?.[userId] ?? null,
   };
 }
@@ -85,6 +87,13 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
   const toast = useToast();
   const [picked, setPicked] = useState<string | null>(null);
   const [medals, setMedals] = useState<string[] | null>(null);
+  // undefined = not touched; null = no title; otherwise previewing / using that title
+  const [title, setTitle] = useState<string | null | undefined>(undefined);
+  const shownTitle = title === undefined ? card?.title ?? null : title;
+  const titleLockedPreview = !!title && !!mine.data && !!card && !titleUnlocked(cardTitle(title)!, {
+    codes: new Set(mine.data.items.filter((i) => i.unlocked_at).map((i) => i.code)), points: mine.data.points,
+    perfectlyReliable: card.reliability?.pct === 100 && (card.reliability?.attended ?? 0) >= PERFECT_RELIABILITY_GAMES,
+  });
   const [preview, setPreview] = useState<string | null>(null);
   const points = mine.data?.points ?? 0;
   const current = picked ?? mine.data?.card_style ?? 'classic';
@@ -118,9 +127,9 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
       {card ? (
         <View>
           <View style={{ opacity: locked ? 0.92 : 1 }}>
-            <PlayerCard data={{ ...card, ...overrides, card_style: shown.id, medals: medals ?? card.medals }} />
+            <PlayerCard data={{ ...card, ...overrides, card_style: shown.id, medals: medals ?? card.medals, title: shownTitle }} />
           </View>
-          {locked && (
+          {(locked || titleLockedPreview) && (
             <View style={{ position: 'absolute', top: space.sm, right: space.sm, flexDirection: 'row', alignItems: 'center', gap: 4,
               paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.65)' }}>
               <Ionicons name="lock-closed" size={11} color="#FFFFFF" />
@@ -132,6 +141,12 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
         <View style={{ height: 230, borderRadius: radius.xl, backgroundColor: colors.surfaceAlt }} />
       )}
       {actions}
+      {!!mine.data && !!card && (
+        <TitleChooser value={shownTitle} saved={card.title ?? null} points={points}
+          codes={new Set(mine.data.items.filter((i) => i.unlocked_at).map((i) => i.code))}
+          perfectlyReliable={card.reliability?.pct === 100 && (card.reliability?.attended ?? 0) >= PERFECT_RELIABILITY_GAMES}
+          onPreview={setTitle} />
+      )}
       {locked ? (
         <View style={{ gap: 6 }}>
           <Row style={{ justifyContent: 'space-between' }}>
@@ -152,7 +167,64 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
       {row(CARD_STYLES.filter((s) => s.base))}
       <Text variant="caption" tone="muted">Earned with medals · you have {plural(points, 'point')}</Text>
       {row(CARD_STYLES.filter((s) => !s.base))}
-      {!!mine.data && <MedalChooser items={mine.data.items} value={medals ?? card?.medals ?? []} onChange={setMedals} />}
+      {!!mine.data && <MedalChooser items={mine.data.items} value={medals ?? card?.medals ?? []} onChange={setMedals} st={shown} />}
+    </View>
+  );
+}
+
+/**
+ * Pick a title for under your name. Free ones and unlocked ones are applied as you tap; locked
+ * ones show on your card as a preview with what it takes to unlock them.
+ */
+function TitleChooser({ value, saved, points, codes, perfectlyReliable, onPreview }: {
+  value: string | null; saved: string | null; points: number; codes: Set<string>; perfectlyReliable: boolean;
+  onPreview: (id: string | null) => void;
+}) {
+  const { colors } = useTheme();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [savedNow, setSavedNow] = useState(saved);
+  const have = { codes, points, perfectlyReliable };
+  const shown = cardTitle(value);
+  const lockedShown = !!shown && !titleUnlocked(shown, have);
+  const unlockedCount = CARD_TITLES.filter((t) => titleUnlocked(t, have)).length;
+
+  const choose = async (id: string | null) => {
+    onPreview(id);
+    haptics.tap();
+    const t = cardTitle(id);
+    if ((t && !titleUnlocked(t, have)) || id === savedNow) return;
+    const before = savedNow;
+    setSavedNow(id);
+    try {
+      await rpc('set_card_title', { p_title: id });
+      qc.invalidateQueries({ queryKey: ['player'] });
+    } catch (e) {
+      setSavedNow(before);
+      onPreview(before);
+      toast.error(e);
+    }
+  };
+
+  return (
+    <View style={{ gap: space.sm }}>
+      <Text variant="caption" tone="muted">Title · {unlockedCount}/{CARD_TITLES.length} unlocked</Text>
+      {lockedShown && (
+        <Row gap={6}>
+          <Ionicons name="lock-closed" size={13} color={colors.warning} />
+          <Text variant="caption" tone="warning" style={{ flex: 1 }}>Preview · to unlock “{shown!.label}”: {shown!.hint}</Text>
+        </Row>
+      )}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 2 }}>
+        <Chip label="None" selected={!value} onPress={() => choose(null)} />
+        {[...CARD_TITLES].sort((a, b) => Number(titleUnlocked(b, have)) - Number(titleUnlocked(a, have))).map((t) => {
+          const open = titleUnlocked(t, have);
+          return (
+            <Chip key={t.id} label={t.label} selected={value === t.id} onPress={() => choose(t.id)}
+              icon={open ? undefined : <Ionicons name="lock-closed" size={11} color={colors.textFaint} />} />
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }
@@ -161,7 +233,8 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
  * Pick up to three earned medals to show along the bottom of your card, and which level of each
  * (your best, or a lower one if you prefer the colour). Saved as you tap.
  */
-function MedalChooser({ items, value, onChange }: { items: MyAchievement[]; value: string[]; onChange: (v: string[]) => void }) {
+function MedalChooser({ items, value, onChange, st }: { items: MyAchievement[]; value: string[]; onChange: (v: string[]) => void; st: CardStyle }) {
+  const { colors } = useTheme();
   const qc = useQueryClient();
   const toast = useToast();
   const earned = items.filter((i) => i.unlocked_at);
@@ -194,6 +267,12 @@ function MedalChooser({ items, value, onChange }: { items: MyAchievement[]; valu
   return (
     <View style={{ gap: space.sm }}>
       <Text variant="caption" tone="muted">Medals on your card · {value.length}/3</Text>
+      {/* the bottom of your card, so you can see the medals while you pick them */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 56, paddingHorizontal: space.lg,
+        borderRadius: radius.md, borderWidth: 1, borderColor: st.border ?? colors.border, backgroundColor: st.to }}>
+        <Text variant="overline" color={st.accent}>MATCHDAY</Text>
+        {value.length ? <CardMedals codes={value} /> : <Text variant="caption" color={st.muted}>No medals shown</Text>}
+      </View>
       {!tracks.length ? (
         <Text variant="caption" tone="faint">Earn your first medal (play a game, score, win MOTM) and you can show it off here.</Text>
       ) : tracks.map((t) => {
