@@ -558,6 +558,11 @@ const offenders = async (page) => page.evaluate(() => {
   }
   return out;
 });
+// text cut off with "…" (single-line text that doesn't fit); listed for review, not a failure
+const truncated = async (page) => page.evaluate(() => [...document.body.querySelectorAll('div[dir="auto"]')]
+  .filter((el) => el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).textOverflow === 'ellipsis' && el.getBoundingClientRect().width > 0)
+  .map((el) => el.textContent.trim().slice(0, 60)));
+const truncReport = [];
 if (process.env.SKIP_FIT !== '1') {
   rpcs.get_match_reveals = [];
   table.notifications = table.notifications.filter((n) => n.type !== 'session_removed');
@@ -569,6 +574,7 @@ if (process.env.SKIP_FIT !== '1') {
         await page.waitForTimeout(350);
         const bad = await offenders(page);
         if (bad.length) failures.push(`fit ${w}px ${theme} ${path}: ${bad.join(' | ')}`);
+        if (theme === 'dark') { const t = await truncated(page); if (t.length) truncReport.push(`${w}px ${path}: ${t.join(' ¦ ')}`); }
       }
       for (const path of ['/profile', '/settings/profile', `/session/${SID}`, `/group/${GID}`, '/']) {
         await page.goto(base + path, { waitUntil: 'networkidle' });
@@ -580,6 +586,7 @@ if (process.env.SKIP_FIT !== '1') {
     }
   }
 }
+if (truncReport.length) await (await import('node:fs/promises')).writeFile(join(OUT, 'truncated.txt'), truncReport.join('\n'));
 await browser.close();
 server.close();
 if (failures.length) { console.error('Visual check FAILED:\n' + failures.join('\n')); process.exit(1); }
