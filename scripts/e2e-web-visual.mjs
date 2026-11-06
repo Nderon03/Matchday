@@ -135,19 +135,17 @@ const rpcs = {
 
 const browser = await chromium.launch();
 const failures = [];
-for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, desktop: { width: 1366, height: 900 } })) {
-  // STORE_SHOTS=1 also saves crisp phone-sized captures for the Play Store screenshots
-  const store = process.env.STORE_SHOTS === '1' && vpName === 'phone';
-  const page = await browser.newPage({ viewport: vp, deviceScaleFactor: store ? 2 : 1 });
-  table.notifications.forEach((n) => { n.read_at = null; });
+async function openPage(vp, { dpr = 1, theme = 'dark' } = {}) {
+  const page = await browser.newPage({ viewport: vp, deviceScaleFactor: dpr });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.addInitScript(([uid]) => {
+  await page.addInitScript(([uid, th]) => {
+    localStorage.setItem('matchday.theme', th);
     const exp = Math.floor(Date.now() / 1000) + 3600 * 24;
     const b64 = (o) => btoa(JSON.stringify(o)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
     const token = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: uid, role: 'authenticated', exp, aud: 'authenticated', email: 'sam@example.com' })}.sig`;
     localStorage.setItem('sb-example-auth-token', JSON.stringify({ access_token: token, refresh_token: 'r', token_type: 'bearer', expires_in: 86400, expires_at: exp, user: { id: uid, email: 'sam@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' } }));
-  }, [ME]);
+  }, [ME, theme]);
   await page.route(/example\.supabase\.co/, async (route) => {
     const url = new URL(route.request().url());
     const single = (route.request().headers()['accept'] ?? '').includes('vnd.pgrst.object');
@@ -160,6 +158,13 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     if (single && Array.isArray(body)) body = body[0] ?? null;
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
+  return { page, errors };
+}
+for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, desktop: { width: 1366, height: 900 } })) {
+  // STORE_SHOTS=1 also saves crisp phone-sized captures for the Play Store screenshots
+  const store = process.env.STORE_SHOTS === '1' && vpName === 'phone';
+  table.notifications.forEach((n) => { n.read_at = null; });
+  const { page, errors } = await openPage(vp, { dpr: store ? 2 : 1 });
   for (const [name, path, expected] of [
     ['home', '/', 'Next up'], ['session', `/session/${SID}`, 'Host controls'], ['lineup', `/session/${SID}/lineup`, 'Balance teams'],
     ['leagues', '/leagues', 'My groups'], ['profile', '/profile', '100% RELIABLE'], ['create', '/create', 'New session'],
@@ -511,6 +516,69 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   rpcs.get_match_reveals = [];
   if (errors.length) failures.push(`${vpName}: runtime errors:\n  ${[...new Set(errors)].join('\n  ')}`);
   await page.close();
+}
+// Fit pass: every screen at small phone → desktop widths, dark and light. Flags anything that
+// pokes out sideways (a horizontal page scroll, or a visible element past the screen edge that
+// isn't inside something meant to scroll sideways or clip).
+const FIT_ROUTES = [
+  '/', '/matches', '/leagues', '/profile', '/create', '/achievements', '/compare', '/friends', '/notifications', '/payments', '/tasks', '/wrapped',
+  `/player/${people[1].id}`, `/group/${GID}`, `/group/${GID}/settings`, '/group/discover', '/group/new',
+  `/session/${SID}`, `/session/${SID}/lineup`, `/session/${SID}/attendance`, `/session/${SID}/results`, `/session/${SID}/goals`,
+  `/session/${SID}/vote`, `/session/${SID}/invite`, `/session/${SID}/payments`, `/session/${SID}/edit`, '/session/new', '/session/find',
+  '/settings', '/settings/profile', '/settings/notifications', '/settings/payouts', '/settings/blocked', '/help', '/legal/terms',
+  '/invite/abc123def456', '/invite/grp123def456', '/invite/ses123def456',
+];
+const FIT_SIZES = (process.env.FIT_SIZES ?? '320x640,360x740,414x896,768x1024,1366x900').split(',').map((x) => x.split('x').map(Number));
+const offenders = async (page) => page.evaluate(() => {
+  const vw = document.documentElement.clientWidth;
+  const out = [];
+  if (document.documentElement.scrollWidth > vw + 1) out.push(`page scrolls sideways (${document.documentElement.scrollWidth} > ${vw})`);
+  const clipped = (el) => {
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      const cs = getComputedStyle(p);
+      if (/(auto|scroll|hidden|clip)/.test(cs.overflowX) || /(auto|scroll|hidden|clip)/.test(cs.overflow)) {
+        const r = p.getBoundingClientRect();
+        if (r.left >= -1 && r.right <= vw + 1) return true;
+      }
+    }
+    return false;
+  };
+  for (const el of document.body.querySelectorAll('div, span, img, svg, input, textarea')) {
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    const cs = getComputedStyle(el);
+    if (cs.visibility === 'hidden' || Number(cs.opacity) === 0 || cs.pointerEvents === 'none' && !el.textContent?.trim()) continue;
+    if ((r.right > vw + 1 || r.left < -1) && !clipped(el)) out.push(`${(el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0, 50)} [${Math.round(r.left)}–${Math.round(r.right)}]`);
+    if (out.length > 4) break;
+  }
+  // text squeezed into an unreadable column
+  for (const el of document.body.querySelectorAll('div[dir="auto"]')) {
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.width < 18 && (el.textContent ?? '').trim().length > 3) { out.push(`squashed text "${el.textContent.trim().slice(0, 30)}" (${Math.round(r.width)}px)`); break; }
+  }
+  return out;
+});
+if (process.env.SKIP_FIT !== '1') {
+  rpcs.get_match_reveals = [];
+  table.notifications = table.notifications.filter((n) => n.type !== 'session_removed');
+  for (const theme of ['dark', 'light']) {
+    for (const [w, h] of FIT_SIZES) {
+      const { page, errors } = await openPage({ width: w, height: h }, { theme });
+      for (const path of FIT_ROUTES) {
+        await page.goto(base + path, { waitUntil: 'networkidle' });
+        await page.waitForTimeout(350);
+        const bad = await offenders(page);
+        if (bad.length) failures.push(`fit ${w}px ${theme} ${path}: ${bad.join(' | ')}`);
+      }
+      for (const path of ['/profile', '/settings/profile', `/session/${SID}`, `/group/${GID}`, '/']) {
+        await page.goto(base + path, { waitUntil: 'networkidle' });
+        await page.waitForTimeout(500);
+        await page.screenshot({ path: join(OUT, `fit-${w}-${theme}${path.replace(/[^a-z0-9]+/gi, '-').replace(/-$/, '') || '-home'}.png`) });
+      }
+      if (errors.length) failures.push(`fit ${w}px ${theme}: runtime errors:\n  ${[...new Set(errors)].join('\n  ')}`);
+      await page.close();
+    }
+  }
 }
 await browser.close();
 server.close();

@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useState } from 'react';
 import { View, type HostInstance } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { radius, space } from '@/theme/tokens';
@@ -34,7 +34,7 @@ export interface PlayerCardData {
 /** 100% earns its own mark, but only after enough games for it to mean something. */
 export const PERFECT_RELIABILITY_GAMES = 10;
 
-function ReliabilityMark({ r, accent, muted }: { r: PlayerCardData['reliability']; accent: string; muted: string }) {
+function ReliabilityMark({ r, accent, muted, compact }: { r: PlayerCardData['reliability']; accent: string; muted: string; compact?: boolean }) {
   if (!r || r.pct === null || r.pct < 90) return null;
   if (r.pct === 100 && r.attended >= PERFECT_RELIABILITY_GAMES) {
     return (
@@ -52,7 +52,7 @@ function ReliabilityMark({ r, accent, muted }: { r: PlayerCardData['reliability'
           </Svg>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 7, paddingVertical: 3 }}>
             <Ionicons name="shield-checkmark" size={13} color="#F5C542" />
-            <Text numberOfLines={1} style={{ fontSize: 10, lineHeight: 13, fontWeight: '800', letterSpacing: 0.8, color: '#FDE68A' }}>100% RELIABLE</Text>
+            <Text numberOfLines={1} style={{ fontSize: compact ? 9 : 10, lineHeight: 13, fontWeight: '800', letterSpacing: compact ? 0.4 : 0.8, color: '#FDE68A' }}>{compact ? '100%' : '100% RELIABLE'}</Text>
             <Ionicons name="star" size={9} color="#F5C542" />
           </View>
         </View>
@@ -68,7 +68,7 @@ function ReliabilityMark({ r, accent, muted }: { r: PlayerCardData['reliability'
 }
 
 /** The medals a player chose to show, small along the bottom of the card. */
-export function CardMedals({ codes }: { codes: string[] }) {
+export function CardMedals({ codes, size = 30 }: { codes: string[]; size?: number }) {
   const items = codes.slice(0, 3).map((c) => {
     const { track, level } = parseCode(c);
     const def = c === SEASON_CHAMPION.code ? { name: SEASON_CHAMPION.name, icon: SEASON_CHAMPION.icon } : TRACKS.find((t) => t.track === track);
@@ -80,7 +80,7 @@ export function CardMedals({ codes }: { codes: string[] }) {
       style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
       {items.map((m) => (
         <View key={m.code} style={{ alignItems: 'center', gap: 2 }}>
-          <AchievementBadge icon={m.icon} level={m.level} size={30} />
+          <AchievementBadge icon={m.icon} level={m.level} size={size} />
           <Text color={levelInfo(m.level).colour} style={{ fontSize: 8, lineHeight: 10, fontWeight: '800', letterSpacing: 0.6 }}>
             {levelInfo(m.level).label.toUpperCase()}
           </Text>
@@ -96,27 +96,31 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
   // earned styles wear their name at the top
   const label = st.label ?? (st.base ? undefined : st.name.toUpperCase());
   const s = data.stats;
+  // the card fits whatever it's given: a small phone, a tablet column or a share image
+  const [w, setW] = useState(0);
+  const compact = w > 0 && w < 340;
+  const roomy = w >= 460;
   const cells: [string, string | number][] = [
     // no stats (private profile) shows dashes rather than misleading zeros
     ['Games', s ? s.sessions : '–'], ['Wins', s ? s.wins : '–'], ['Win %', s ? `${Number(s.win_pct).toFixed(0)}%` : '–'], ['MOTM', s ? s.motm : '–'],
     ['Goals', s ? s.goals : '–'], ['Assists', s ? s.assists : '–'], ['G/A', s ? s.goals + s.assists : '–'], ['Medals', data.achievements ?? 0],
   ];
   return (
-    <View ref={ref} collapsable={false} style={{ borderRadius: radius.xl, overflow: 'hidden', backgroundColor: st.to, borderWidth: st.border ? (st.id === 'hall_of_fame' ? 2 : 1) : 0, borderColor: st.border ?? undefined }}>
+    <View ref={ref} collapsable={false} onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ borderRadius: radius.xl, overflow: 'hidden', backgroundColor: st.to, borderWidth: st.border ? (st.id === 'hall_of_fame' ? 2 : 1) : 0, borderColor: st.border ?? undefined }}>
       <Svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
         <Defs>
-          <LinearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <LinearGradient id={`card-${st.id}`} x1="0" y1="0" x2="1" y2="1">
             <Stop offset="0" stopColor={st.from} />
             <Stop offset="1" stopColor={st.to} />
           </LinearGradient>
         </Defs>
-        <Rect width="100%" height="100%" fill="url(#g)" />
+        <Rect width="100%" height="100%" fill={`url(#card-${st.id})`} />
       </Svg>
       <CardFX st={st} radius={radius.xl} />
       {st.id === 'hall_of_fame' && (
         <View pointerEvents="none" style={{ position: 'absolute', top: 5, left: 5, right: 5, bottom: 5, borderRadius: radius.xl - 4, borderWidth: 1, borderColor: `${st.accent}55` }} />
       )}
-      <View style={{ padding: space.xl, gap: space.lg }}>
+      <View style={{ padding: compact ? space.lg : space.xl, gap: compact ? space.md : space.lg }}>
         {!!label && (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: -space.sm }}>
             <Ionicons name={st.fx >= 4 ? 'trophy' : 'star'} size={st.fx >= 4 ? 14 : 12} color={st.accent} />
@@ -124,9 +128,9 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
             <Ionicons name={st.fx >= 4 ? 'trophy' : 'star'} size={st.fx >= 4 ? 14 : 12} color={st.accent} />
           </View>
         )}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: compact ? space.md : space.lg }}>
           <View style={{ alignItems: 'center' }}>
-            <Text variant="display" color="#F4F6F8" style={{ fontSize: 44, lineHeight: 48 }}>{rating(s?.rating)}</Text>
+            <Text variant="display" color="#F4F6F8" style={{ fontSize: compact ? 34 : 44, lineHeight: compact ? 38 : 48 }}>{rating(s?.rating)}</Text>
             <Text variant="overline" color={st.accent}>{data.position === 'ANY' ? 'ALL' : data.position}</Text>
             {(!!data.nationality || !!data.supported_club) && (
               <View style={{ alignItems: 'center', gap: 6, marginTop: 6 }}>
@@ -135,12 +139,12 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
               </View>
             )}
           </View>
-          <Avatar uri={data.avatar_url} name={data.display_name} size={84} ring={st.accent} />
-          <View style={{ flex: 1 }}>
-            <Text variant="h2" color="#F4F6F8" numberOfLines={1}>{data.display_name}</Text>
+          <Avatar uri={data.avatar_url} name={data.display_name} size={compact ? 62 : roomy ? 96 : 84} ring={st.accent} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant={compact ? 'h3' : 'h2'} color="#F4F6F8" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{data.display_name}</Text>
             <Text variant="small" color={st.muted} numberOfLines={1}>@{data.username}</Text>
-            <Text variant="caption" color={st.muted}>{POSITION_LABEL[data.position] ?? data.position}</Text>
-            <ReliabilityMark r={data.reliability} accent={st.accent} muted={st.muted} />
+            <Text variant="caption" color={st.muted} numberOfLines={1}>{POSITION_LABEL[data.position] ?? data.position}</Text>
+            <ReliabilityMark r={data.reliability} accent={st.accent} muted={st.muted} compact={compact} />
             {!!cardTitle(data.title) && (
               <Text numberOfLines={1} color={st.accent} accessibilityLabel={`Title: ${cardTitle(data.title)!.label}`}
                 style={{ marginTop: 6, fontSize: 11, lineHeight: 14, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' }}>
@@ -152,15 +156,19 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: space.md }}>
           {cells.map(([label, value]) => (
             <View key={label} style={{ width: '25%', alignItems: 'center' }}>
-              <Text variant="statSmall" color="#F4F6F8">{value}</Text>
-              <Text variant="caption" color={st.muted}>{label}</Text>
+              <Text variant="statSmall" color="#F4F6F8" numberOfLines={1} style={compact ? { fontSize: 17, lineHeight: 22 } : undefined}>{value}</Text>
+              <Text variant="caption" color={st.muted} numberOfLines={1} style={compact ? { fontSize: 11 } : undefined}>{label}</Text>
             </View>
           ))}
         </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm, minHeight: 24 }}>
           <Text variant="overline" color={st.accent}>MATCHDAY</Text>
-          {data.medals?.length ? <CardMedals codes={data.medals} />
-            : <Text variant="caption" color={st.muted} style={{ opacity: 0.75 }}>Your football. Your squad. Your statistics.</Text>}
+          {data.medals?.length ? <CardMedals codes={data.medals} size={compact ? 26 : 30} />
+            : (
+              <Text variant="caption" color={st.muted} numberOfLines={1} style={{ opacity: 0.75, flexShrink: 1, textAlign: 'right' }}>
+                {roomy ? 'Your football. Your squad. Your statistics.' : 'Your football. Your squad.'}
+              </Text>
+            )}
         </View>
       </View>
     </View>
