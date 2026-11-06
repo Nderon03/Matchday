@@ -8,6 +8,7 @@ import { shareViewAsImage } from '@/lib/share';
 import { useAuth } from '@/providers/AuthProvider';
 import { rating, plural } from '@/domain/format';
 import { radius, space } from '@/theme/tokens';
+import { ScreenHelp } from '@/features/ScreenHelp';
 
 function periods() {
   const now = new Date();
@@ -42,7 +43,7 @@ export default function Wrapped() {
   const d = w.data;
   return (
     <Screen edges={['top', 'bottom']} maxWidth={560}>
-      <Header title="MATCHDAY Wrapped" />
+      <Header title="MATCHDAY Wrapped" right={<ScreenHelp id="wrapped" />} />
       <SwipeSelect accessibilityLabel="Period" value={key} onChange={setKey} options={ps.map((x) => ({ value: x.key, label: x.label }))} />
       {!!w.isLoading && <Loading />}
       {!!w.error && <ErrorState error={w.error} onRetry={w.refetch} />}

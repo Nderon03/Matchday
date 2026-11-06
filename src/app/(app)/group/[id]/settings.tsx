@@ -16,6 +16,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { useQuery } from '@tanstack/react-query';
 import type { GroupJoinPolicy, GroupRole, GroupVisibility } from '@/types/db';
+import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 
 export default function GroupSettings() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -77,7 +78,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
 
   return (
     <Screen edges={['top', 'bottom']} maxWidth={680}>
-      <Header title="Group settings" subtitle={g.name} />
+      <Header title="Group settings" subtitle={g.name} right={<ScreenHelp id="group-settings" />} />
       <Row gap={space.md} style={{ alignItems: 'flex-start' }}>
         <Pressable onPress={() => upload('logo_url')} accessibilityRole="button" accessibilityLabel="Change logo">
           <Avatar uri={g.logo_url} name={g.name} size={64} />
@@ -96,7 +97,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
       <GroupAccessPicker value={accessOf(form)} onChange={(a) => setForm({ ...form, ...accessToSettings(a) })} />
       {!!cfg && (
         <>
-          <SectionTitle title="Game rules" />
+          <Spot id="gs.rules"><SectionTitle title="Game rules" /></Spot>
           <Card padded={false}>
             <SettingRow icon="git-merge-outline" title="Track assists" hint="Players can claim assists">
               <Switch value={cfg.track_assists} onValueChange={(v) => setCfg({ ...cfg, track_assists: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Track assists" />
@@ -138,7 +139,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
       )}
       <Button title="Save changes" size="lg" loading={busy === 'save'} onPress={save} />
 
-      <SectionTitle title={`Members · ${members.length}`} />
+      <Spot id="gs.members"><SectionTitle title={`Members · ${members.length}`} /></Spot>
       <Card padded={false}>
         {members.map((m, i) => {
           const canManage = m.role !== 'owner' && m.user_id !== userId;

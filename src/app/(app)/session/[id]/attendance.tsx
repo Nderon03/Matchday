@@ -13,6 +13,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { ScreenHelp } from '@/features/ScreenHelp';
 
 export default function AttendanceScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -49,7 +50,7 @@ export default function AttendanceScreen() {
 
   return (
     <Screen edges={['top', 'bottom']} maxWidth={680}>
-      <Header title="Attendance" subtitle={`${confirmed.length} confirmed · ${confirmed.filter((a) => a.checked_in_at).length} checked in`} />
+      <Header title="Attendance" subtitle={`${confirmed.length} confirmed · ${confirmed.filter((a) => a.checked_in_at).length} checked in`} right={<ScreenHelp id="attendance" />} />
       <Card variant="alt">
         <Text variant="small">You have the final say. Only verified players get official stats and can vote. When you complete the session, anyone in a line-up is verified automatically unless you marked them absent.</Text>
         {!!lateStatus.data?.enabled && s.payment_mode !== 'free' && (

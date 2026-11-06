@@ -12,6 +12,7 @@ import { useLayout } from '@/hooks/useLayout';
 import { shareText } from '@/lib/share';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
+import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 
 const native = Platform.OS !== 'web';
 
@@ -36,7 +37,7 @@ export default function Achievements() {
   const cardWidth = isWide ? '31.8%' : '48.4%';
   return (
     <Screen edges={['top', 'bottom']} maxWidth={760} onRefresh={mine.refetch} refreshing={mine.isRefetching}>
-      <Header title="Achievements" subtitle={d ? `${d.points} of ${MAX_POINTS} medal points` : undefined} />
+      <Header title="Achievements" subtitle={d ? `${d.points} of ${MAX_POINTS} medal points` : undefined} right={<ScreenHelp id="achievements" />} />
       {!!mine.isLoading && <SkeletonList />}
       {!!mine.error && !d && <ErrorState error={mine.error} onRetry={mine.refetch} />}
       {!!d && (
@@ -47,7 +48,7 @@ export default function Achievements() {
           <Text variant="small" tone="muted" style={{ marginTop: -space.sm }}>
             Each medal levels up: {LEVELS.map((l) => l.label).join(' → ')}. Tap one to see every level.
           </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, justifyContent: 'space-between' }}>
+          <Spot id="ach.grid" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, justifyContent: 'space-between' }}>
             {tracks.map((t, i) => <TrackTile key={t.def.track} t={t} index={i} width={cardWidth} onPress={() => setOpen(t)} />)}
             {!!champion && (
               <Card style={{ width: cardWidth as any, opacity: champion.unlocked_at ? 1 : 0.85 }} accessibilityLabel={`Season Champion${champion.value ? `, won ${plural(champion.value, 'time')}` : ', not yet won'}`}>
@@ -60,9 +61,9 @@ export default function Achievements() {
                 </View>
               </Card>
             )}
-          </View>
+          </Spot>
 
-          <SectionTitle title="Player card" />
+          <Spot id="ach.card"><SectionTitle title="Player card" /></Spot>
           <CardStylePicker />
         </>
       )}

@@ -34,6 +34,7 @@ import { SquadMeter } from '@/features/moments/SquadMeter';
 import { TickBurst } from '@/features/moments/TickBurst';
 import { MotmAnnouncement } from '@/features/moments/MotmAnnouncement';
 import { CalendarSyncSheet } from '@/features/CalendarSync';
+import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -184,15 +185,16 @@ export default function SessionScreen() {
       <Header
         title={s.name}
         subtitle={d.group?.name ?? `${s.format_size}-a-side`}
-        right={d.isManager ? (
-          <Row gap={4}>
-            {s.host_id === userId && (
+        right={(
+          <Row gap={4} style={{ alignItems: 'center' }}>
+            <ScreenHelp id="session" />
+            {!!d.isManager && s.host_id === userId && (
               <IconButton icon={s.template_id ? 'star' : 'star-outline'} label={s.template_id ? 'Saved as a preset. Remove preset' : 'Save as a preset'}
                 tone={s.template_id ? 'primary' : undefined} onPress={togglePreset} />
             )}
-            {['scheduled', 'in_progress'].includes(s.status) && <IconButton icon="person-add-outline" label="Invite players" onPress={() => router.push(`/session/${id}/invite`)} />}
+            {!!d.isManager && ['scheduled', 'in_progress'].includes(s.status) && <IconButton icon="person-add-outline" label="Invite players" onPress={() => router.push(`/session/${id}/invite`)} />}
           </Row>
-        ) : undefined}
+        )}
       />
 
       <Card>
@@ -255,7 +257,7 @@ export default function SessionScreen() {
 
       {/* Player actions */}
       {s.status === 'scheduled' && (
-        <Card variant={me?.status === 'confirmed' || offerUntil ? 'highlight' : 'default'} style={notAttending ? { borderColor: colors.danger } : undefined}>
+        <Spot id="session.rsvp"><Card variant={me?.status === 'confirmed' || offerUntil ? 'highlight' : 'default'} style={notAttending ? { borderColor: colors.danger } : undefined}>
           <View style={{ gap: space.md }}>
             {showJustIn && (
               <View style={{ alignItems: 'center', marginTop: -space.sm, marginBottom: -space.md }}>
@@ -335,7 +337,7 @@ export default function SessionScreen() {
               </View>
             )}
           </View>
-        </Card>
+        </Card></Spot>
       )}
 
       {s.payment_mode !== 'free' && me && me.user_id !== s.host_id && (me.status === 'confirmed' || myPayment) && (
@@ -458,7 +460,7 @@ export default function SessionScreen() {
           : null;
         return (
           <View style={{ gap: space.sm }}>
-            <SectionTitle title="Host controls" />
+            <Spot id="session.host"><SectionTitle title="Host controls" /></Spot>
             <Card>
               <View style={{ gap: space.md }}>
                 {!!step && (
@@ -499,7 +501,7 @@ export default function SessionScreen() {
 
       {/* Squad */}
       <View style={{ gap: space.sm }}>
-        <SectionTitle title={`Squad · ${groups.confirmed.length + guestsIn.length}`} action={squadOpen ? 'Hide' : 'See squad'} onAction={() => setSquadOpen((o) => !o)} />
+        <Spot id="session.squad"><SectionTitle title={`Squad · ${groups.confirmed.length + guestsIn.length}`} action={squadOpen ? 'Hide' : 'See squad'} onAction={() => setSquadOpen((o) => !o)} /></Spot>
         {!squadOpen && (
           <Card onPress={() => setSquadOpen(true)} accessibilityLabel="See the full squad">
             {groups.confirmed.length + guestsIn.length === 0 ? (

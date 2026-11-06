@@ -11,6 +11,7 @@ import { useFriends, useMyGroups, type PublicProfile } from '@/hooks/queries';
 import { formatDate, rating, plural } from '@/domain/format';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
+import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 
 function Bar({ label, a, b, format = (v: number) => String(v), lowerIsBetter }: { label: string; a: number; b: number; format?: (v: number) => string; lowerIsBetter?: boolean }) {
   const { colors } = useTheme();
@@ -131,24 +132,24 @@ export default function Compare() {
 
   return (
     <Screen edges={['top', 'bottom']} maxWidth={680}>
-      <Header title="Compare players" subtitle={sourceName ? `Within ${sourceName}` : 'Career stats'} />
+      <Header title="Compare players" subtitle={sourceName ? `Within ${sourceName}` : 'Career stats'} right={<ScreenHelp id="compare" />} />
 
       <View style={{ gap: space.xs }}>
-        <SwipeSelect accessibilityLabel="Compare within" value={source} onChange={setSource}
-          options={[{ value: 'friends', label: 'Friends · career', icon: 'people-outline' as const }, ...(groups.data ?? []).map((g) => ({ value: g.id as string, label: g.name, icon: 'shield-outline' as const }))]} />
+        <Spot id="compare.source"><SwipeSelect accessibilityLabel="Compare within" value={source} onChange={setSource}
+          options={[{ value: 'friends', label: 'Friends · career', icon: 'people-outline' as const }, ...(groups.data ?? []).map((g) => ({ value: g.id as string, label: g.name, icon: 'shield-outline' as const }))]} /></Spot>
         {!!groupId && <Text variant="caption" tone="faint">Stats, form and rivalry only count this group’s games.</Text>}
       </View>
 
       {(groupId ? members.isLoading : friends.isLoading) ? <Loading /> : people.length < 2 ? (
         <EmptyState icon="people-outline" title="Not enough players" message={groupId ? 'This group needs at least two members.' : 'Add friends to compare players.'} />
       ) : (
-        <Card>
+        <Spot id="compare.vs"><Card>
           <Row style={{ alignItems: 'center' }}>
             <Slot person={pa} label="Player A" onOpen={() => setPicking('a')} onSwipe={(dir) => setA(cycle(a, dir, b))} />
             <Text variant="h2" tone="faint">VS</Text>
             <Slot person={pb} label="Player B" onOpen={() => setPicking('b')} onSwipe={(dir) => setB(cycle(b, dir, a))} />
           </Row>
-        </Card>
+        </Card></Spot>
       )}
       <PickSheet visible={!!picking} people={people} exclude={picking === 'a' ? b : a} onClose={() => setPicking(null)}
         onPick={(id) => (picking === 'a' ? setA(id) : setB(id))} />

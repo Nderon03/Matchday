@@ -17,6 +17,9 @@ import { CONTACT_EMAIL } from '@/legal/content';
 import { reportError, sentryEnabled } from '@/lib/sentry';
 import { haptics } from '@/lib/haptics';
 import { CalendarSyncSheet } from '@/features/CalendarSync';
+import { ScreenHelp, TIPS_KEY, tourKey } from '@/features/ScreenHelp';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SCREEN_TOURS } from '@/features/screenTours';
 
 /** Version line: app version plus which over-the-air update is running (handy when checking an update arrived). */
 function versionLabel() {
@@ -33,6 +36,16 @@ export default function Settings() {
   const prefs = usePreferences();
   const qc = useQueryClient();
   const toast = useToast();
+  // screen tips: on unless switched off; "show again" clears which tours you've seen
+  const [tipsOn, setTipsOn] = useState(true);
+  useEffect(() => { AsyncStorage.getItem(TIPS_KEY).then((v) => setTipsOn(v !== 'off')).catch(() => undefined); }, []);
+  const setTips = (on: boolean) => { setTipsOn(on); AsyncStorage.setItem(TIPS_KEY, on ? 'on' : 'off').catch(() => undefined); };
+  const resetTips = async () => {
+    if (!userId) return;
+    await AsyncStorage.multiRemove([...Object.keys(SCREEN_TOURS).map((id) => tourKey(id, userId)), 'matchday.groupTour']).catch(() => undefined);
+    setTips(true);
+    toast.success('Tips will show again on each screen');
+  };
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [taps, setTaps] = useState(0);
   const [confirm, setConfirm] = useState('');
@@ -52,7 +65,7 @@ export default function Settings() {
 
   return (
     <Screen edges={['top', 'bottom']} maxWidth={640}>
-      <Header title="Settings" subtitle={session?.user.email} />
+      <Header title="Settings" subtitle={session?.user.email} right={<ScreenHelp id="settings" />} />
       <Card padded={false} style={{ paddingHorizontal: space.lg }}>
         <ListItem title="Edit profile" subtitle="Photo, name, username, position, bio" left={icon('person-circle-outline')} onPress={() => router.push('/settings/profile')} />
         <Divider />
@@ -93,6 +106,17 @@ export default function Settings() {
       <SectionTitle title="About" />
       <Card padded={false}>
         <ListItem title="Replay the app tour" subtitle="A 30-second look around" left={icon('play-circle-outline')} onPress={() => router.navigate('/?tour=1')} />
+        <Divider />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm }}>
+          {icon('sparkles-outline')}
+          <View style={{ flex: 1 }}>
+            <Text>Tips on new screens</Text>
+            <Text variant="caption" tone="muted">A quick tour the first time you open each screen. The ? button always works.</Text>
+          </View>
+          <Switch value={tipsOn} onValueChange={setTips} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Tips on new screens" />
+        </View>
+        <Divider />
+        <ListItem title="Show all tips again" left={icon('refresh-outline')} onPress={resetTips} />
         <Divider />
         <ListItem title="Help & FAQ" subtitle="Payments, waiting lists, medals, hosting" left={icon('help-circle-outline')} onPress={() => router.push('/help')} />
         <Divider />

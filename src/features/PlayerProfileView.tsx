@@ -19,6 +19,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { ReliabilityChip, useReliability } from '@/features/Reliability';
 import { HandshakeModal, type Friend } from '@/features/moments/Handshake';
+import { Spot } from '@/features/ScreenHelp';
 
 export function PlayerProfileView({ userId }: { userId: string }) {
   const { colors } = useTheme();
@@ -69,13 +70,13 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   return (
     <View style={{ gap: space.lg }}>
       <HandshakeModal them={newFriend} onClose={() => setNewFriend(null)} />
-      <PlayerCard ref={cardRef} data={cardData!} still={still} />
+      <Spot id={d.is_self ? 'profile.card' : 'player.card'}><PlayerCard ref={cardRef} data={cardData!} still={still} /></Spot>
 
       <Row gap={space.sm} wrap>
         {d.is_self ? (
           <>
-            <Button title="Edit profile" icon="create-outline" size="sm" variant="secondary" style={{ flex: 1 }} onPress={() => router.push('/settings/profile')} />
-            <IconButton icon="share-social-outline" label="Share card" onPress={share} />
+            <Spot id="profile.edit" style={{ flex: 1 }}><Button title="Edit profile" icon="create-outline" size="sm" variant="secondary" onPress={() => router.push('/settings/profile')} /></Spot>
+            <Spot id="profile.share"><IconButton icon="share-social-outline" label="Share card" onPress={share} /></Spot>
             <IconButton icon="sparkles-outline" label="Wrapped" onPress={() => router.push('/wrapped')} />
           </>
         ) : (

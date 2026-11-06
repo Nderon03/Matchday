@@ -7,6 +7,7 @@ import { useAction } from '@/hooks/useAction';
 import { rpc } from '@/lib/api';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
+import { ScreenHelp } from '@/features/ScreenHelp';
 
 export default function ResultsScreen() {
   const { id, correct } = useLocalSearchParams<{ id: string; correct?: string }>();
@@ -40,7 +41,7 @@ export default function ResultsScreen() {
 
   return (
     <Screen edges={['top', 'bottom']} maxWidth={640}>
-      <Header title={correcting ? 'Correct a result' : 'Scores'} subtitle={s.name} />
+      <Header title={correcting ? 'Correct a result' : 'Scores'} subtitle={s.name} right={<ScreenHelp id="results" />} />
       {!!correcting && (
         <Card variant="alt">
           <Text variant="small">Corrections after finalisation are recorded in the audit log and statistics are recalculated for everyone.</Text>

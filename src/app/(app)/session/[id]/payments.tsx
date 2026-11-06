@@ -18,6 +18,7 @@ import * as Clipboard from 'expo-clipboard';
 import { appLink } from '@/lib/links';
 import { usePriceLabel } from '@/hooks/useFees';
 import { TickBurst } from '@/features/moments/TickBurst';
+import { ScreenHelp } from '@/features/ScreenHelp';
 
 interface PaymentQuote { lines: { label: string; amount_pence: number; kind: 'session' | 'guest' | 'fine' | 'fee' }[]; host_receives_pence: number; booking_fee_pence: number; total_pence: number }
 
@@ -72,7 +73,7 @@ export default function PaymentsScreen() {
 
   return (
     <Screen edges={['top', 'bottom']} maxWidth={640} onRefresh={() => { mine.refetch(); summary.refetch(); }} refreshing={mine.isRefetching}>
-      <Header title="Payments" subtitle={`${s.name} · ${price(s.price_pence).total} per player`} />
+      <Header title="Payments" subtitle={`${s.name} · ${price(s.price_pence).total} per player`} right={<ScreenHelp id="session-payments" />} />
 
       {checkout === 'success' && (p?.status === 'paid' || p?.status === 'authorised') && (
         <Card variant="highlight">

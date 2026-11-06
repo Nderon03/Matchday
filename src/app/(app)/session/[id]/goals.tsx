@@ -11,6 +11,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import type { GoalSubmission, SubmissionStatus } from '@/types/db';
 import { plural } from '@/domain/format';
+import { ScreenHelp } from '@/features/ScreenHelp';
 
 const STATUS: Record<SubmissionStatus, { label: string; tone: 'warning' | 'success' | 'danger' | 'primary' | 'neutral' }> = {
   pending: { label: 'Awaiting approval', tone: 'warning' },
@@ -85,7 +86,7 @@ function GoalsBody({ id }: { id: string }) {
 
   return (
     <Screen edges={['top', 'bottom']} maxWidth={640}>
-      <Header title="Goals & assists" subtitle={s.name} />
+      <Header title="Goals & assists" subtitle={s.name} right={<ScreenHelp id="goals" />} />
 
       {!!verified && (
         <Card variant={!!mine && !canSubmit ? 'default' : 'highlight'}>

@@ -17,6 +17,7 @@ import { formatKickoff, rating } from '@/domain/format';
 import { usePriceLabel } from '@/hooks/useFees';
 import { useLayout } from '@/hooks/useLayout';
 import { NearlyThere } from '@/features/moments/NearlyThere';
+import { HelpButton } from '@/features/ScreenHelp';
 
 function greeting() {
   const h = new Date().getHours();
@@ -76,7 +77,7 @@ export default function Home() {
           </View>
         </Row>
         <Row>
-          <View ref={tourRef('help')} collapsable={false}><IconButton icon="help-circle-outline" label="Help" onPress={() => setHelpOpen(true)} /></View>
+          <View ref={tourRef('help')} collapsable={false}><HelpButton label="Help" size={40} onPress={() => setHelpOpen(true)} /></View>
           <View ref={tourRef('friends')} collapsable={false}><IconButton icon="people-outline" label="Friends" onPress={() => router.push('/friends')} /></View>
           <View ref={tourRef('bell')} collapsable={false}><IconButton icon="notifications-outline" label="Notifications" badge={d?.unread_notifications} onPress={() => router.push('/notifications')} /></View>
         </Row>

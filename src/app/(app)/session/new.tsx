@@ -6,6 +6,7 @@ import { SessionForm, type SessionFormInitial } from '@/features/SessionForm';
 import { supabase } from '@/lib/supabase';
 import { q } from '@/lib/api';
 import { nextDays } from '@/features/sessionDates';
+import { ScreenHelp } from '@/features/ScreenHelp';
 
 export default function NewSession() {
   const { templateId, groupId } = useLocalSearchParams<{ templateId?: string; groupId?: string }>();
@@ -30,7 +31,7 @@ export default function NewSession() {
   }
   return (
     <Screen edges={['top', 'bottom']} maxWidth={720}>
-      <Header title={t ? `New: ${t.name}` : 'New session'} subtitle="Takes about 30 seconds" />
+      <Header title={t ? `New: ${t.name}` : 'New session'} subtitle="Takes about 30 seconds" right={<ScreenHelp id="session-new" />} />
       <SessionForm initial={initial} />
     </Screen>
   );

@@ -9,6 +9,7 @@ import { GroupInvites } from '@/features/GroupInvites';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { plural } from '@/domain/format';
+import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 
 export default function Leagues() {
   const { colors } = useTheme();
@@ -20,9 +21,12 @@ export default function Leagues() {
     <Screen onRefresh={groups.refetch} refreshing={groups.isRefetching}>
       <Row style={{ justifyContent: 'space-between', paddingTop: space.sm }}>
         <Text variant="h1" accessibilityRole="header">Leagues</Text>
-        <Button title="Discover" icon="compass-outline" size="sm" variant="secondary" onPress={() => router.push('/group/discover')} />
+        <Row gap={space.sm}>
+          <Spot id="leagues.discover"><Button title="Discover" icon="compass-outline" size="sm" variant="secondary" onPress={() => router.push('/group/discover')} /></Spot>
+          <ScreenHelp id="leagues" ready={!!groups.data} />
+        </Row>
       </Row>
-      <Segmented value={tab} onChange={setTab} options={[{ value: 'groups', label: 'My groups' }, { value: 'tables', label: 'Leaderboards' }]} />
+      <Spot id="leagues.tabs"><Segmented value={tab} onChange={setTab} options={[{ value: 'groups', label: 'My groups' }, { value: 'tables', label: 'Leaderboards' }]} /></Spot>
 
       {tab === 'groups' && (
         <View style={{ gap: space.md }}>

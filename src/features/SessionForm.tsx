@@ -23,6 +23,7 @@ import { toggleIn } from '@/domain/sets';
 import { useAuth } from '@/providers/AuthProvider';
 import { usePriceLabel } from '@/hooks/useFees';
 import type { PaymentMode, Session, SessionVisibility } from '@/types/db';
+import { Spot } from '@/features/ScreenHelp';
 
 export interface SessionFormInitial {
   name?: string;
@@ -178,7 +179,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
 
       {!!groups.data?.length && <SwipeSelect label="Group" value={groupId} onChange={selectGroup} options={groupOptions} />}
 
-      <View style={{ gap: space.xs }}>
+      <Spot id="form.when" style={{ gap: space.xs }}>
         <Text variant="smallStrong" tone="muted">Kick-off</Text>
         <Row gap={space.sm}>
           <Pressable onPress={() => setCalendarOpen(true)} accessibilityRole="button" accessibilityLabel={`Date: ${dayLabel(date)}. Change`}
@@ -198,14 +199,14 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         </Row>
         {!!(errors.time || errors.starts_at) && <Text variant="caption" tone="danger">{errors.time ?? errors.starts_at}</Text>}
         {calendarOpen && <DatePickerSheet visible value={date} onClose={() => setCalendarOpen(false)} onPick={setDate} />}
-      </View>
+      </Spot>
 
-      <Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
+      <Spot id="form.format"><Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
         <SwipeSelect compact label="Format" value={format} onChange={setFormat}
           options={[5, 6, 7, 8, 9, 10, 11].map((n) => ({ value: n, label: `${n}-a-side` }))} />
         <SwipeSelect compact label="Length" value={duration} onChange={setDuration}
           options={DURATIONS.some((d) => d.value === duration) ? DURATIONS : [...DURATIONS, { value: duration, label: `${duration} min` }].sort((a, b) => a.value - b.value)} />
-      </Row>
+      </Row></Spot>
       <Text variant="caption" tone="faint" style={{ marginTop: -space.md }}>Up to {maxAttendance} players; anyone else joins the waiting list.</Text>
 
       <View style={{ gap: space.md }}>
@@ -235,10 +236,10 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         )}
       </View>
 
-      <View style={{ gap: space.xs }}>
+      <Spot id="form.join" style={{ gap: space.xs }}>
         <SwipeSelect label="Who can join" value={visibility} onChange={setVisibility} options={visibilityOptions} />
         {!!errors.visibility && <Text variant="caption" tone="danger">{errors.visibility}</Text>}
-      </View>
+      </Spot>
 
       <View style={{ gap: space.sm }}>
         <SectionTitle title={`Invite players${invitees.size ? ` · ${invitees.size}` : ''}`} action={people.length ? (invitees.size === people.length ? 'Clear' : 'Select all') : undefined}
@@ -266,12 +267,14 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
 
       <Row gap={space.sm} style={{ alignItems: 'stretch' }}>
         {!editing && !initial?.template_id && (
+          <Spot id="form.star" style={{ flexDirection: 'row' }}>
           <Pressable onPress={() => setSavePreset((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: savePreset }}
             accessibilityLabel="Save as a preset"
             style={({ pressed }) => ({ width: 56, borderRadius: radius.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
               borderColor: savePreset ? colors.warning : colors.border, backgroundColor: pressed ? colors.elevated : savePreset ? `${colors.warning}22` : colors.surfaceAlt })}>
             <Ionicons name={savePreset ? 'star' : 'star-outline'} size={22} color={savePreset ? colors.warning : colors.textMuted} />
           </Pressable>
+          </Spot>
         )}
         <View style={{ flex: 1 }}>
       <Button

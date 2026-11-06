@@ -15,6 +15,7 @@ import { fieldErrors, profileSchema } from '@/domain/validation';
 import { POSITION_LABEL } from '@/domain/format';
 import { space } from '@/theme/tokens';
 import type { PlayerPosition } from '@/types/db';
+import { ScreenHelp } from '@/features/ScreenHelp';
 
 export default function EditProfile() {
   const { profile, userId, refreshProfile } = useAuth();
@@ -53,7 +54,7 @@ export default function EditProfile() {
 
   return (
     <Screen edges={['top', 'bottom']} maxWidth={560}>
-      <Header title="Edit profile" />
+      <Header title="Edit profile" right={<ScreenHelp id="edit-profile" />} />
       <CardStylePicker
         overrides={{ display_name: displayName || profile?.display_name || '', avatar_url: avatar, position, nationality, supported_club: club }}
         actions={(

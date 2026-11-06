@@ -17,6 +17,7 @@ import { POSITION_LABEL } from '@/domain/format';
 import { removeSessionPlayer } from '@/features/removePlayer';
 import { TeamsReveal } from '@/features/moments/TeamsReveal';
 import { useAuth } from '@/providers/AuthProvider';
+import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 
 type Strengths = { players: BalancePlayer[]; pairings: { user_a: string; user_b: string; times: number }[] };
 
@@ -187,7 +188,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
         )
       ) : undefined}
     >
-      <Header title="Line-ups" subtitle={`${d.session.format_size}-a-side · ${Object.keys(players).length} confirmed`} />
+      <Header title="Line-ups" subtitle={`${d.session.format_size}-a-side · ${Object.keys(players).length} confirmed`} right={<ScreenHelp id="lineup" />} />
 
       {d.fixtures.length > 1 && (
         <Segmented scroll value={fixture.id} onChange={onSelectFixture} options={d.fixtures.map((f) => ({ value: f.id, label: `Game ${f.number}${f.played ? ' ✓' : ''}` }))} />
@@ -220,7 +221,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
       {!!editable && (
         <View style={{ gap: space.sm }}>
           <Row gap={space.sm} wrap>
-            <Button title="Balance teams" icon="analytics-outline" size="sm" loading={strengthsLoading} onPress={() => apply('balanced')} />
+            <Spot id="lineup.balance"><Button title="Balance teams" icon="analytics-outline" size="sm" loading={strengthsLoading} onPress={() => apply('balanced')} /></Spot>
             <Button title="Randomise" icon="shuffle" size="sm" variant="secondary" onPress={() => apply('random')} />
             <Button title="Clear" size="sm" variant="ghost" onPress={() => { update({ A: [], B: [] }); setSuggestion(null); }} />
           </Row>

@@ -30,6 +30,7 @@ import { radius, space } from '@/theme/tokens';
 import { TeamOfMonth } from '@/features/TeamOfMonth';
 import { ReliabilityChip, useReliability } from '@/features/Reliability';
 import { GroupWelcome } from '@/features/GroupWelcome';
+import { HelpButton } from '@/features/ScreenHelp';
 
 type Tab = 'overview' | 'games' | 'tables' | 'history' | 'members';
 const AWARD_LABEL: Record<string, string> = {
@@ -121,7 +122,7 @@ export default function GroupScreen() {
     <Screen edges={['top', 'bottom']} onRefresh={() => { group.refetch(); sessions.refetch(); }} refreshing={group.isRefetching}>
       <Header title={g.name} subtitle={`${plural(members.length, 'member')}${g.location ? ` · ${g.location}` : ''}`}
         right={<Row>
-          {!!myRole && <View ref={helpRef} collapsable={false}><IconButton size={36} icon="help-circle-outline" label="How this page works" onPress={() => { setTab('overview'); setTourOpen(true); }} /></View>}
+          {!!myRole && <View ref={helpRef} collapsable={false}><HelpButton label="How this page works" onPress={() => { setTab('overview'); setTourOpen(true); }} /></View>}
           {!!myRole && <View ref={inviteRef} collapsable={false}><IconButton size={36} icon="person-add-outline" label="Invite players" onPress={() => setInviteOpen(true)} /></View>}
           {!!isAdmin && <View ref={settingsRef} collapsable={false}><IconButton size={36} icon="settings-outline" label="Group settings" onPress={() => router.push(`/group/${id}/settings`)} /></View>}
         </Row>} />

@@ -18,6 +18,7 @@ import { q, rpc } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
+import { Spot } from '@/features/ScreenHelp';
 
 function Tile({ s, selected, unlocked, points, onPress }: { s: CardStyle; selected: boolean; unlocked: boolean; points: number; onPress: () => void }) {
   const { colors } = useTheme();
@@ -126,9 +127,9 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
     <View style={{ gap: space.md }}>
       {card ? (
         <View>
-          <View style={{ opacity: locked ? 0.92 : 1 }}>
+          <Spot id="ep.card" style={{ opacity: locked ? 0.92 : 1 }}>
             <PlayerCard data={{ ...card, ...overrides, card_style: shown.id, medals: medals ?? card.medals, title: shownTitle }} />
-          </View>
+          </Spot>
           {(locked || titleLockedPreview) && (
             <View style={{ position: 'absolute', top: space.sm, right: space.sm, flexDirection: 'row', alignItems: 'center', gap: 4,
               paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.65)' }}>
@@ -142,10 +143,10 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
       )}
       {actions}
       {!!mine.data && !!card && (
-        <TitleChooser value={shownTitle} saved={card.title ?? null} points={points}
+        <Spot id="ep.title"><TitleChooser value={shownTitle} saved={card.title ?? null} points={points}
           codes={new Set(mine.data.items.filter((i) => i.unlocked_at).map((i) => i.code))}
           perfectlyReliable={card.reliability?.pct === 100 && (card.reliability?.attended ?? 0) >= PERFECT_RELIABILITY_GAMES}
-          onPreview={setTitle} />
+          onPreview={setTitle} /></Spot>
       )}
       {locked ? (
         <View style={{ gap: 6 }}>
@@ -167,7 +168,7 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
       {row(CARD_STYLES.filter((s) => s.base))}
       <Text variant="caption" tone="muted">Earned with medals · you have {plural(points, 'point')}</Text>
       {row(CARD_STYLES.filter((s) => !s.base))}
-      {!!mine.data && <MedalChooser items={mine.data.items} value={medals ?? card?.medals ?? []} onChange={setMedals} st={shown} />}
+      {!!mine.data && <Spot id="ep.medals"><MedalChooser items={mine.data.items} value={medals ?? card?.medals ?? []} onChange={setMedals} st={shown} /></Spot>}
     </View>
   );
 }

@@ -10,6 +10,7 @@ import { q } from '@/lib/api';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { usePriceLabel } from '@/hooks/useFees';
+import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 
 function Action({ icon, title, body, onPress, primary }: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string; onPress: () => void; primary?: boolean }) {
   const { colors } = useTheme();
@@ -50,10 +51,13 @@ export default function Create() {
 
   return (
     <Screen>
-      <Text variant="h1" accessibilityRole="header" style={{ paddingTop: space.sm }}>Create</Text>
+      <Row style={{ justifyContent: 'space-between', paddingTop: space.sm }}>
+        <Text variant="h1" accessibilityRole="header">Create</Text>
+        <ScreenHelp id="create" ready={!templates.isLoading} />
+      </Row>
       {!!templates.data?.length && (
         <View style={{ gap: space.sm }}>
-          <SectionTitle title="Presets" />
+          <Spot id="create.presets"><SectionTitle title="Presets" /></Spot>
           {templates.data.map((t) => (
             <Card key={t.id} onPress={() => router.push({ pathname: '/session/new', params: { templateId: t.id } })} accessibilityLabel={`New session from ${t.name}`}>
               <Row gap={space.md}>
@@ -71,8 +75,8 @@ export default function Create() {
         </View>
       )}
       <View style={{ gap: space.md }}>
-        <Action icon="add-circle" title="New session" body="Pick a date, format and invite your squad." onPress={() => router.push('/session/new')} primary />
-        <Action icon="people" title="New group" body="A squad with its own tables and seasons." onPress={() => router.push('/group/new')} />
+        <Spot id="create.session"><Action icon="add-circle" title="New session" body="Pick a date, format and invite your squad." onPress={() => router.push('/session/new')} primary /></Spot>
+        <Spot id="create.group"><Action icon="people" title="New group" body="A squad with its own tables and seasons." onPress={() => router.push('/group/new')} /></Spot>
         <Action icon="person-add" title="Invite friends" body="Search by username or share your QR code." onPress={() => router.push('/friends')} />
       </View>
       {!templates.data?.length && (

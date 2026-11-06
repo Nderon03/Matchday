@@ -3,13 +3,14 @@ import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, EmptyState, ErrorState, Header, Screen, SkeletonList, Text } from '@/components/ui';
+import { Button, EmptyState, ErrorState, Header, Screen, SkeletonList, Text, Row } from '@/components/ui';
 import { keys, useNotifications } from '@/hooks/queries';
 import { rpc } from '@/lib/api';
 import { routeForNotification } from '@/lib/notifications';
 import { timeAgo } from '@/domain/format';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
+import { ScreenHelp } from '@/features/ScreenHelp';
 
 const ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   friend_request: 'person-add', friend_accepted: 'people', group_added: 'people-circle', session_removed: 'person-remove', session_released: 'exit-outline', dropout_request: 'exit-outline', host_summary: 'clipboard-outline', group_removed: 'person-remove', late_fine: 'time', payment_reminder: 'card', late_fine_waived: 'checkmark-circle', guest_request: 'person-add', guest_added: 'person-add', guest_removed: 'person-remove', guest_request_decided: 'person', group_join_approved: 'people-circle', session_invite: 'mail', session_reminder: 'alarm', attendance_confirmed: 'checkmark-circle',
@@ -38,7 +39,7 @@ export default function Notifications() {
 
   return (
     <Screen edges={['top', 'bottom']} onRefresh={n.refetch} refreshing={n.isRefetching}>
-      <Header title="Notifications" right={unread ? <Button title="Mark all read" size="sm" variant="ghost" onPress={markAll} /> : undefined} />
+      <Header title="Notifications" right={<Row gap={4} style={{ alignItems: 'center' }}>{!!unread && <Button title="Mark all read" size="sm" variant="ghost" onPress={markAll} />}<ScreenHelp id="notifications" /></Row>} />
       {!!n.isLoading && <SkeletonList />}
       {!!n.error && <ErrorState error={n.error} onRetry={n.refetch} />}
       {n.data?.length === 0 && <EmptyState icon="notifications-outline" title="You’re all caught up" message="Invites, results, votes and payments will appear here." />}

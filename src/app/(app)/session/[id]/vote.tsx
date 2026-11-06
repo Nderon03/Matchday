@@ -11,6 +11,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { timeUntil } from '@/domain/format';
 import { haptics } from '@/lib/haptics';
+import { ScreenHelp } from '@/features/ScreenHelp';
 
 interface VotingState {
   open: boolean;
@@ -83,7 +84,7 @@ export default function VoteScreen() {
   return (
     <Screen edges={['top', 'bottom']} maxWidth={640}
       footer={!allDone ? <Button title="Submit votes" size="lg" disabled={!ready} loading={busy} onPress={submit} /> : undefined}>
-      <Header title="Vote & rate" subtitle={v.closes_at ? `Closes in ${timeUntil(v.closes_at)} · votes are anonymous` : 'Votes are anonymous'} />
+      <Header title="Vote & rate" subtitle={v.closes_at ? `Closes in ${timeUntil(v.closes_at)} · votes are anonymous` : 'Votes are anonymous'} right={<ScreenHelp id="vote" />} />
       {!allDone && (
         <Card variant="alt">
           <Row gap={space.sm}>

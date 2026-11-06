@@ -5,6 +5,7 @@ import { Button, Header, Input, Screen, Text, useToast } from '@/components/ui';
 import { rpc } from '@/lib/api';
 import { fieldErrors, groupSchema } from '@/domain/validation';
 import { GroupAccessPicker, accessToSettings, type GroupAccess } from '@/features/GroupAccess';
+import { ScreenHelp } from '@/features/ScreenHelp';
 
 export default function NewGroup() {
   const toast = useToast();
@@ -34,7 +35,7 @@ export default function NewGroup() {
 
   return (
     <Screen edges={['top', 'bottom']} maxWidth={640}>
-      <Header title="New group" />
+      <Header title="New group" right={<ScreenHelp id="group-new" />} />
       <Input label="Group name" value={name} onChangeText={setName} placeholder="e.g. Wednesday Football" error={errors.name} maxLength={60} />
       <Input label="About (optional)" value={description} onChangeText={setDescription} multiline placeholder="e.g. Weekly 7-a-side for friends from work. Pay before kick-off." maxLength={2000} />
       <GroupAccessPicker value={access} onChange={setAccess} />

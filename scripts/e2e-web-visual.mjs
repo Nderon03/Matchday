@@ -140,18 +140,19 @@ const browser = await chromium.launch();
 const failures = [];
 const cardUploads = [];
 const calls = [];
-async function openPage(vp, { dpr = 1, theme = 'dark', appTour = false } = {}) {
+async function openPage(vp, { dpr = 1, theme = 'dark', appTour = false, tips = false } = {}) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: dpr });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.addInitScript(([uid, th, tour]) => {
+  await page.addInitScript(([uid, th, tour, tipsOn]) => {
     localStorage.setItem('matchday.theme', th);
+    if (!tipsOn) localStorage.setItem('matchday.tips', 'off');
     if (!tour) localStorage.setItem(`matchday.appTour.${uid}`, '1');
     const exp = Math.floor(Date.now() / 1000) + 3600 * 24;
     const b64 = (o) => btoa(JSON.stringify(o)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
     const token = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: uid, role: 'authenticated', exp, aud: 'authenticated', email: 'sam@example.com' })}.sig`;
     localStorage.setItem('sb-example-auth-token', JSON.stringify({ access_token: token, refresh_token: 'r', token_type: 'bearer', expires_in: 86400, expires_at: exp, user: { id: uid, email: 'sam@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' } }));
-  }, [ME, theme, appTour]);
+  }, [ME, theme, appTour, tips]);
   await page.route(/example\.supabase\.co/, async (route) => {
     const url = new URL(route.request().url());
     const single = (route.request().headers()['accept'] ?? '').includes('vnd.pgrst.object');
@@ -616,6 +617,49 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   await page.waitForTimeout(500);
   if (/Welcome to MATCHDAY/.test(await page.locator('body').innerText())) failures.push('app tour: skip not working');
   if (errors.length) failures.push(`app tour: runtime errors:\n  ${[...new Set(errors)].join('\n  ')}`);
+  await page.close();
+  table.notifications = saved;
+}
+
+// Screen tips: each screen's tour plays once the first time you open it (after the app tour),
+// the help button replays it, and it can be skipped.
+{
+  rpcs.get_match_reveals = [];
+  const saved = table.notifications;
+  table.notifications = [];
+  const { page, errors } = await openPage({ width: 375, height: 812 }, { tips: true });
+  await page.goto(base + '/matches', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+  if (!/Your matches/.test(await page.locator('body').innerText())) failures.push('screen tips: matches tour not shown');
+  await page.screenshot({ path: join(OUT, 'tips-matches-intro.png') });
+  await page.getByRole('button', { name: /^(Show me|Next)$/ }).last().click();
+  let pointed = 0;
+  for (let i = 0; i < 6; i++) {
+    await page.waitForTimeout(500);
+    const t = await page.locator('body').innerText();
+    if (/Public games near a postcode|Switch between games coming up|Tap a game/.test(t)) pointed++;
+    if (i === 0) await page.screenshot({ path: join(OUT, 'tips-matches-step.png') });
+    if (/Help is always here/.test(t)) { await page.screenshot({ path: join(OUT, 'tips-matches-help.png') }); await page.getByRole('button', { name: 'Got it' }).click(); break; }
+    await page.getByRole('button', { name: 'Next' }).last().click();
+  }
+  if (pointed < 2) failures.push(`screen tips: matches tour didn't point at its buttons (${pointed})`);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+  if (/Your matches/.test(await page.locator('body').innerText())) failures.push('screen tips: shown twice');
+  await page.getByRole('button', { name: 'How Matches works' }).click();
+  await page.waitForTimeout(1000);
+  if (!/Your matches/.test(await page.locator('body').innerText())) failures.push('screen tips: help button did not replay');
+  await page.getByRole('button', { name: 'Skip' }).click();
+  await page.waitForTimeout(400);
+  // the new-session form points at its controls
+  await page.goto(base + '/session/new', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+  if (!/Only the essentials/.test(await page.locator('body').innerText())) failures.push('screen tips: new session tour not shown');
+  await page.getByRole('button', { name: /^(Show me|Next)$/ }).last().click();
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: join(OUT, 'tips-session-new.png') });
+  if (!/colon goes in for you/.test(await page.locator('body').innerText())) failures.push('screen tips: new session kick-off step missing');
+  if (errors.length) failures.push(`screen tips: runtime errors:\n  ${[...new Set(errors)].join('\n  ')}`);
   await page.close();
   table.notifications = saved;
 }

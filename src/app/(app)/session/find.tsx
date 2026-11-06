@@ -10,6 +10,7 @@ import { usePriceLabel } from '@/hooks/useFees';
 import { lookupPlace } from '@/lib/postcodes';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
+import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 
 interface PublicGame {
   id: string; name: string; starts_at: string; duration_minutes: number; venue: string | null; location: string | null;
@@ -69,16 +70,16 @@ export default function FindGame() {
 
   return (
     <Screen edges={['top', 'bottom']} maxWidth={720} onRefresh={games.refetch} refreshing={games.isRefetching}>
-      <Header title="Find a game" subtitle="Public games you can join" />
+      <Header title="Find a game" subtitle="Public games you can join" right={<ScreenHelp id="find" />} />
       <Input label="Near" value={nearText} onChangeText={setNearText} placeholder="Postcode or area, e.g. NW7 or Mill Hill" icon="navigate-outline" autoCorrect={false} autoCapitalize="characters"
         hint={near.length < 2 ? 'Leave empty to see public games everywhere.'
           : place.isLoading ? 'Finding that place…'
           : center ? `Showing games within ${radius} mi of ${center.label}` : 'We couldn’t find that place. Try a postcode like NW7 2EU.'} />
       <Input value={query} onChangeText={setQuery} placeholder="Venue or game name (optional)" icon="search" autoCorrect={false} returnKeyType="search" />
-      <Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
+      <Spot id="find.filters"><Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
         <SwipeSelect compact label="When" value={when} onChange={setWhen} options={WHEN.map(([v, label]) => ({ value: v, label }))} />
         <SwipeSelect compact label="Size" value={format} onChange={setFormat} options={FORMATS.map(([v, label]) => ({ value: v, label }))} />
-      </Row>
+      </Row></Spot>
       <Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
         {!!center && <SwipeSelect compact label="Within" value={radius} onChange={setRadius} options={RADII.map((r) => ({ value: r, label: `${r} mi` }))} />}
         <SwipeSelect compact label="Price" value={freeOnly ? 'free' : 'any'} onChange={(v) => setFreeOnly(v === 'free')}

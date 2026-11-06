@@ -9,6 +9,7 @@ import { rpc } from '@/lib/api';
 import { timeAgo } from '@/domain/format';
 import { space } from '@/theme/tokens';
 import { HandshakeModal, type Friend } from '@/features/moments/Handshake';
+import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 
 interface SearchRow { id: string; username: string; display_name: string; avatar_url: string | null; is_friend: boolean; request_pending: boolean }
 
@@ -37,12 +38,12 @@ export default function Friends() {
 
   return (
     <Screen edges={['top', 'bottom']} onRefresh={friends.refetch} refreshing={friends.isRefetching}>
-      <Header title="Friends" right={<Row gap={space.xs}><Button title="Scan" icon="scan-outline" size="sm" variant="ghost" onPress={() => router.push('/scan')} /><Button title="My QR" icon="qr-code-outline" size="sm" variant="secondary" onPress={() => setQrOpen(true)} /></Row>} />
-      <Segmented value={tab} onChange={setTab} options={[
+      <Header title="Friends" right={<Row gap={space.xs} style={{ alignItems: 'center' }}><Spot id="friends.add" style={{ flexDirection: 'row', gap: space.xs }}><Button title="Scan" icon="scan-outline" size="sm" variant="ghost" onPress={() => router.push('/scan')} /><Button title="My QR" icon="qr-code-outline" size="sm" variant="secondary" onPress={() => setQrOpen(true)} /></Spot><ScreenHelp id="friends" /></Row>} />
+      <Spot id="friends.tabs"><Segmented value={tab} onChange={setTab} options={[
         { value: 'friends', label: `Friends${d ? ` · ${d.friends.length}` : ''}` },
         { value: 'requests', label: `Requests${requestCount ? ` · ${requestCount}` : ''}` },
         { value: 'find', label: 'Find' },
-      ]} />
+      ]} /></Spot>
       {!!friends.isLoading && <SkeletonList />}
       {!!friends.error && <ErrorState error={friends.error} onRetry={friends.refetch} />}
 

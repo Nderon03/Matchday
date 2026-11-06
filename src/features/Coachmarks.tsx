@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, type RefObject } from 'react';
+import React, { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, useWindowDimensions, type HostInstance } from 'react-native';
 import { Button, Text } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
@@ -40,24 +40,29 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
   const [appear] = useState(() => new Animated.Value(0));
   const [pulse] = useState(() => new Animated.Value(0));
 
+  // the latest steps / callback, without restarting the tour when the screen behind re-renders
+  const latest = useRef({ steps, onDone });
+  useEffect(() => { latest.current = { steps, onDone }; });
+
   const go = useCallback(async (from: number) => {
+    const list = latest.current.steps;
     // find the next step that's actually on screen
-    for (let i = from; i < steps.length; i++) {
+    for (let i = from; i < list.length; i++) {
       // no target: a centred card (a welcome or a closing note)
-      const t = steps[i].target;
+      const t = list[i].target;
       const r = t ? await measure(t) : { x: 0, y: 0, w: 0, h: 0, centred: true };
       if (r) { setIndex(i); setRect(r); return true; }
     }
     return false;
-  }, [steps]);
+  }, []);
 
   useEffect(() => {
     if (!visible) return;
     let alive = true;
     // let the screen settle before measuring
-    const t = setTimeout(() => { go(0).then((ok) => { if (alive && !ok) onDone(false); }); }, 350);
+    const t = setTimeout(() => { go(0).then((ok) => { if (alive && !ok) latest.current.onDone(false); }); }, 350);
     return () => { alive = false; clearTimeout(t); };
-  }, [visible, go, onDone]);
+  }, [visible, go]);
 
   useEffect(() => {
     if (!visible || !rect) return;

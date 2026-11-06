@@ -5,6 +5,7 @@ import { PlayerProfileView } from '@/features/PlayerProfileView';
 import { useAuth } from '@/providers/AuthProvider';
 import { space } from '@/theme/tokens';
 import { useQueryClient } from '@tanstack/react-query';
+import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 
 export default function ProfileTab() {
   const { userId } = useAuth();
@@ -13,8 +14,9 @@ export default function ProfileTab() {
     <Screen onRefresh={() => qc.invalidateQueries({ queryKey: ['player', userId] })}>
       <Row style={{ justifyContent: 'space-between', paddingTop: space.sm }}>
         <Text variant="h1" accessibilityRole="header">Profile</Text>
-        <Row>
-          <IconButton icon="card-outline" label="Payments" onPress={() => router.push('/payments')} />
+        <Row gap={4} style={{ alignItems: 'center' }}>
+          <ScreenHelp id="profile" />
+          <Spot id="profile.payments"><IconButton icon="card-outline" label="Payments" onPress={() => router.push('/payments')} /></Spot>
           <IconButton icon="settings-outline" label="Settings" onPress={() => router.push('/settings')} />
         </Row>
       </Row>

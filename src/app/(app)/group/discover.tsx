@@ -7,6 +7,7 @@ import { rpc } from '@/lib/api';
 import { useAction } from '@/hooks/useAction';
 import { space } from '@/theme/tokens';
 import { plural } from '@/domain/format';
+import { ScreenHelp } from '@/features/ScreenHelp';
 
 export default function Discover() {
   const [search, setSearch] = useState('');
@@ -18,7 +19,7 @@ export default function Discover() {
   const { run, busy } = useAction([['groups']]);
   return (
     <Screen edges={['top', 'bottom']}>
-      <Header title="Discover groups" />
+      <Header title="Discover groups" right={<ScreenHelp id="discover" />} />
       <Input placeholder="Search by name or area, e.g. Mill Hill" value={search} onChangeText={setSearch} icon="search" />
       <Text variant="caption" tone="muted">Groups set to “Ask to join” or “Open”. Invite-only groups are private and don’t appear here.</Text>
       {!!groups.isLoading && <SkeletonList />}

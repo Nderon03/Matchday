@@ -6,6 +6,7 @@ import { PaymentBadge, paymentLabel } from '@/components/football/PaymentBadge';
 import { useMyPayments } from '@/hooks/queries';
 import { formatDate, formatPence } from '@/domain/format';
 import { space } from '@/theme/tokens';
+import { ScreenHelp } from '@/features/ScreenHelp';
 
 export default function MyPayments() {
   const payments = useMyPayments();
@@ -14,7 +15,7 @@ export default function MyPayments() {
   const paid = list.filter((p) => ['paid', 'partially_refunded'].includes(p.status));
   return (
     <Screen edges={['top', 'bottom']} onRefresh={payments.refetch} refreshing={payments.isRefetching}>
-      <Header title="Payments" />
+      <Header title="Payments" right={<ScreenHelp id="payments" />} />
       {!!payments.isLoading && <SkeletonList />}
       {!!payments.error && <ErrorState error={payments.error} onRetry={payments.refetch} />}
       {!!payments.data && (
