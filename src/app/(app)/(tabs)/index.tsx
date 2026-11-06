@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { Coachmarks, type CoachStep } from '@/features/Coachmarks';
+import { tourRef, tourTarget } from '@/features/tourTargets';
+import { useOnce } from '@/features/moments/useOnce';
 import { View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Avatar, Badge, Button, Card, EmptyState, ErrorState, IconButton, Row, Screen, SectionTitle, Skeleton, StatTile, Text } from '@/components/ui';
+import { Avatar, Badge, Button, Card, EmptyState, ErrorState, IconButton, ListItem, Row, Screen, SectionTitle, Sheet, Skeleton, StatTile, Text } from '@/components/ui';
 import { TaskCard } from '@/components/football/TaskCard';
 import { useFriends, useHome, useMyAchievements } from '@/hooks/queries';
 import { StreakFlame } from '@/components/football/Streak';
@@ -20,6 +23,19 @@ function greeting() {
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 
+const APP_TOUR: CoachStep[] = [
+  { emoji: '⚽', title: 'Welcome to MATCHDAY', body: 'Organise games, pick fair teams, track your stats and settle up, all in one place. Here’s a 30-second look around.' },
+  { target: tourTarget('tab-index'), emoji: '🏠', title: 'Home', body: 'Your next game, anything you need to do (vote, pay, reply) and your form, at a glance.' },
+  { target: tourTarget('tab-matches'), emoji: '📅', title: 'Matches', body: 'Every game you’re in or invited to. Tap one for the squad, teams, check-in and results.' },
+  { target: tourTarget('tab-create'), emoji: '➕', title: 'Create', body: 'Set up a game in about 30 seconds, start a group, or reuse a saved ☆ preset.' },
+  { target: tourTarget('tab-leagues'), emoji: '🏆', title: 'Leagues', body: 'Your groups and the leaderboards. Goals, wins and MOTMs move you up the tables.' },
+  { target: tourTarget('tab-profile'), emoji: '🪪', title: 'Your player card', body: 'Your stats on a card. Earn medals to unlock cooler styles and titles, then show it off.' },
+  { target: tourTarget('friends'), emoji: '🤝', title: 'Friends', body: 'Add mates by username or QR code to invite them to games and compare stats.' },
+  { target: tourTarget('bell'), emoji: '🔔', title: 'Notifications', body: 'Invites, line-ups, votes and payment reminders land here.' },
+  { target: tourTarget('help'), emoji: '❓', title: 'Help is up here', body: 'Replay this tour or read the FAQ any time.' },
+  { emoji: '🎉', title: 'You’re all set', body: 'Start by adding a few friends or joining a group, then get your first game in the calendar.' },
+];
+
 export default function Home() {
   const { profile, userId } = useAuth();
   const friends = useFriends();
@@ -29,13 +45,28 @@ export default function Home() {
   const { isWide } = useLayout();
   const home = useHome();
   const [allTasks, setAllTasks] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+  // Settings → Replay the app tour comes here with ?tour=1
+  const { tour: tourParam } = useLocalSearchParams<{ tour?: string }>();
+  // the app tour: once, the first time you land on Home (replay from ? → Replay the app tour)
+  const firstTour = useOnce(userId ? `matchday.appTour.${userId}` : null, !!home.data);
   const price = usePriceLabel();
   const d = home.data;
   const next = d?.next_session;
   const career = d?.career;
 
+  const endTour = () => { setTourOpen(false); firstTour.markDone(); if (tourParam) router.setParams({ tour: undefined }); };
+
   return (
     <Screen onRefresh={() => home.refetch()} refreshing={home.isRefetching}>
+      <Coachmarks steps={APP_TOUR} visible={tourOpen || firstTour.due || tourParam === '1'} onDone={endTour} finishLabel="Let’s play" />
+      <Sheet visible={helpOpen} onClose={() => setHelpOpen(false)} title="Help">
+        <ListItem title="Replay the app tour" subtitle="A 30-second look around" left={<Ionicons name="play-circle-outline" size={20} color={colors.primary} />}
+          onPress={() => { setHelpOpen(false); setTimeout(() => setTourOpen(true), 300); }} />
+        <ListItem title="Help & FAQ" subtitle="Payments, waiting lists, medals, hosting" left={<Ionicons name="help-buoy-outline" size={20} color={colors.textMuted} />}
+          onPress={() => { setHelpOpen(false); router.push('/help'); }} />
+      </Sheet>
       <Row style={{ justifyContent: 'space-between', paddingTop: space.sm }}>
         <Row gap={space.md}>
           <Avatar uri={profile?.avatar_url} name={profile?.display_name} size={44} />
@@ -45,8 +76,9 @@ export default function Home() {
           </View>
         </Row>
         <Row>
-          <IconButton icon="people-outline" label="Friends" onPress={() => router.push('/friends')} />
-          <IconButton icon="notifications-outline" label="Notifications" badge={d?.unread_notifications} onPress={() => router.push('/notifications')} />
+          <View ref={tourRef('help')} collapsable={false}><IconButton icon="help-circle-outline" label="Help" onPress={() => setHelpOpen(true)} /></View>
+          <View ref={tourRef('friends')} collapsable={false}><IconButton icon="people-outline" label="Friends" onPress={() => router.push('/friends')} /></View>
+          <View ref={tourRef('bell')} collapsable={false}><IconButton icon="notifications-outline" label="Notifications" badge={d?.unread_notifications} onPress={() => router.push('/notifications')} /></View>
         </Row>
       </Row>
 

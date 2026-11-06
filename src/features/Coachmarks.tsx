@@ -9,12 +9,12 @@ const native = Platform.OS !== 'web';
 
 export interface CoachStep {
   /** the thing to point at (a View with collapsable={false}); steps whose target isn't on screen are skipped */
-  target: RefObject<HostInstance | null>;
+  target?: RefObject<HostInstance | null>;
   emoji: string;
   title: string;
   body: string;
 }
-interface Rect { x: number; y: number; w: number; h: number }
+interface Rect { x: number; y: number; w: number; h: number; centred?: boolean }
 
 const measure = (ref: RefObject<HostInstance | null>) => new Promise<Rect | null>((resolve) => {
   const node = ref.current;
@@ -43,7 +43,9 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
   const go = useCallback(async (from: number) => {
     // find the next step that's actually on screen
     for (let i = from; i < steps.length; i++) {
-      const r = await measure(steps[i].target);
+      // no target: a centred card (a welcome or a closing note)
+      const t = steps[i].target;
+      const r = t ? await measure(t) : { x: 0, y: 0, w: 0, h: 0, centred: true };
       if (r) { setIndex(i); setRect(r); return true; }
     }
     return false;
@@ -79,6 +81,31 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
   };
   const skip = () => { setRect(null); onDone(false); };
 
+  const dots = (
+    <View style={{ flexDirection: 'row', gap: 4 }}>
+      {steps.map((_, i) => <View key={i} style={{ width: i === index ? 12 : 5, height: 5, borderRadius: 3, backgroundColor: i === index ? colors.primary : colors.borderStrong }} />)}
+    </View>
+  );
+  if (rect.centred) {
+    return (
+      <Modal visible transparent statusBarTranslucent animationType="fade" onRequestClose={skip}>
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.72)', alignItems: 'center', justifyContent: 'center', padding: space.lg }]}>
+          <Animated.View style={{ width: '100%', maxWidth: 360, backgroundColor: colors.surface, borderRadius: radius.xl, padding: space.xl, gap: space.md, alignItems: 'center',
+            opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }] }}>
+            <Animated.Text style={{ fontSize: 46, transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }}>{step.emoji}</Animated.Text>
+            <Text variant="h2" align="center">{step.title}</Text>
+            <Text tone="muted" align="center">{step.body}</Text>
+            {dots}
+            <View style={{ alignSelf: 'stretch', flexDirection: 'row', gap: space.sm, marginTop: space.xs }}>
+              {!last && <Button title="Skip" variant="secondary" style={{ flex: 1 }} onPress={skip} />}
+              <Button title={last ? finishLabel : index === 0 ? 'Show me' : 'Next'} style={{ flex: 1 }} onPress={next} />
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+    );
+  }
+
   const pad = 6;
   const hole = { x: rect.x - pad, y: rect.y - pad, w: rect.w + pad * 2, h: rect.h + pad * 2 };
   const below = hole.y + hole.h / 2 < sh / 2;
@@ -111,9 +138,9 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
               <Text style={{ fontSize: 22 }}>{step.emoji}</Text>
               <Text variant="bodyStrong" style={{ flex: 1 }}>{step.title}</Text>
-              <Text variant="caption" tone="faint">{index + 1}/{steps.length}</Text>
             </View>
             <Text variant="small" tone="muted">{step.body}</Text>
+            {dots}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
               {last ? <View /> : (
                 <Pressable onPress={skip} hitSlop={10} accessibilityRole="button">

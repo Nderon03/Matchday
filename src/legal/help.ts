@@ -7,6 +7,7 @@ export const HELP: HelpSection[] = [
     id: 'playing',
     title: 'Playing',
     items: [
+      { q: 'Can I see the app tour again?', a: 'Yes: tap ? at the top of Home → Replay the app tour, or Settings → Replay the app tour. Each group page has its own ? for a quick tour of that page too.' },
       { q: 'How do I join a game?', a: 'Open the invite link or scan the QR code the host shares, or use Find a game to search public games near a postcode. Then tap “I’m in”.' },
       { q: 'What happens if the game is full?', a: 'You go on the waiting list. More than 24 hours before kick-off you move up automatically when a place opens. On the day, the next player is offered the place and has 30 minutes to tap “I’m in” before it goes to the next person.' },
       { q: 'I can’t make it any more', a: 'Open the session and tap “Can’t make it”, so the next player gets your place. You can do this until 24 hours before kick-off. After that, tap “Can’t make it” to tell the host: they take you off, but it counts against your reliability.' },

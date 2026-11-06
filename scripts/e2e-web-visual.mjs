@@ -140,17 +140,18 @@ const browser = await chromium.launch();
 const failures = [];
 const cardUploads = [];
 const calls = [];
-async function openPage(vp, { dpr = 1, theme = 'dark' } = {}) {
+async function openPage(vp, { dpr = 1, theme = 'dark', appTour = false } = {}) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: dpr });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.addInitScript(([uid, th]) => {
+  await page.addInitScript(([uid, th, tour]) => {
     localStorage.setItem('matchday.theme', th);
+    if (!tour) localStorage.setItem(`matchday.appTour.${uid}`, '1');
     const exp = Math.floor(Date.now() / 1000) + 3600 * 24;
     const b64 = (o) => btoa(JSON.stringify(o)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
     const token = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: uid, role: 'authenticated', exp, aud: 'authenticated', email: 'sam@example.com' })}.sig`;
     localStorage.setItem('sb-example-auth-token', JSON.stringify({ access_token: token, refresh_token: 'r', token_type: 'bearer', expires_in: 86400, expires_at: exp, user: { id: uid, email: 'sam@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' } }));
-  }, [ME, theme]);
+  }, [ME, theme, appTour]);
   await page.route(/example\.supabase\.co/, async (route) => {
     const url = new URL(route.request().url());
     const single = (route.request().headers()['accept'] ?? '').includes('vnd.pgrst.object');
@@ -579,6 +580,46 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   if (errors.length) failures.push(`${vpName}: runtime errors:\n  ${[...new Set(errors)].join('\n  ')}`);
   await page.close();
 }
+// First visit to Home: the app tour (welcome card, each tab, friends, bell, help, done),
+// shown once, replayable from ? → Replay the app tour, skippable.
+{
+  rpcs.get_match_reveals = [];
+  const saved = table.notifications;
+  table.notifications = [];
+  const { page, errors } = await openPage({ width: 375, height: 812 }, { appTour: true });
+  await page.goto(base + '/', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+  if (!/Welcome to MATCHDAY/.test(await page.locator('body').innerText())) failures.push('app tour: welcome not shown');
+  await page.screenshot({ path: join(OUT, 'app-tour-welcome.png') });
+  await page.getByRole('button', { name: 'Show me' }).click();
+  const seen = [];
+  for (let i = 0; i < 12; i++) {
+    await page.waitForTimeout(500);
+    const t = await page.locator('body').innerText();
+    for (const [step, phrase] of [['Create', 'about 30 seconds'], ['Leagues', 'move you up the tables'], ['Your player card', 'Your stats on a card'],
+      ['Friends', 'by username or QR code'], ['Help is up here', 'Replay this tour'], ['You’re all set', 'first game in the calendar']]) if (t.includes(phrase) && !seen.includes(step)) seen.push(step);
+    if (i === 3) await page.screenshot({ path: join(OUT, 'app-tour-step.png') });
+    if (/You’re all set/.test(t)) { await page.screenshot({ path: join(OUT, 'app-tour-done.png') }); await page.getByRole('button', { name: 'Let’s play' }).click(); break; }
+    await page.getByRole('button', { name: 'Next' }).last().click();
+  }
+  for (const want of ['Create', 'Leagues', 'Your player card', 'Help is up here', 'You’re all set']) if (!seen.includes(want)) failures.push(`app tour: step "${want}" missing (saw ${seen.join(', ')})`);
+  await page.waitForTimeout(500);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+  if (/Welcome to MATCHDAY/.test(await page.locator('body').innerText())) failures.push('app tour: shown twice');
+  await page.getByRole('button', { name: 'Help', exact: true }).click();
+  await page.waitForTimeout(400);
+  await page.getByText('Replay the app tour').click();
+  await page.waitForTimeout(1200);
+  if (!/Welcome to MATCHDAY/.test(await page.locator('body').innerText())) failures.push('app tour: replay not working');
+  await page.getByRole('button', { name: 'Skip' }).click();
+  await page.waitForTimeout(500);
+  if (/Welcome to MATCHDAY/.test(await page.locator('body').innerText())) failures.push('app tour: skip not working');
+  if (errors.length) failures.push(`app tour: runtime errors:\n  ${[...new Set(errors)].join('\n  ')}`);
+  await page.close();
+  table.notifications = saved;
+}
+
 // Fit pass: every screen at small phone → desktop widths, dark and light. Flags anything that
 // pokes out sideways (a horizontal page scroll, or a visible element past the screen edge that
 // isn't inside something meant to scroll sideways or clip).

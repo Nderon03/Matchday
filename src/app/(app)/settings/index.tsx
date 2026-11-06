@@ -92,6 +92,8 @@ export default function Settings() {
 
       <SectionTitle title="About" />
       <Card padded={false}>
+        <ListItem title="Replay the app tour" subtitle="A 30-second look around" left={icon('play-circle-outline')} onPress={() => router.navigate('/?tour=1')} />
+        <Divider />
         <ListItem title="Help & FAQ" subtitle="Payments, waiting lists, medals, hosting" left={icon('help-circle-outline')} onPress={() => router.push('/help')} />
         <Divider />
         <ListItem title="Terms of Use" left={icon('document-text-outline')} onPress={() => router.push('/legal/terms')} />
