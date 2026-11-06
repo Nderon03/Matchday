@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, Header, Input, Screen, useToast } from '@/components/ui';
+import { Button, Header, Input, Screen, Text, useToast } from '@/components/ui';
 import { rpc } from '@/lib/api';
 import { fieldErrors, groupSchema } from '@/domain/validation';
 import { GroupAccessPicker, accessToSettings, type GroupAccess } from '@/features/GroupAccess';
@@ -39,6 +39,9 @@ export default function NewGroup() {
       <Input label="About (optional)" value={description} onChangeText={setDescription} multiline placeholder="e.g. Weekly 7-a-side for friends from work. Pay before kick-off." maxLength={2000} />
       <GroupAccessPicker value={access} onChange={setAccess} />
       <Button title="Create group" size="lg" loading={busy} onPress={submit} />
+      <Text variant="caption" tone="muted" align="center">
+        You can change any of this later in group settings, along with stats, payments and late fines.
+      </Text>
     </Screen>
   );
 }
