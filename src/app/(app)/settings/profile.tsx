@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Avatar, Button, Card, Chip, Divider, Header, Input, ListItem, Screen, Text, useToast } from '@/components/ui';
+import { Button, Card, Chip, Divider, Header, Input, ListItem, Screen, Text, useToast } from '@/components/ui';
 import { ClubShield, Flag } from '@/components/football/Identity';
 import { CardStylePicker } from '@/features/CardStylePicker';
 import { ClubPicker, CountryPicker, clubName, countryName } from '@/features/IdentityPickers';
@@ -54,9 +54,10 @@ export default function EditProfile() {
   return (
     <Screen edges={['top', 'bottom']} maxWidth={560}>
       <Header title="Edit profile" />
-      <View style={{ alignItems: 'center', gap: space.sm }}>
-        <Avatar uri={avatar} name={displayName} size={96} />
-        <View style={{ flexDirection: 'row', gap: space.sm }}>
+      <CardStylePicker
+        overrides={{ display_name: displayName || profile?.display_name || '', avatar_url: avatar, position, nationality, supported_club: club }}
+        actions={(
+        <View style={{ flexDirection: 'row', gap: space.sm, justifyContent: 'center' }}>
           <Button title="Change photo" size="sm" variant="secondary" icon="camera-outline" onPress={async () => {
             try {
               const url = await pickAndUpload('avatars', userId!);
@@ -73,7 +74,8 @@ export default function EditProfile() {
             refreshProfile();
           }} />}
         </View>
-      </View>
+        )}
+      />
       <Input label="Display name" value={displayName} onChangeText={setDisplayName} error={errors.display_name} maxLength={40} />
       <Input label="Username" value={username} onChangeText={(v) => setUsername(v.replace(/\s/g, ''))} autoCapitalize="none" icon="at"
         error={check.state === 'taken' || check.state === 'invalid' ? check.message : null} hint={check.message ?? undefined} />
@@ -82,8 +84,6 @@ export default function EditProfile() {
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
         {(['GK', 'DEF', 'MID', 'FWD', 'ANY'] as PlayerPosition[]).map((p) => <Chip key={p} label={POSITION_LABEL[p]} selected={position === p} onPress={() => setPosition(p)} />)}
       </View>
-      <Text variant="smallStrong" tone="muted">Player card style</Text>
-      <CardStylePicker />
       <Text variant="smallStrong" tone="muted">On your player card (optional)</Text>
       <Card padded={false} style={{ paddingHorizontal: space.lg }}>
         <ListItem title="Nationality" subtitle={countryName(nationality) ?? 'Not shown'} left={nationality ? <Flag code={nationality} height={18} /> : undefined} onPress={() => setPicker('country')} />

@@ -91,9 +91,9 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
       <View style={{ padding: space.xl, gap: space.lg }}>
         {!!label && (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: -space.sm }}>
-            <Ionicons name="star" size={12} color={st.accent} />
-            <Text variant="overline" color={st.accent} style={{ letterSpacing: 3 }}>{label}</Text>
-            <Ionicons name="star" size={12} color={st.accent} />
+            <Ionicons name={st.fx >= 4 ? 'trophy' : 'star'} size={st.fx >= 4 ? 14 : 12} color={st.accent} />
+            <Text variant="overline" color={st.accent} style={{ letterSpacing: st.fx >= 4 ? 4 : 3 }}>{label}</Text>
+            <Ionicons name={st.fx >= 4 ? 'trophy' : 'star'} size={st.fx >= 4 ? 14 : 12} color={st.accent} />
           </View>
         )}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg }}>

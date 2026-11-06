@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Row, Text, useToast } from '@/components/ui';
 import { CardFX } from '@/components/football/CardFX';
-import { CARD_STYLES, type CardStyle } from '@/domain/achievements';
+import { PlayerCard, type PlayerCardData } from '@/components/football/PlayerCard';
+import { CARD_STYLES, cardStyle, medalPoints, type CardStyle } from '@/domain/achievements';
 import { plural } from '@/domain/format';
-import { keys, useMyAchievements } from '@/hooks/queries';
-import { rpc } from '@/lib/api';
+import { keys, useMyAchievements, usePlayerProfile } from '@/hooks/queries';
+import { useReliability } from '@/features/Reliability';
+import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
+import { q, rpc } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
@@ -34,7 +38,7 @@ function Tile({ s, selected, unlocked, points, onPress }: { s: CardStyle; select
         <View style={{ flex: 1, padding: space.sm, justifyContent: 'space-between' }}>
           <Row style={{ justifyContent: 'space-between' }}>
             <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: s.accent }} />
-            {selected ? <Ionicons name="checkmark-circle" size={16} color={colors.primary} /> : !unlocked ? <Ionicons name="lock-closed" size={13} color={s.muted} /> : null}
+            {!unlocked ? <Ionicons name="lock-closed" size={13} color={s.muted} /> : selected ? <Ionicons name="checkmark-circle" size={16} color={colors.primary} /> : null}
           </Row>
           <View>
             <Text variant="caption" color={s.accent} style={{ fontWeight: '700' }} numberOfLines={1}>{s.name}</Text>
@@ -46,26 +50,53 @@ function Tile({ s, selected, unlocked, points, onPress }: { s: CardStyle; select
   );
 }
 
+/** Your own card, as everyone else sees it (stats, medals, flag, club, reliability). */
+export function useMyCardData(): PlayerCardData | null {
+  const { userId } = useAuth();
+  const profile = usePlayerProfile(userId ?? '');
+  const extra = useQuery({
+    queryKey: ['player', userId, 'card'], enabled: !!userId,
+    queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null } | null>(
+      supabase.from('profiles').select('card_style, nationality, supported_club').eq('id', userId!).maybeSingle()),
+  });
+  const reliability = useReliability(userId ? [userId] : []);
+  const d = profile.data;
+  if (!d || !userId) return null;
+  const unlocked = new Set<string>((d.achievements ?? []).map((a: { code: string }) => a.code));
+  return {
+    ...d.profile, stats: d.stats ?? null, achievements: medalPoints(unlocked),
+    card_style: extra.data?.card_style, nationality: extra.data?.nationality, supported_club: extra.data?.supported_club,
+    reliability: reliability.data?.[userId] ?? null,
+  };
+}
+
 /**
- * Choose how your player card looks: a free base colour, or an earned style (Bronze → Hall of
- * Fame) unlocked with medal points, which come with a shimmer, glowing edge and sparkles.
+ * Your card on top, every style underneath. Tap a style to see it on your card straight away:
+ * ones you've unlocked are applied, locked ones are a preview with how close you are.
+ * `overrides` lets Edit profile show unsaved changes (name, photo, flag...) on the card live.
  */
-export function CardStylePicker() {
+export function CardStylePicker({ overrides, actions }: { overrides?: Partial<PlayerCardData>; actions?: React.ReactNode }) {
+  const { colors } = useTheme();
   const mine = useMyAchievements();
+  const card = useMyCardData();
   const qc = useQueryClient();
   const toast = useToast();
   const [picked, setPicked] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const points = mine.data?.points ?? 0;
   const current = picked ?? mine.data?.card_style ?? 'classic';
+  const shown = cardStyle(preview ?? current);
+  const locked = points < shown.points;
 
   const choose = async (s: CardStyle) => {
-    if (points < s.points) return toast.show(`Earn ${plural(s.points - points, 'more medal point')} to unlock ${s.name}.`);
-    if (s.id === current) return;
+    setPreview(s.id);
+    haptics.tap();
+    if (points < s.points || s.id === current) return;
     const before = current;
     setPicked(s.id);
-    haptics.tap();
     try {
       await rpc('set_card_style', { p_style: s.id });
+      if (s.fx >= 3) haptics.success();
       qc.invalidateQueries({ queryKey: keys.myAchievements });
       qc.invalidateQueries({ queryKey: ['player'] });
     } catch (e) {
@@ -76,11 +107,44 @@ export function CardStylePicker() {
 
   const row = (list: CardStyle[]) => (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm, paddingVertical: 2 }}>
-      {list.map((s) => <Tile key={s.id} s={s} points={points} selected={current === s.id} unlocked={points >= s.points} onPress={() => choose(s)} />)}
+      {list.map((s) => <Tile key={s.id} s={s} points={points} selected={(preview ?? current) === s.id} unlocked={points >= s.points} onPress={() => choose(s)} />)}
     </ScrollView>
   );
   return (
-    <View style={{ gap: space.sm }}>
+    <View style={{ gap: space.md }}>
+      {card ? (
+        <View>
+          <View style={{ opacity: locked ? 0.92 : 1 }}>
+            <PlayerCard data={{ ...card, ...overrides, card_style: shown.id }} />
+          </View>
+          {locked && (
+            <View style={{ position: 'absolute', top: space.sm, right: space.sm, flexDirection: 'row', alignItems: 'center', gap: 4,
+              paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.65)' }}>
+              <Ionicons name="lock-closed" size={11} color="#FFFFFF" />
+              <Text variant="caption" color="#FFFFFF" style={{ fontWeight: '700' }}>Preview</Text>
+            </View>
+          )}
+        </View>
+      ) : (
+        <View style={{ height: 230, borderRadius: radius.xl, backgroundColor: colors.surfaceAlt }} />
+      )}
+      {actions}
+      {locked ? (
+        <View style={{ gap: 6 }}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Text variant="smallStrong">{shown.name} unlocks at {plural(shown.points, 'medal point')}</Text>
+            <Text variant="caption" tone="muted">{points} / {shown.points}</Text>
+          </Row>
+          <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.surfaceAlt, overflow: 'hidden' }}>
+            <View style={{ width: `${Math.min(100, (points / shown.points) * 100)}%`, height: 6, borderRadius: 3, backgroundColor: shown.accent }} />
+          </View>
+          <Text variant="caption" tone="muted">
+            {plural(shown.points - points, 'more point')} to go. Level up medals (games, goals, MOTM, streaks) to earn them.
+          </Text>
+        </View>
+      ) : (
+        <Text variant="caption" tone="muted" align="center">{shown.name} · in use{shown.fx ? '' : ' · earn medals to unlock animated cards'}</Text>
+      )}
       <Text variant="caption" tone="muted">Colours</Text>
       {row(CARD_STYLES.filter((s) => s.base))}
       <Text variant="caption" tone="muted">Earned with medals · you have {plural(points, 'point')}</Text>

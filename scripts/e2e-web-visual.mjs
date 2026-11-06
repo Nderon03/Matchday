@@ -112,6 +112,7 @@ const rpcs = {
     most_assists: null, best_win_streak: 6, best_unbeaten: 9, best_weeks: 9,
   },
   get_my_achievements: myAchievements,
+  set_card_style: 'crimson',
   get_home_dashboard: home, get_pending_tasks: home.tasks, is_session_manager: true,
   get_session_payment_statuses: people.slice(1, 9).map((p, i) => ({ user_id: p.id, status: ['paid', 'authorised', 'unpaid', 'paid', 'failed', 'paid', 'pending', 'paid'][i], method: 'card' })),
   get_player_strengths: people.slice(0, 9).map((p, i) => ({ user_id: p.id, position: p.position, group_rating: 6 + (i % 4) * 0.5, career_rating: 6.5, form: 7, games: 10, gk_games: i === 0 ? 5 : 0 })),
@@ -183,6 +184,17 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.getByRole('button', { name: 'OK' }).last().click();
       await page.waitForTimeout(300);
       if ((await page.locator('body').innerText()).includes('The host removed you from')) failures.push(`${vpName}: removal notice did not dismiss`);
+    }
+    if (name === 'edit-profile') {
+      // your card is on top; tapping a locked style previews it on the card with how close you are
+      await page.getByRole('button', { name: /^Hall of Fame card/ }).click();
+      await page.waitForTimeout(500);
+      const t = await page.locator('body').innerText();
+      if (!/HALL OF FAME/.test(t) || !/Preview/.test(t) || !/Hall of Fame unlocks at 40 medal points/.test(t)) failures.push(`${vpName}: locked style preview missing`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-card-preview.png`) });
+      await page.getByRole('button', { name: /^Crimson card/ }).click();
+      await page.waitForTimeout(300);
+      if (!/Crimson · in use/.test(await page.locator('body').innerText())) failures.push(`${vpName}: base colour not applied`);
     }
     if (name === 'create') {
       await page.goto(base + '/session/new', { waitUntil: 'networkidle' });
