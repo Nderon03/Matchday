@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, Button, Card, Chip, Divider, Header, Input, ListItem, Screen, Text, useToast } from '@/components/ui';
 import { ClubShield, Flag } from '@/components/football/Identity';
+import { CardStylePicker } from '@/features/CardStylePicker';
 import { ClubPicker, CountryPicker, clubName, countryName } from '@/features/IdentityPickers';
 import { useAuth } from '@/providers/AuthProvider';
 import { useUsernameCheck } from '@/hooks/useUsernameCheck';
@@ -81,6 +82,8 @@ export default function EditProfile() {
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
         {(['GK', 'DEF', 'MID', 'FWD', 'ANY'] as PlayerPosition[]).map((p) => <Chip key={p} label={POSITION_LABEL[p]} selected={position === p} onPress={() => setPosition(p)} />)}
       </View>
+      <Text variant="smallStrong" tone="muted">Player card style</Text>
+      <CardStylePicker />
       <Text variant="smallStrong" tone="muted">On your player card (optional)</Text>
       <Card padded={false} style={{ paddingHorizontal: space.lg }}>
         <ListItem title="Nationality" subtitle={countryName(nationality) ?? 'Not shown'} left={nationality ? <Flag code={nationality} height={18} /> : undefined} onPress={() => setPicker('country')} />

@@ -62,18 +62,28 @@ export function medalPoints(unlockedCodes: Iterable<string>): number {
 }
 export const MAX_POINTS = TRACKS.length * 5;
 
-export type CardStyleId = 'classic' | 'silver' | 'gold' | 'platinum' | 'hall_of_fame';
+export type CardStyleId = 'classic' | 'midnight' | 'crimson' | 'royal' | 'sunset' | 'stealth' | 'bronze' | 'silver' | 'gold' | 'platinum' | 'hall_of_fame';
 export interface CardStyle {
   id: CardStyleId; name: string; points: number;
   from: string; to: string; accent: string; muted: string; border: string | null; label?: string;
+  /** how much the card comes alive: 0 still, 1 shimmer, 2 + glowing edge, 3 + twinkling stars, 4 everything */
+  fx: 0 | 1 | 2 | 3 | 4;
+  /** free base colours anyone can pick */
+  base?: boolean;
 }
-/** Player card / profile banner styles, unlocked by medal points (checked again on the server). */
+/** Player card / profile banner styles. Base colours are free; the rest unlock with medal points (checked again on the server). */
 export const CARD_STYLES: CardStyle[] = [
-  { id: 'classic', name: 'Classic', points: 0, from: '#123D26', to: '#0A0F0C', accent: '#22C55E', muted: '#9FB3A8', border: null },
-  { id: 'silver', name: 'Silver', points: 8, from: '#2B323B', to: '#0D1013', accent: '#DCE2EA', muted: '#A3ADB9', border: '#C7CED8' },
-  { id: 'gold', name: 'Gold', points: 16, from: '#43320A', to: '#120D03', accent: '#F5B014', muted: '#C9B07A', border: '#F5B014' },
-  { id: 'platinum', name: 'Platinum', points: 26, from: '#0F3A44', to: '#061316', accent: '#67E8F9', muted: '#93C5CF', border: '#67E8F9' },
-  { id: 'hall_of_fame', name: 'Hall of Fame', points: MAX_POINTS, from: '#1E1606', to: '#000000', accent: '#F5C542', muted: '#BFA668', border: '#F5C542', label: 'HALL OF FAME' },
+  { id: 'classic', name: 'Pitch', points: 0, base: true, fx: 0, from: '#123D26', to: '#0A0F0C', accent: '#22C55E', muted: '#9FB3A8', border: null },
+  { id: 'midnight', name: 'Midnight', points: 0, base: true, fx: 0, from: '#10254A', to: '#05080F', accent: '#60A5FA', muted: '#9AAFCB', border: null },
+  { id: 'crimson', name: 'Crimson', points: 0, base: true, fx: 0, from: '#4A1018', to: '#0E0406', accent: '#F87171', muted: '#C9A0A4', border: null },
+  { id: 'royal', name: 'Royal', points: 0, base: true, fx: 0, from: '#2E1650', to: '#0A0512', accent: '#C084FC', muted: '#B3A1C9', border: null },
+  { id: 'sunset', name: 'Sunset', points: 0, base: true, fx: 0, from: '#4A230B', to: '#120804', accent: '#FB923C', muted: '#CBAE98', border: null },
+  { id: 'stealth', name: 'Stealth', points: 0, base: true, fx: 0, from: '#2A2D33', to: '#08090A', accent: '#E5E7EB', muted: '#A1A6AE', border: null },
+  { id: 'bronze', name: 'Bronze', points: 4, fx: 1, from: '#3E2513', to: '#0F0805', accent: '#E0965A', muted: '#C3A58C', border: '#CD7F32' },
+  { id: 'silver', name: 'Silver', points: 8, fx: 2, from: '#2B323B', to: '#0D1013', accent: '#DCE2EA', muted: '#A3ADB9', border: '#C7CED8' },
+  { id: 'gold', name: 'Gold', points: 16, fx: 3, from: '#43320A', to: '#120D03', accent: '#F5B014', muted: '#C9B07A', border: '#F5B014' },
+  { id: 'platinum', name: 'Platinum', points: 26, fx: 3, from: '#0F3A44', to: '#061316', accent: '#67E8F9', muted: '#93C5CF', border: '#67E8F9' },
+  { id: 'hall_of_fame', name: 'Hall of Fame', points: MAX_POINTS, fx: 4, from: '#1E1606', to: '#000000', accent: '#F5C542', muted: '#BFA668', border: '#F5C542', label: 'HALL OF FAME' },
 ];
 export const cardStyle = (id?: string | null) => CARD_STYLES.find((s) => s.id === id) ?? CARD_STYLES[0];
 

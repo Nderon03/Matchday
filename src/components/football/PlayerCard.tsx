@@ -7,6 +7,7 @@ import { POSITION_LABEL, rating } from '@/domain/format';
 import { cardStyle } from '@/domain/achievements';
 import { Ionicons } from '@expo/vector-icons';
 import { ClubShield, Flag } from './Identity';
+import { CardFX } from './CardFX';
 
 export interface PlayerCardData {
   display_name: string;
@@ -64,6 +65,8 @@ function ReliabilityMark({ r, accent, muted }: { r: PlayerCardData['reliability'
 /** Shareable branded player card, in the player's chosen card style. */
 export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(function PlayerCard({ data }, ref) {
   const st = cardStyle(data.card_style);
+  // earned styles wear their name at the top
+  const label = st.label ?? (st.base ? undefined : st.name.toUpperCase());
   const s = data.stats;
   const cells: [string, string | number][] = [
     // no stats (private profile) shows dashes rather than misleading zeros
@@ -81,14 +84,15 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData }>(fun
         </Defs>
         <Rect width="100%" height="100%" fill="url(#g)" />
       </Svg>
+      <CardFX st={st} radius={radius.xl} />
       {st.id === 'hall_of_fame' && (
         <View pointerEvents="none" style={{ position: 'absolute', top: 5, left: 5, right: 5, bottom: 5, borderRadius: radius.xl - 4, borderWidth: 1, borderColor: `${st.accent}55` }} />
       )}
       <View style={{ padding: space.xl, gap: space.lg }}>
-        {!!st.label && (
+        {!!label && (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: -space.sm }}>
             <Ionicons name="star" size={12} color={st.accent} />
-            <Text variant="overline" color={st.accent} style={{ letterSpacing: 3 }}>{st.label}</Text>
+            <Text variant="overline" color={st.accent} style={{ letterSpacing: 3 }}>{label}</Text>
             <Ionicons name="star" size={12} color={st.accent} />
           </View>
         )}

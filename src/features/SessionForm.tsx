@@ -111,7 +111,6 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
     setGroupId(id);
     if (id && visibility === 'private') setVisibility('group');
     if (!id && visibility === 'group') setVisibility('private');
-    if (id && !name) setName(groups.data?.find((g) => g.id === id)?.name ?? '');
   };
 
   const submit = async () => {

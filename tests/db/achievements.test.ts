@@ -88,6 +88,11 @@ describe('achievements', () => {
     await db.admin(`select award_achievements($1)`, [u]);
     const points = (await db.admin(`select medal_points($1) p`, [u]))[0].p;
     expect(points).toBeGreaterThanOrEqual(8);
+    // free base colours for everyone, earned styles need points
+    const fresh = await db.createUser(uniq('wf'));
+    expect(await db.rpc(fresh, 'set_card_style', { p_style: 'crimson' })).toBe('crimson');
+    await expectAppError(db.rpc(fresh, 'set_card_style', { p_style: 'bronze' }), 'style_locked');
+    expect(await db.rpc(u, 'set_card_style', { p_style: 'bronze' })).toBe('bronze');
     expect(await db.rpc(u, 'set_card_style', { p_style: 'silver' })).toBe('silver');
     await expectAppError(db.rpc(u, 'set_card_style', { p_style: 'hall_of_fame' }), 'style_locked');
     await expectAppError(db.rpc(u, 'set_card_style', { p_style: 'rainbow' }), 'invalid_style');

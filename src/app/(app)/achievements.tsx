@@ -1,20 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useQueryClient } from '@tanstack/react-query';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { Button, Card, ErrorState, Header, Row, Screen, SectionTitle, Sheet, SkeletonList, Text, useToast } from '@/components/ui';
+import { Card, ErrorState, Header, Row, Screen, SectionTitle, Sheet, SkeletonList, Text } from '@/components/ui';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
 import { StreakCard } from '@/components/football/Streak';
-import { CARD_STYLES, LEVELS, MAX_POINTS, SEASON_CHAMPION, TRACKS, levelInfo, rarityLabel, type CardStyle, type TrackDef } from '@/domain/achievements';
+import { CardStylePicker } from '@/features/CardStylePicker';
+import { LEVELS, MAX_POINTS, SEASON_CHAMPION, TRACKS, levelInfo, rarityLabel, type TrackDef } from '@/domain/achievements';
 import { formatDate, plural } from '@/domain/format';
-import { keys, useMyAchievements, type MyAchievement, type MyAchievements } from '@/hooks/queries';
+import { useMyAchievements, type MyAchievement, type MyAchievements } from '@/hooks/queries';
 import { useLayout } from '@/hooks/useLayout';
-import { rpc } from '@/lib/api';
-import { haptics } from '@/lib/haptics';
 import { shareText } from '@/lib/share';
 import { useTheme } from '@/theme/ThemeProvider';
-import { radius, space } from '@/theme/tokens';
+import { space } from '@/theme/tokens';
 
 const native = Platform.OS !== 'web';
 
@@ -66,7 +63,7 @@ export default function Achievements() {
           </View>
 
           <SectionTitle title="Player card" />
-          <StylePicker points={d.points} current={d.card_style} />
+          <CardStylePicker />
         </>
       )}
       {!!open && !!d && <TrackSheet t={open} players={d.players} onClose={() => setOpen(null)} />}
@@ -138,62 +135,3 @@ function TrackSheet({ t, players, onClose }: { t: TrackState; players: number; o
   );
 }
 
-/** Choose a player card style; locked ones show how many medal points they need. */
-function StylePicker({ points, current }: { points: number; current: string }) {
-  const { colors } = useTheme();
-  const qc = useQueryClient();
-  const toast = useToast();
-  const [busy, setBusy] = useState<string | null>(null);
-  const choose = async (s: CardStyle) => {
-    if (points < s.points) return toast.show(`Earn ${s.points - points} more medal points to unlock ${s.name}.`);
-    setBusy(s.id);
-    try {
-      await rpc('set_card_style', { p_style: s.id });
-      haptics.success();
-      qc.invalidateQueries({ queryKey: keys.myAchievements });
-      qc.invalidateQueries({ queryKey: ['player'] });
-      toast.success(`${s.name} card selected`);
-    } catch (e) {
-      toast.error(e);
-    } finally {
-      setBusy(null);
-    }
-  };
-  return (
-    <View style={{ gap: space.sm }}>
-      <Text variant="small" tone="muted">Medal points unlock new looks for your player card and profile. Hall of Fame needs Legend in every medal.</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm, paddingVertical: 2 }}>
-        {CARD_STYLES.map((s) => {
-          const unlocked = points >= s.points;
-          const selected = current === s.id;
-          return (
-            <Pressable key={s.id} onPress={() => choose(s)} disabled={!!busy} accessibilityRole="button"
-              accessibilityState={{ selected, disabled: !unlocked }} accessibilityLabel={`${s.name} card${unlocked ? '' : `, needs ${plural(s.points, 'point')}`}`}
-              style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.97 : 1 }] })}>
-              <View style={{ width: 118, height: 76, borderRadius: radius.md, overflow: 'hidden', borderWidth: selected ? 2 : 1,
-                borderColor: selected ? colors.primary : s.border ?? colors.border, opacity: unlocked ? 1 : 0.55 }}>
-                <Svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
-                  <Defs>
-                    <LinearGradient id={`cs-${s.id}`} x1="0" y1="0" x2="1" y2="1">
-                      <Stop offset="0" stopColor={s.from} />
-                      <Stop offset="1" stopColor={s.to} />
-                    </LinearGradient>
-                  </Defs>
-                  <Rect width="100%" height="100%" fill={`url(#cs-${s.id})`} />
-                </Svg>
-                <View style={{ flex: 1, padding: space.sm, justifyContent: 'space-between' }}>
-                  <Row style={{ justifyContent: 'space-between' }}>
-                    <Text variant="caption" color={s.accent} style={{ fontWeight: '700' }}>{s.name}</Text>
-                    {selected ? <Ionicons name="checkmark-circle" size={16} color={colors.primary} /> : !unlocked ? <Ionicons name="lock-closed" size={13} color={s.muted} /> : null}
-                  </Row>
-                  <Text variant="caption" color={s.muted}>{unlocked ? (selected ? 'In use' : 'Tap to use') : plural(s.points, 'point')}</Text>
-                </View>
-              </View>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-      {busy ? <Button title="Saving…" variant="ghost" size="sm" loading /> : null}
-    </View>
-  );
-}
