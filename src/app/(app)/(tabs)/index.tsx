@@ -6,9 +6,7 @@ import { Avatar, Badge, Button, Card, EmptyState, ErrorState, IconButton, Row, S
 import { TaskCard } from '@/components/football/TaskCard';
 import { FeedItemCard } from '@/components/football/FeedItem';
 import { useFeed, useFriends, useHome, useMyAchievements } from '@/hooks/queries';
-import { AchievementBadge } from '@/components/football/AchievementBadge';
 import { StreakFlame } from '@/components/football/Streak';
-import { levelInfo, parseCode } from '@/domain/achievements';
 import { GetStarted } from '@/features/GetStarted';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -131,29 +129,12 @@ export default function Home() {
               </Row>
               <NearlyThere data={mine.data} />
             </View>
-            {d.groups.length > 0 && (
-              <View style={{ flex: 1, gap: space.sm }}>
-                <SectionTitle title="Group standings" action="Leagues" onAction={() => router.navigate('/leagues')} />
-                <Card padded={false}>
-                  {d.groups.slice(0, 3).map((g: any, i: number) => (
-                    <Row key={g.id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
-                      <Avatar uri={g.logo_url} name={g.name} size={32} />
-                      <View style={{ flex: 1 }}>
-                        <Text variant="bodyStrong" numberOfLines={1} onPress={() => router.push(`/group/${g.id}`)}>{g.name}</Text>
-                        <Text variant="caption" tone="muted" numberOfLines={1}>{g.leader ? `Top rated: ${g.leader.display_name} (${rating(g.leader.value)})` : 'No ranked players yet'}</Text>
-                      </View>
-                      <Text variant="statSmall" tone={g.my_rank === 1 ? 'gold' : 'default'}>{g.my_rank ? `#${g.my_rank}` : '–'}</Text>
-                    </Row>
-                  ))}
-                </Card>
-              </View>
-            )}
           </View>
 
           {d.recent_results.length > 0 && (
             <View style={{ gap: space.sm }}>
               <SectionTitle title="Recent results" action="All matches" onAction={() => router.navigate('/matches')} />
-              {d.recent_results.map((r: any) => (
+              {d.recent_results.slice(0, 2).map((r: any) => (
                 <Card key={r.session_id} onPress={() => router.push(`/session/${r.session_id}`)}>
                   <Row gap={space.md}>
                     <View style={{ flex: 1 }}>
@@ -168,28 +149,10 @@ export default function Home() {
             </View>
           )}
 
-          {d.achievements.length > 0 && (
-            <View style={{ gap: space.sm }}>
-              <SectionTitle title="Recent achievements" action="All" onAction={() => router.push('/achievements')} />
-              <Row gap={space.sm} wrap>
-                {d.achievements.map((a: any) => (
-                  <Card key={a.code} style={{ flexGrow: 1, minWidth: 140 }} onPress={() => router.push('/achievements')} accessibilityLabel={a.name}>
-                    <Row gap={space.sm}>
-                      <AchievementBadge icon={a.icon} level={parseCode(a.code).level} size={36} animate={false} />
-                      <View style={{ flexShrink: 1 }}>
-                        <Text variant="smallStrong" numberOfLines={1}>{a.name}</Text>
-                        {a.code !== 'season_champion' && <Text variant="caption" style={{ color: levelInfo(parseCode(a.code).level).colour }}>{levelInfo(parseCode(a.code).level).label}</Text>}
-                      </View>
-                    </Row>
-                  </Card>
-                ))}
-              </Row>
-            </View>
-          )}
 
           <View style={{ gap: space.sm }}>
             <SectionTitle title="Activity" />
-            {feed.data?.pages[0]?.slice(0, 5).map((item) => <FeedItemCard key={item.id} item={item} />)}
+            {feed.data?.pages[0]?.slice(0, 3).map((item) => <FeedItemCard key={item.id} item={item} />)}
             {!!feed.data && feed.data.pages[0].length === 0 && <Text tone="muted" variant="small">Activity from your friends and groups will appear here.</Text>}
           </View>
         </>

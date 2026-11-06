@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, View, type HostInstance } from 'react-native';
+import { Platform, Pressable, View, type HostInstance } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Avatar, Badge, Button, Card, Chip, EmptyState, ErrorState, Input, Row, SectionTitle, Sheet, Skeleton, StatGrid, StatTile, Text, useToast } from '@/components/ui';
+import { Avatar, Badge, Button, Card, EmptyState, ErrorState, IconButton, Input, Row, SectionTitle, Sheet, Skeleton, StatGrid, StatTile, SwipeSelect, Text, useToast } from '@/components/ui';
 import { PlayerCard } from '@/components/football/PlayerCard';
 import { FormPills, RatingChart } from '@/components/football/FormChart';
 import { usePlayerProfile, keys } from '@/hooks/queries';
@@ -63,9 +63,9 @@ export function PlayerProfileView({ userId }: { userId: string }) {
       <Row gap={space.sm} wrap>
         {d.is_self ? (
           <>
-            <Button title="Share card" icon="share-social-outline" size="sm" onPress={share} />
-            <Button title="Edit profile" icon="create-outline" size="sm" variant="secondary" onPress={() => router.push('/settings/profile')} />
-            <Button title="Wrapped" icon="sparkles-outline" size="sm" variant="secondary" onPress={() => router.push('/wrapped')} />
+            <Button title="Edit profile" icon="create-outline" size="sm" variant="secondary" style={{ flex: 1 }} onPress={() => router.push('/settings/profile')} />
+            <IconButton icon="share-social-outline" label="Share card" onPress={share} />
+            <IconButton icon="sparkles-outline" label="Wrapped" onPress={() => router.push('/wrapped')} />
           </>
         ) : (
           <>
@@ -85,20 +85,19 @@ export function PlayerProfileView({ userId }: { userId: string }) {
               }} />
             )}
             {!!d.can_view_stats && <Button title="Compare" icon="git-compare-outline" size="sm" variant="secondary" onPress={() => router.push({ pathname: '/compare', params: groupId ? { b: userId, groupId } : { b: userId } })} />}
-            <Button title="Share card" icon="share-social-outline" size="sm" variant="ghost" onPress={share} />
+            <IconButton icon="share-social-outline" label="Share card" onPress={share} />
           </>
         )}
       </Row>
 
       {!!p.bio && <Text tone="muted">{p.bio}</Text>}
       <Text variant="caption" tone="faint">{POSITION_LABEL[p.position]} · Joined {formatDate(p.created_at)} · {plural(d.friends_count, 'friend')}</Text>
-      <ReliabilityChip r={reliability.data?.[userId]} />
+      {/* 90%+ is already on the card; below that it shows here so hosts can see it */}
+      {(reliability.data?.[userId]?.pct ?? 100) < 90 && <ReliabilityChip r={reliability.data?.[userId]} />}
 
       {d.groups.length > 0 && d.can_view_stats && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-          <Chip label="Career" selected={!groupId} onPress={() => setGroupId(null)} />
-          {d.groups.map((g: any) => <Chip key={g.id} label={g.name} selected={groupId === g.id} onPress={() => setGroupId(g.id)} />)}
-        </ScrollView>
+        <SwipeSelect label="Stats" value={groupId} onChange={setGroupId}
+          options={[{ value: null as string | null, label: 'Career', icon: 'person-outline' as const }, ...d.groups.map((g: any) => ({ value: g.id as string | null, label: g.name, icon: 'people-outline' as const }))]} />
       )}
 
       {!d.can_view_stats ? (
@@ -108,29 +107,27 @@ export function PlayerProfileView({ userId }: { userId: string }) {
       ) : (
         <>
           <SectionTitle title={groupId ? 'Group record' : 'Career'} />
+          {/* the card above shows games, wins, goals, assists and MOTM; these add the detail */}
           <StatGrid>
-            <StatTile label="Avg rating" value={rating(s.rating)} sub={`${s.rated_sessions} rated`} accent />
-            <StatTile label="Sessions" value={s.sessions} sub={plural(s.fixtures, 'game')} />
-            <StatTile label="Win %" value={`${Number(s.win_pct).toFixed(0)}%`} sub={`${s.wins}W ${s.draws}D ${s.losses}L`} />
-            <StatTile label="Goals" value={s.goals} sub={`${(s.goals / Math.max(1, s.sessions)).toFixed(1)} per session`} />
-            <StatTile label="Assists" value={s.assists} sub={`${(s.assists / Math.max(1, s.sessions)).toFixed(1)} per session`} />
-            <StatTile label="G/A" value={s.goals + s.assists} sub={`${((s.goals + s.assists) / Math.max(1, s.sessions)).toFixed(1)} per session`} />
-            <StatTile label="MOTM" value={s.motm} />
+            <StatTile label="Record" value={`${s.wins}W`} sub={`${s.draws}D · ${s.losses}L`} />
+            <StatTile label="G/A a game" value={((s.goals + s.assists) / Math.max(1, s.sessions)).toFixed(1)} sub={`${(s.goals / Math.max(1, s.sessions)).toFixed(1)} G · ${(s.assists / Math.max(1, s.sessions)).toFixed(1)} A`} />
             <StatTile label="Win streak" value={s.current_win_streak} sub={`Best ${s.best_win_streak}`} />
             <StatTile label="Unbeaten" value={s.current_unbeaten} sub={`Best ${s.best_unbeaten}`} />
           </StatGrid>
 
-          <SectionTitle title="Form · last 5" />
-          <FormPills ratings={[...(d.form ?? []).map((f: any) => Number(f.rating)), ...Array(Math.max(0, 5 - (d.form?.length ?? 0))).fill(null)]} />
-
-          <SectionTitle title="Rating history" />
-          <Card><RatingChart points={(d.rating_history ?? []).map((r: any) => ({ rating: Number(r.rating), played_at: r.played_at }))} /></Card>
+          <SectionTitle title="Form" />
+          <Card>
+            <View style={{ gap: space.md }}>
+              <FormPills ratings={[...(d.form ?? []).map((f: any) => Number(f.rating)), ...Array(Math.max(0, 5 - (d.form?.length ?? 0))).fill(null)]} />
+              <RatingChart points={(d.rating_history ?? []).map((r: any) => ({ rating: Number(r.rating), played_at: r.played_at }))} />
+            </View>
+          </Card>
 
           {d.recent_results?.length > 0 && (
             <>
               <SectionTitle title="Recent sessions" />
               <Card padded={false}>
-                {d.recent_results.map((r: any, i: number) => (
+                {d.recent_results.slice(0, 3).map((r: any, i: number) => (
                   <Row key={r.session_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
                     <View style={{ flex: 1 }}>
                       <Text variant="bodyStrong" numberOfLines={1} onPress={() => router.push(`/session/${r.session_id}`)}>{r.name}</Text>
@@ -144,20 +141,6 @@ export function PlayerProfileView({ userId }: { userId: string }) {
             </>
           )}
 
-          {d.teammates?.length > 0 && (
-            <>
-              <SectionTitle title="Most frequent teammates" />
-              <Card padded={false}>
-                {d.teammates.map((t: any, i: number) => (
-                  <Row key={t.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
-                    <Avatar uri={t.avatar_url} name={t.display_name} size={32} />
-                    <Text variant="bodyStrong" style={{ flex: 1 }} onPress={() => router.push(`/player/${t.user_id}`)}>{t.display_name}</Text>
-                    <Text variant="caption" tone="muted">{plural(t.games, 'game')} · {Math.round((100 * t.wins) / Math.max(1, t.games))}% won</Text>
-                  </Row>
-                ))}
-              </Card>
-            </>
-          )}
         </>
       )}
 

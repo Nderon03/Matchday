@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { Avatar, Badge, Card, Chip, EmptyState, ErrorState, Header, Input, Row, Screen, SkeletonList, Text } from '@/components/ui';
+import { Avatar, Badge, Card, EmptyState, ErrorState, Header, Input, Row, Screen, SkeletonList, SwipeSelect, Text } from '@/components/ui';
 import { rpc } from '@/lib/api';
 import { formatKickoff } from '@/domain/format';
 import { usePriceLabel } from '@/hooks/useFees';
@@ -74,18 +74,15 @@ export default function FindGame() {
         hint={near.length < 2 ? 'Leave empty to see public games everywhere.'
           : place.isLoading ? 'Finding that place…'
           : center ? `Showing games within ${radius} mi of ${center.label}` : 'We couldn’t find that place. Try a postcode like NW7 2EU.'} />
-      {!!center && (
-        <Row gap={space.sm} wrap>
-          {RADII.map((r) => <Chip key={r} label={`${r} mi`} selected={radius === r} onPress={() => setRadius(r)} />)}
-        </Row>
-      )}
       <Input value={query} onChangeText={setQuery} placeholder="Venue or game name (optional)" icon="search" autoCorrect={false} returnKeyType="search" />
-      <Row gap={space.sm} wrap>
-        {WHEN.map(([v, label]) => <Chip key={v} label={label} selected={when === v} onPress={() => setWhen(v)} />)}
+      <Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
+        <SwipeSelect compact label="When" value={when} onChange={setWhen} options={WHEN.map(([v, label]) => ({ value: v, label }))} />
+        <SwipeSelect compact label="Size" value={format} onChange={setFormat} options={FORMATS.map(([v, label]) => ({ value: v, label }))} />
       </Row>
-      <Row gap={space.sm} wrap>
-        {FORMATS.map(([v, label]) => <Chip key={label} label={label} selected={format === v} onPress={() => setFormat(v)} />)}
-        <Chip label="Free only" selected={freeOnly} onPress={() => setFreeOnly((f) => !f)} />
+      <Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
+        {!!center && <SwipeSelect compact label="Within" value={radius} onChange={setRadius} options={RADII.map((r) => ({ value: r, label: `${r} mi` }))} />}
+        <SwipeSelect compact label="Price" value={freeOnly ? 'free' : 'any'} onChange={(v) => setFreeOnly(v === 'free')}
+          options={[{ value: 'any', label: 'Any price' }, { value: 'free', label: 'Free only' }]} />
       </Row>
 
       {!!games.isLoading && <SkeletonList rows={4} />}

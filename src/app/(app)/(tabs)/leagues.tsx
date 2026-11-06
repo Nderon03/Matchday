@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Avatar, Badge, Button, Card, Chip, EmptyState, ErrorState, Row, Screen, Segmented, SkeletonList, Text } from '@/components/ui';
+import { Avatar, Badge, Button, Card, EmptyState, ErrorState, Row, Screen, Segmented, SkeletonList, SwipeSelect, Text } from '@/components/ui';
 import { Leaderboard } from '@/components/football/Leaderboard';
 import { useMyGroups } from '@/hooks/queries';
 import { GroupInvites } from '@/features/GroupInvites';
@@ -52,11 +52,11 @@ export default function Leagues() {
 
       {tab === 'tables' && (
         <View style={{ gap: space.md }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-            <Chip label="Friends" selected={scope === 'friends'} onPress={() => setScope('friends')} />
-            <Chip label="Global" selected={scope === 'global'} onPress={() => setScope('global')} />
-            {groups.data?.map((g) => <Chip key={g.id} label={g.name} selected={scope === g.id} onPress={() => setScope(g.id)} />)}
-          </ScrollView>
+          <SwipeSelect label="Table" value={scope} onChange={setScope} options={[
+            { value: 'friends', label: 'Friends', icon: 'people-outline' },
+            { value: 'global', label: 'Everyone', icon: 'globe-outline' },
+            ...(groups.data ?? []).map((g) => ({ value: g.id, label: g.name, icon: 'shield-outline' as const })),
+          ]} />
           {scope === 'friends' || scope === 'global'
             ? <Leaderboard key={scope} scope={scope} />
             : <Leaderboard key={scope} scope="group" groupId={scope} />}

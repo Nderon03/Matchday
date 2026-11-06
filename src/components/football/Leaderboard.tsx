@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import { router } from 'expo-router';
-import { Avatar, Button, Card, Chip, EmptyState, ErrorState, Row, SkeletonList, Text } from '@/components/ui';
+import { Avatar, Button, Card, EmptyState, ErrorState, Row, SkeletonList, SwipeSelect, Text } from '@/components/ui';
 import { Podium } from './Podium';
 import { useLeaderboard } from '@/hooks/queries';
 import { CATEGORIES, formatValue, type LeaderboardCategory } from '@/domain/leaderboard';
@@ -30,15 +30,15 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
 
   return (
     <View style={{ gap: space.md }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-        {CATEGORIES.map((c) => <Chip key={c.key} label={c.short} selected={c.key === category} onPress={() => setCategory(c.key)} />)}
-      </ScrollView>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-        <Chip label="All time" selected={!seasonId && period === 'all'} onPress={() => { setSeasonId(null); setPeriod('all'); }} />
-        <Chip label="This month" selected={!seasonId && period === 'month'} onPress={() => { setSeasonId(null); setPeriod('month'); }} />
-        <Chip label="This year" selected={!seasonId && period === 'year'} onPress={() => { setSeasonId(null); setPeriod('year'); }} />
-        {seasons?.map((s) => <Chip key={s.id} label={s.name} selected={seasonId === s.id} onPress={() => setSeasonId(s.id)} />)}
-      </ScrollView>
+      <Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
+        <SwipeSelect compact label="Stat" value={category} onChange={setCategory} options={CATEGORIES.map((c) => ({ value: c.key, label: c.short }))} />
+        <SwipeSelect compact label="When" value={seasonId ?? period} onChange={(v) => {
+          if (v === 'all' || v === 'month' || v === 'year') { setSeasonId(null); setPeriod(v); } else setSeasonId(v);
+        }} options={[
+          { value: 'all', label: 'All time' }, { value: 'month', label: 'This month' }, { value: 'year', label: 'This year' },
+          ...(seasons ?? []).map((s2) => ({ value: s2.id, label: s2.name })),
+        ]} />
+      </Row>
       <Text variant="h3">{def.label}</Text>
       {(category === 'win_pct') && <Text variant="caption" tone="muted">Minimum {plural(minAppearances ?? 5, 'appearance')} to qualify.</Text>}
       {(category === 'rating' || category === 'form') && <Text variant="caption" tone="muted">Minimum 3 rated sessions. Every session counts equally.</Text>}
