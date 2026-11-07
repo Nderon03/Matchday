@@ -35,7 +35,7 @@ function BottomBar() {
         const active = isActive(pathname, t.href);
         if (t.name === 'create') {
           return (
-            <Pressable key={t.name} ref={tourRef('tab-create')} onPress={() => router.navigate('/create')} accessibilityRole="button" accessibilityLabel="Create" style={styles.tab}>
+            <Pressable key={t.name} ref={tourRef('tab-create')} nativeID="spot-tab-create" onPress={() => router.navigate('/create')} accessibilityRole="button" accessibilityLabel="Create" style={styles.tab}>
               <View style={[styles.create, { backgroundColor: colors.primary, shadowColor: colors.primary }]}>
                 <Ionicons name="add" size={30} color={colors.onPrimary} />
               </View>
@@ -43,7 +43,7 @@ function BottomBar() {
           );
         }
         return (
-          <Pressable key={t.name} ref={tourRef(`tab-${t.name}`)} onPress={() => router.navigate(t.href as any)} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel={t.label} style={styles.tab}>
+          <Pressable key={t.name} ref={tourRef(`tab-${t.name}`)} nativeID={`spot-tab-${t.name}`} onPress={() => router.navigate(t.href as any)} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel={t.label} style={styles.tab}>
             <Ionicons name={active ? t.active : t.icon} size={24} color={active ? colors.primary : colors.textMuted} />
             <Text variant="caption" tone={active ? 'primary' : 'muted'} style={{ fontSize: 11 }}>{t.label}</Text>
           </Pressable>
@@ -75,7 +75,7 @@ function Sidebar() {
       {TABS.map((t) => {
         const active = isActive(pathname, t.href);
         return (
-          <Pressable key={t.name} ref={tourRef(`tab-${t.name}`)} onPress={() => router.navigate(t.href as any)} accessibilityRole="menuitem" accessibilityState={{ selected: active }}
+          <Pressable key={t.name} ref={tourRef(`tab-${t.name}`)} nativeID={`spot-tab-${t.name}`} onPress={() => router.navigate(t.href as any)} accessibilityRole="menuitem" accessibilityState={{ selected: active }}
             style={({ hovered }: any) => [styles.navItem, { backgroundColor: t.name === 'create' ? colors.primary : active ? colors.primaryMuted : hovered ? colors.surfaceAlt : 'transparent' }]}>
             <Ionicons name={active ? t.active : t.icon} size={20} color={t.name === 'create' ? colors.onPrimary : active ? colors.primary : colors.textMuted} />
             <Text variant="bodyStrong" color={t.name === 'create' ? colors.onPrimary : active ? colors.primary : colors.text}>{t.name === 'create' ? 'Create session' : t.label}</Text>
@@ -84,7 +84,7 @@ function Sidebar() {
       })}
       <View style={{ height: 1, backgroundColor: colors.border, marginVertical: space.md }} />
       {extra.map((t) => (
-        <Pressable key={t.href} ref={tourRef(t.href === '/notifications' ? 'bell' : t.href === '/friends' ? 'friends' : `side-${t.href}`)} onPress={() => router.push(t.href as any)} style={({ hovered }: any) => [styles.navItem, { backgroundColor: hovered ? colors.surfaceAlt : 'transparent' }]}>
+        <Pressable key={t.href} ref={tourRef(t.href === '/notifications' ? 'bell' : t.href === '/friends' ? 'friends' : `side-${t.href}`)} nativeID={`spot-${t.href === '/notifications' ? 'bell' : t.href === '/friends' ? 'friends' : `side-${t.href}`}`} onPress={() => router.push(t.href as any)} style={({ hovered }: any) => [styles.navItem, { backgroundColor: hovered ? colors.surfaceAlt : 'transparent' }]}>
           <Ionicons name={t.icon} size={20} color={colors.textMuted} />
           <Text variant="body" style={{ flex: 1 }}>{t.label}</Text>
           {!!t.badge && <View style={{ backgroundColor: colors.danger, borderRadius: 10, paddingHorizontal: 6 }}><Text variant="caption" color="#fff">{t.badge}</Text></View>}

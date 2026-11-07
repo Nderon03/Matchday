@@ -175,9 +175,9 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
 
   return (
     <View style={{ gap: space.xl }}>
-      <Input label="Session name" value={name} onChangeText={setName} placeholder="e.g. Wednesday Football" maxLength={60} error={errors.name} />
+      <Spot id="form.name"><Input label="Session name" value={name} onChangeText={setName} placeholder="e.g. Wednesday Football" maxLength={60} error={errors.name} /></Spot>
 
-      {!!groups.data?.length && <SwipeSelect label="Group" value={groupId} onChange={selectGroup} options={groupOptions} />}
+      {!!groups.data?.length && <Spot id="form.group"><SwipeSelect label="Group" value={groupId} onChange={selectGroup} options={groupOptions} /></Spot>}
 
       <Spot id="form.when" style={{ gap: space.xs }}>
         <Text variant="smallStrong" tone="muted">Kick-off</Text>
@@ -209,16 +209,16 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
       </Row></Spot>
       <Text variant="caption" tone="faint" style={{ marginTop: -space.md }}>Up to {maxAttendance} players; anyone else joins the waiting list.</Text>
 
-      <View style={{ gap: space.md }}>
+      <Spot id="form.venue" style={{ gap: space.md }}>
         <Input label="Venue" value={venue} onChangeText={setVenue} placeholder="e.g. Powerleague Mill Hill, Pitch 3" icon="business-outline" />
         <Input label="Postcode" value={postcode} autoCapitalize="characters" autoCorrect={false} maxLength={9} icon="navigate-outline" placeholder="e.g. NW7 2EU"
           onChangeText={(v) => { setPostcode(v); if (normalisePostcode(v)) checkPostcode(v); else { setPlace(null); setPlaceState('idle'); } }}
           onBlur={() => checkPostcode(postcode)}
           error={errors.postcode ?? (placeState === 'unknown' ? 'We couldn’t find that postcode. Check it and try again.' : null)}
           hint={placeState === 'checking' ? 'Checking…' : placeState === 'ok' && place ? `✓ ${place.postcode}${place.area ? ` · ${place.area}` : ''}` : 'For directions, the forecast and nearby search.'} />
-      </View>
+      </Spot>
 
-      <View style={{ gap: space.sm }}>
+      <Spot id="form.payment" style={{ gap: space.sm }}>
         <SwipeSelect label="Payment" value={paymentMode} onChange={setPaymentMode} options={[
           { value: 'free', label: 'Free', icon: 'happy-outline', detail: 'No payment in the app.' },
           { value: 'upfront', label: 'Pay upfront', icon: 'card-outline', detail: 'Players’ cards are held when they join (from 6 days before) and only charged once you confirm the game happened.' },
@@ -234,14 +234,14 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
             )}
           </>
         )}
-      </View>
+      </Spot>
 
       <Spot id="form.join" style={{ gap: space.xs }}>
         <SwipeSelect label="Who can join" value={visibility} onChange={setVisibility} options={visibilityOptions} />
         {!!errors.visibility && <Text variant="caption" tone="danger">{errors.visibility}</Text>}
       </Spot>
 
-      <View style={{ gap: space.sm }}>
+      <Spot id="form.invite" style={{ gap: space.sm }}>
         <SectionTitle title={`Invite players${invitees.size ? ` · ${invitees.size}` : ''}`} action={people.length ? (invitees.size === people.length ? 'Clear' : 'Select all') : undefined}
           onAction={() => setInvitees(invitees.size === people.length ? new Set() : new Set(people.map((p) => p.id)))} />
         <PeoplePicker
@@ -250,8 +250,9 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
           disabledIds={editing ? new Set(initial?.invitee_ids ?? []) : undefined}
           onToggle={(id) => setInvitees((s) => toggleIn(s, id))}
         />
-      </View>
+      </Spot>
 
+      <Spot id="form.notes">
       {notesOpen ? (
         <Input label="Notes" value={description} onChangeText={setDescription} multiline placeholder="e.g. Bring both bibs. Astro boots only." maxLength={1000} />
       ) : (
@@ -260,6 +261,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
           <Text variant="bodyStrong" tone="primary">Add notes</Text>
         </Pressable>
       )}
+      </Spot>
 
       <Text variant="caption" tone="faint">
         Players can drop out until 24 hours before kick-off; after that they tap to let you know and you take them off. Man of the Match is voted once for the whole session.

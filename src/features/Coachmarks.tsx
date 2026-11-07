@@ -117,6 +117,21 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
     return () => loop.stop();
   }, [visible, rect, appear, pulse, reduceMotion]);
 
+  // keep the spotlight on its target while the step is showing: if anything moves underneath
+  // (late loading, the keyboard, a scroll settling) it follows
+  const trackRef = steps[index]?.target;
+  useEffect(() => {
+    if (!visible || !rect || rect.centred || !trackRef) return;
+    let alive = true;
+    const id = setInterval(() => {
+      measure(trackRef).then((now) => {
+        if (!alive || !now) return;
+        setRect((cur) => (cur && !cur.centred && (Math.abs(cur.x - now.x) > 1.5 || Math.abs(cur.y - now.y) > 1.5 || Math.abs(cur.h - now.h) > 1.5) ? now : cur));
+      });
+    }, 250);
+    return () => { alive = false; clearInterval(id); };
+  }, [visible, rect, trackRef]);
+
   if (!visible || !rect) return null;
   const step = steps[index];
   const last = !steps.slice(index + 1).length;
@@ -172,7 +187,8 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
         <View style={{ position: 'absolute', left: 0, right: 0, top: hole.y + hole.h, bottom: 0, backgroundColor: dim }} />
         <View style={{ position: 'absolute', left: 0, width: Math.max(0, hole.x), top: hole.y, height: hole.h, backgroundColor: dim }} />
         <View style={{ position: 'absolute', left: hole.x + hole.w, right: 0, top: hole.y, height: hole.h, backgroundColor: dim }} />
-        <Animated.View pointerEvents="none" style={{ position: 'absolute', left: hole.x, top: hole.y, width: hole.w, height: hole.h, borderRadius: radius.md,
+        <Animated.View pointerEvents="none" nativeID={`ring-${(step.target as { id?: string } | undefined)?.id ?? 'step'}`}
+          style={{ position: 'absolute', left: hole.x, top: hole.y, width: hole.w, height: hole.h, borderRadius: radius.md,
           borderWidth: 2, borderColor: colors.primary,
           opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.5] }),
           transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) }] }} />

@@ -43,7 +43,7 @@ export default function Achievements() {
       {!!mine.error && !d && <ErrorState error={mine.error} onRetry={mine.refetch} />}
       {!!d && (
         <>
-          <StreakCard current={d.streak.current} best={d.streak.best} />
+          <Spot id="ach.streak"><StreakCard current={d.streak.current} best={d.streak.best} /></Spot>
 
           <SectionTitle title="Medals" />
           <Text variant="small" tone="muted" style={{ marginTop: -space.sm }}>

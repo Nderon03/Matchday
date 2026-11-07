@@ -14,6 +14,7 @@ export const tourRef = (id: string) => (node: HostInstance | null) => {
 };
 
 /** A ref-like handle for Coachmarks: resolves to whatever is registered under `id` right now. */
-export const tourTarget = (id: string): RefObject<HostInstance | null> => ({
+export const tourTarget = (id: string): RefObject<HostInstance | null> & { id: string } => ({
+  id,
   get current() { return nodes.get(id) ?? null; },
-}) as RefObject<HostInstance | null>;
+}) as RefObject<HostInstance | null> & { id: string };

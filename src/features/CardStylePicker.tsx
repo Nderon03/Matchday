@@ -160,10 +160,12 @@ export function CardStylePicker({ draft, onDraft, overrides, actions }: {
       ) : (
         <Text variant="caption" tone="muted" align="center">{shown.name}{shown.fx ? '' : ' · earn medals to unlock animated cards'}</Text>
       )}
-      <Text variant="caption" tone="muted">Colours</Text>
-      {row(CARD_STYLES.filter((s) => s.base))}
-      <Text variant="caption" tone="muted">Earned with medals · you have {plural(points, 'point')}</Text>
-      {row(CARD_STYLES.filter((s) => !s.base))}
+      <Spot id="ep.styles" style={{ gap: space.md }}>
+        <Text variant="caption" tone="muted">Colours</Text>
+        {row(CARD_STYLES.filter((s) => s.base))}
+        <Text variant="caption" tone="muted">Earned with medals · you have {plural(points, 'point')}</Text>
+        {row(CARD_STYLES.filter((s) => !s.base))}
+      </Spot>
       {!!mine.data && <Spot id="ep.medals"><MedalChooser items={mine.data.items} value={draft.medals} onChange={(medals) => onDraft({ ...draft, medals })} st={shown} /></Spot>}
     </View>
   );

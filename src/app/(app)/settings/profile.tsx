@@ -16,7 +16,7 @@ import { fieldErrors, profileSchema } from '@/domain/validation';
 import { POSITION_LABEL } from '@/domain/format';
 import { space } from '@/theme/tokens';
 import type { PlayerPosition } from '@/types/db';
-import { ScreenHelp } from '@/features/ScreenHelp';
+import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -95,7 +95,7 @@ export default function EditProfile() {
           onDraft={setCardDraft}
           overrides={{ display_name: displayName || profile?.display_name || '', avatar_url: avatar, position, nationality, supported_club: club }}
           actions={(
-            <View style={{ flexDirection: 'row', gap: space.sm, justifyContent: 'center' }}>
+            <Spot id="ep.photo" style={{ flexDirection: 'row', gap: space.sm, justifyContent: 'center', alignSelf: 'center' }}>
               <Button title="Change photo" size="sm" variant="secondary" icon="camera-outline" loading={uploading} onPress={async () => {
                 try {
                   setUploading(true);
@@ -105,24 +105,26 @@ export default function EditProfile() {
                 } catch (e) { toast.error(e); } finally { setUploading(false); }
               }} />
               {!!avatar && <Button title="Remove" size="sm" variant="ghost" onPress={() => setAvatar(null)} />}
-            </View>
+            </Spot>
           )}
         />
       )}
-      <Input label="Display name" value={displayName} onChangeText={setDisplayName} error={errors.display_name} maxLength={40} />
-      <Input label="Username" value={username} onChangeText={(v) => setUsername(v.replace(/\s/g, ''))} autoCapitalize="none" icon="at"
-        error={check.state === 'taken' || check.state === 'invalid' ? check.message : null} hint={check.message ?? undefined} />
-      <Input label="Bio" value={bio} onChangeText={setBio} multiline maxLength={280} error={errors.bio} placeholder="e.g. Left foot only. Always up for a game." />
-      <SwipeSelect label="Preferred position" value={position} onChange={setPosition} options={(['ANY', 'GK', 'DEF', 'MID', 'FWD'] as PlayerPosition[]).map((p) => ({ value: p, label: POSITION_LABEL[p], icon: (p === 'GK' ? 'hand-left-outline' : p === 'ANY' ? 'shuffle-outline' : 'football-outline') as 'football-outline' }))} />
+      <Spot id="ep.name"><Input label="Display name" value={displayName} onChangeText={setDisplayName} error={errors.display_name} maxLength={40} /></Spot>
+      <Spot id="ep.username"><Input label="Username" value={username} onChangeText={(v) => setUsername(v.replace(/\s/g, ''))} autoCapitalize="none" icon="at"
+        error={check.state === 'taken' || check.state === 'invalid' ? check.message : null} hint={check.message ?? undefined} /></Spot>
+      <Spot id="ep.bio"><Input label="Bio" value={bio} onChangeText={setBio} multiline maxLength={280} error={errors.bio} placeholder="e.g. Left foot only. Always up for a game." /></Spot>
+      <Spot id="ep.position"><SwipeSelect label="Preferred position" value={position} onChange={setPosition} options={(['ANY', 'GK', 'DEF', 'MID', 'FWD'] as PlayerPosition[]).map((p) => ({ value: p, label: POSITION_LABEL[p], icon: (p === 'GK' ? 'hand-left-outline' : p === 'ANY' ? 'shuffle-outline' : 'football-outline') as 'football-outline' }))} /></Spot>
+      <Spot id="ep.identity" style={{ gap: space.sm }}>
       <Text variant="smallStrong" tone="muted">On your player card (optional)</Text>
       <Card padded={false} style={{ paddingHorizontal: space.lg }}>
         <ListItem title="Nationality" subtitle={countryName(nationality) ?? 'Not shown'} left={nationality ? <Flag code={nationality} height={18} /> : undefined} onPress={() => setPicker('country')} />
         <Divider />
         <ListItem title="Club you support" subtitle={clubName(club) ?? 'Not shown'} left={club ? <ClubShield club={club} size={26} /> : undefined} onPress={() => setPicker('club')} />
       </Card>
+      </Spot>
       <CountryPicker visible={picker === 'country'} value={nationality} onClose={() => setPicker(null)} onPick={(c) => { setNationality(c); setPicker(null); }} />
       <ClubPicker visible={picker === 'club'} value={club} onClose={() => setPicker(null)} onPick={(c) => { setClub(c); setPicker(null); }} />
-      <Button title={dirty ? 'Save changes' : 'Save'} size="lg" loading={busy} disabled={uploading || check.state === 'taken' || check.state === 'invalid'} onPress={save} />
+      <Spot id="ep.save"><Button title={dirty ? 'Save changes' : 'Save'} size="lg" loading={busy} disabled={uploading || check.state === 'taken' || check.state === 'invalid'} onPress={save} /></Spot>
     </Screen>
   );
 }

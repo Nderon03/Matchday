@@ -71,11 +71,13 @@ export default function FindGame() {
   return (
     <Screen edges={['top', 'bottom']} maxWidth={720} onRefresh={games.refetch} refreshing={games.isRefetching}>
       <Header title="Find a game" subtitle="Public games you can join" right={<ScreenHelp id="find" />} />
+      <Spot id="find.where" style={{ gap: space.md }}>
       <Input label="Near" value={nearText} onChangeText={setNearText} placeholder="Postcode or area, e.g. NW7 or Mill Hill" icon="navigate-outline" autoCorrect={false} autoCapitalize="characters"
         hint={near.length < 2 ? 'Leave empty to see public games everywhere.'
           : place.isLoading ? 'Finding that place…'
           : center ? `Showing games within ${radius} mi of ${center.label}` : 'We couldn’t find that place. Try a postcode like NW7 2EU.'} />
       <Input value={query} onChangeText={setQuery} placeholder="Venue or game name (optional)" icon="search" autoCorrect={false} returnKeyType="search" />
+      </Spot>
       <Spot id="find.filters"><Row gap={space.sm} style={{ alignItems: 'flex-start' }}>
         <SwipeSelect compact label="When" value={when} onChange={setWhen} options={WHEN.map(([v, label]) => ({ value: v, label }))} />
         <SwipeSelect compact label="Size" value={format} onChange={setFormat} options={FORMATS.map(([v, label]) => ({ value: v, label }))} />

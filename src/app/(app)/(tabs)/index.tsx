@@ -77,9 +77,9 @@ export default function Home() {
           </View>
         </Row>
         <Row>
-          <View ref={tourRef('help')} collapsable={false}><HelpButton label="Help" size={40} onPress={() => setHelpOpen(true)} /></View>
-          <View ref={tourRef('friends')} collapsable={false}><IconButton icon="people-outline" label="Friends" onPress={() => router.push('/friends')} /></View>
-          <View ref={tourRef('bell')} collapsable={false}><IconButton icon="notifications-outline" label="Notifications" badge={d?.unread_notifications} onPress={() => router.push('/notifications')} /></View>
+          <View ref={tourRef('help')} nativeID="spot-help" collapsable={false}><HelpButton label="Help" size={40} onPress={() => setHelpOpen(true)} /></View>
+          <View ref={tourRef('friends')} nativeID="spot-friends" collapsable={false}><IconButton icon="people-outline" label="Friends" onPress={() => router.push('/friends')} /></View>
+          <View ref={tourRef('bell')} nativeID="spot-bell" collapsable={false}><IconButton icon="notifications-outline" label="Notifications" badge={d?.unread_notifications} onPress={() => router.push('/notifications')} /></View>
         </Row>
       </Row>
 

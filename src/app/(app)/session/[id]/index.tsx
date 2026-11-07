@@ -189,15 +189,15 @@ export default function SessionScreen() {
           <Row gap={4} style={{ alignItems: 'center' }}>
             <ScreenHelp id="session" />
             {!!d.isManager && s.host_id === userId && (
-              <IconButton icon={s.template_id ? 'star' : 'star-outline'} label={s.template_id ? 'Saved as a preset. Remove preset' : 'Save as a preset'}
-                tone={s.template_id ? 'primary' : undefined} onPress={togglePreset} />
+              <Spot id="session.preset"><IconButton icon={s.template_id ? 'star' : 'star-outline'} label={s.template_id ? 'Saved as a preset. Remove preset' : 'Save as a preset'}
+                tone={s.template_id ? 'primary' : undefined} onPress={togglePreset} /></Spot>
             )}
-            {!!d.isManager && ['scheduled', 'in_progress'].includes(s.status) && <IconButton icon="person-add-outline" label="Invite players" onPress={() => router.push(`/session/${id}/invite`)} />}
+            {!!d.isManager && ['scheduled', 'in_progress'].includes(s.status) && <Spot id="session.invite"><IconButton icon="person-add-outline" label="Invite players" onPress={() => router.push(`/session/${id}/invite`)} /></Spot>}
           </Row>
         )}
       />
 
-      <Card>
+      <Spot id="session.info"><Card>
         <View style={{ gap: space.md }}>
           <Row style={{ justifyContent: 'space-between' }}>
             <Text variant="overline" tone="primary">{s.format_size}-a-side · {s.mode === 'multi' ? plural(d.fixtures.length, 'game') : 'single match'}</Text>
@@ -238,7 +238,7 @@ export default function SessionScreen() {
           </View>
           {!!s.description && <Text tone="muted" variant="small">{s.description}</Text>}
         </View>
-      </Card>
+      </Card></Spot>
 
       {!!blocked && (
         <Card style={{ borderColor: colors.danger, backgroundColor: colors.dangerMuted }}>

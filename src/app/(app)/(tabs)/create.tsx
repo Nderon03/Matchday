@@ -77,7 +77,7 @@ export default function Create() {
       <View style={{ gap: space.md }}>
         <Spot id="create.session"><Action icon="add-circle" title="New session" body="Pick a date, format and invite your squad." onPress={() => router.push('/session/new')} primary /></Spot>
         <Spot id="create.group"><Action icon="people" title="New group" body="A squad with its own tables and seasons." onPress={() => router.push('/group/new')} /></Spot>
-        <Action icon="person-add" title="Invite friends" body="Search by username or share your QR code." onPress={() => router.push('/friends')} />
+        <Spot id="create.friends"><Action icon="person-add" title="Invite friends" body="Search by username or share your QR code." onPress={() => router.push('/friends')} /></Spot>
       </View>
       {!templates.data?.length && (
         <Text variant="caption" tone="faint">Tip: tap ☆ when creating a session (or on a game you host) to save it as a preset for next time.</Text>

@@ -77,7 +77,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
           <>
             <Spot id="profile.edit" style={{ flex: 1 }}><Button title="Edit profile" icon="create-outline" size="sm" variant="secondary" onPress={() => router.push('/settings/profile')} /></Spot>
             <Spot id="profile.share"><IconButton icon="share-social-outline" label="Share card" onPress={share} /></Spot>
-            <IconButton icon="sparkles-outline" label="Wrapped" onPress={() => router.push('/wrapped')} />
+            <Spot id="profile.wrapped"><IconButton icon="sparkles-outline" label="Wrapped" onPress={() => router.push('/wrapped')} /></Spot>
           </>
         ) : (
           <>
@@ -108,8 +108,8 @@ export function PlayerProfileView({ userId }: { userId: string }) {
       {(reliability.data?.[userId]?.pct ?? 100) < 90 && <ReliabilityChip r={reliability.data?.[userId]} />}
 
       {d.groups.length > 0 && d.can_view_stats && (
-        <SwipeSelect label="Stats" value={groupId} onChange={setGroupId}
-          options={[{ value: null as string | null, label: 'Career', icon: 'person-outline' as const }, ...d.groups.map((g: any) => ({ value: g.id as string | null, label: g.name, icon: 'people-outline' as const }))]} />
+        <Spot id={d.is_self ? 'profile.stats' : 'player.stats'}><SwipeSelect label="Stats" value={groupId} onChange={setGroupId}
+          options={[{ value: null as string | null, label: 'Career', icon: 'person-outline' as const }, ...d.groups.map((g: any) => ({ value: g.id as string | null, label: g.name, icon: 'people-outline' as const }))]} /></Spot>
       )}
 
       {!d.can_view_stats ? (
@@ -127,7 +127,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
             <StatTile label="Unbeaten" value={s.current_unbeaten} sub={`Best ${s.best_unbeaten}`} />
           </StatGrid>
 
-          <SectionTitle title="Form" />
+          <Spot id={d.is_self ? 'profile.form' : 'player.form'}><SectionTitle title="Form" /></Spot>
           <Card>
             <View style={{ gap: space.md }}>
               <FormPills ratings={[...(d.form ?? []).map((f: any) => Number(f.rating)), ...Array(Math.max(0, 5 - (d.form?.length ?? 0))).fill(null)]} />
@@ -158,7 +158,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
 
       {!!d.can_view_stats && (
         <>
-          <SectionTitle title={`Medals · ${points} pts`} action={d.is_self ? 'See all' : undefined} onAction={d.is_self ? () => router.push('/achievements') : undefined} />
+          <Spot id={d.is_self ? 'profile.medals' : 'player.medals'}><SectionTitle title={`Medals · ${points} pts`} action={d.is_self ? 'See all' : undefined} onAction={d.is_self ? () => router.push('/achievements') : undefined} /></Spot>
           <Card>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: space.md }}>
               {TRACKS.map((t) => {

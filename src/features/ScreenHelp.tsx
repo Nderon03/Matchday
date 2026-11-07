@@ -15,7 +15,8 @@ export const tourKey = (id: string, uid: string) => `matchday.tour.${id}.${uid}`
 
 /** Marks something on screen that a tour can point at: <Spot id="matches.find">…</Spot> */
 export function Spot({ id, ...props }: ViewProps & { id: string }) {
-  return <View ref={tourRef(id)} collapsable={false} {...props} />;
+  // nativeID: lets the automated checks confirm the tour lands exactly on this (web only)
+  return <View ref={tourRef(id)} collapsable={false} nativeID={`spot-${id}`} {...props} />;
 }
 
 /** The little help button: bobs with a sparkle while this screen has a tip you haven't seen. */
@@ -76,7 +77,7 @@ export function ScreenHelp({ id, ready = true }: { id: TourId; ready?: boolean }
   const done = () => { setOpen(false); seen.markDone(); };
   return (
     <>
-      <View ref={tourRef(`help.${id}`)} collapsable={false}>
+      <View ref={tourRef(`help.${id}`)} nativeID={`spot-help.${id}`} collapsable={false}>
         <HelpButton fresh={seen.due} onPress={() => setOpen(true)} label={`How ${tour.name} works`} />
       </View>
       <Coachmarks steps={tour.steps} visible={open || auto} onDone={done} finishLabel="Got it" />

@@ -79,7 +79,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
   return (
     <Screen edges={['top', 'bottom']} maxWidth={680}>
       <Header title="Group settings" subtitle={g.name} right={<ScreenHelp id="group-settings" />} />
-      <Row gap={space.md} style={{ alignItems: 'flex-start' }}>
+      <Spot id="gs.identity"><Row gap={space.md} style={{ alignItems: 'flex-start' }}>
         <Pressable onPress={() => upload('logo_url')} accessibilityRole="button" accessibilityLabel="Change logo">
           <Avatar uri={g.logo_url} name={g.name} size={64} />
           <View style={{ position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
@@ -91,10 +91,10 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
           <Input label="Name" value={form.name} onChangeText={(v) => setForm({ ...form, name: v })} />
           <Text variant="caption" tone="primary" accessibilityRole="button" onPress={() => upload('cover_url')}>{busy === 'cover_url' ? 'Uploading…' : 'Change cover photo'}</Text>
         </View>
-      </Row>
-      <Input label="About" value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} multiline maxLength={2000}
-        placeholder="Who you are, where you play and any house rules (e.g. pay before kick-off)" />
-      <GroupAccessPicker value={accessOf(form)} onChange={(a) => setForm({ ...form, ...accessToSettings(a) })} />
+      </Row></Spot>
+      <Spot id="gs.about"><Input label="About" value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} multiline maxLength={2000}
+        placeholder="Who you are, where you play and any house rules (e.g. pay before kick-off)" /></Spot>
+      <Spot id="gs.access"><GroupAccessPicker value={accessOf(form)} onChange={(a) => setForm({ ...form, ...accessToSettings(a) })} /></Spot>
       {!!cfg && (
         <>
           <SectionTitle title="Game rules" />
@@ -137,7 +137,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
           </Card></Spot>
         </>
       )}
-      <Button title="Save changes" size="lg" loading={busy === 'save'} onPress={save} />
+      <Spot id="gs.save"><Button title="Save changes" size="lg" loading={busy === 'save'} onPress={save} /></Spot>
 
       <SectionTitle title={`Members · ${members.length}`} />
       <Spot id="gs.members"><Card padded={false}>
@@ -225,7 +225,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
         }
       }} />}
       {!!isOwner && (
-        <Button title="Delete group" variant="danger" loading={busy === 'delete'} onPress={async () => {
+        <Spot id="gs.delete"><Button title="Delete group" variant="danger" loading={busy === 'delete'} onPress={async () => {
           const ok = await confirm({
             title: `Delete ${g.name}?`,
             message: `This removes the group, its tables, seasons and upcoming games for all ${members.length} members. It can’t be undone. Players keep their career stats.`,
@@ -238,7 +238,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
             toast.show('Group deleted. Players keep their career statistics.');
             router.replace('/leagues');
           });
-        }} />
+        }} /></Spot>
       )}
     </Screen>
   );

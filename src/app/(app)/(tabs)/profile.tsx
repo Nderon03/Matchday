@@ -17,7 +17,7 @@ export default function ProfileTab() {
         <Row gap={4} style={{ alignItems: 'center' }}>
           <ScreenHelp id="profile" />
           <Spot id="profile.payments"><IconButton icon="card-outline" label="Payments" onPress={() => router.push('/payments')} /></Spot>
-          <IconButton icon="settings-outline" label="Settings" onPress={() => router.push('/settings')} />
+          <Spot id="profile.settings"><IconButton icon="settings-outline" label="Settings" onPress={() => router.push('/settings')} /></Spot>
         </Row>
       </Row>
       {!!userId && <PlayerProfileView userId={userId} />}

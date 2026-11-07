@@ -67,17 +67,17 @@ export default function Settings() {
     <Screen edges={['top', 'bottom']} maxWidth={640}>
       <Header title="Settings" subtitle={session?.user.email} right={<ScreenHelp id="settings" />} />
       <Card padded={false} style={{ paddingHorizontal: space.lg }}>
-        <ListItem title="Edit profile" subtitle="Photo, name, username, position, bio" left={icon('person-circle-outline')} onPress={() => router.push('/settings/profile')} />
+        <Spot id="settings.profile"><ListItem title="Edit profile" subtitle="Photo, name, username, position, bio" left={icon('person-circle-outline')} onPress={() => router.push('/settings/profile')} /></Spot>
         <Divider />
         <Spot id="settings.notifications"><ListItem title="Notifications" subtitle="Push, email and what you hear about" left={icon('notifications-outline')} onPress={() => router.push('/settings/notifications')} /></Spot>
         <Divider />
         <Spot id="settings.payouts"><ListItem title="Payouts" subtitle="Receive session fees with Stripe" left={icon('wallet-outline')} onPress={() => router.push('/settings/payouts')} /></Spot>
         <Divider />
-        <ListItem title="Payment history" left={icon('receipt-outline')} onPress={() => router.push('/payments')} />
+        <Spot id="settings.history"><ListItem title="Payment history" left={icon('receipt-outline')} onPress={() => router.push('/payments')} /></Spot>
         <Divider />
         <Spot id="settings.calendar"><ListItem title="Sync with my calendar" subtitle="All your games in Google or Apple Calendar" left={icon('calendar-outline')} onPress={() => setCalendarOpen(true)} /></Spot>
         <Divider />
-        <ListItem title="Blocked players" left={icon('ban-outline')} onPress={() => router.push('/settings/blocked')} />
+        <Spot id="settings.blocked"><ListItem title="Blocked players" left={icon('ban-outline')} onPress={() => router.push('/settings/blocked')} /></Spot>
       </Card>
 
       <SectionTitle title="Privacy" />
@@ -105,7 +105,7 @@ export default function Settings() {
 
       <SectionTitle title="About" />
       <Card padded={false}>
-        <ListItem title="Replay the app tour" subtitle="A 30-second look around" left={icon('play-circle-outline')} onPress={() => router.navigate('/?tour=1')} />
+        <Spot id="settings.tour"><ListItem title="Replay the app tour" subtitle="A 30-second look around" left={icon('play-circle-outline')} onPress={() => router.navigate('/?tour=1')} /></Spot>
         <Divider />
         <Spot id="settings.tips" style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm }}>
           {icon('sparkles-outline')}
@@ -116,7 +116,7 @@ export default function Settings() {
           <Switch value={tipsOn} onValueChange={setTips} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Tips on new screens" />
         </Spot>
         <Divider />
-        <ListItem title="Show all tips again" left={icon('refresh-outline')} onPress={resetTips} />
+        <Spot id="settings.resettips"><ListItem title="Show all tips again" left={icon('refresh-outline')} onPress={resetTips} /></Spot>
         <Divider />
         <Spot id="settings.faq"><ListItem title="Help & FAQ" subtitle="Payments, waiting lists, medals, hosting" left={icon('help-circle-outline')} onPress={() => router.push('/help')} /></Spot>
         <Divider />
@@ -128,8 +128,8 @@ export default function Settings() {
       </Card>
 
       <SectionTitle title="Account" />
-      <Button title="Sign out" variant="secondary" icon="log-out-outline" onPress={signOut} />
-      <Button title="Delete account" variant="danger" icon="trash-outline" onPress={() => setDeleteOpen(true)} />
+      <Spot id="settings.signout"><Button title="Sign out" variant="secondary" icon="log-out-outline" onPress={signOut} /></Spot>
+      <Spot id="settings.delete"><Button title="Delete account" variant="danger" icon="trash-outline" onPress={() => setDeleteOpen(true)} /></Spot>
       <Text variant="caption" tone="faint" align="center" onPress={() => {
         // hidden check: tap 5 times to send a test error to crash reporting
         const n = taps + 1;

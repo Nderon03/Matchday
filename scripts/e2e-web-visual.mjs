@@ -678,10 +678,69 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   await page.getByRole('button', { name: /^(Show me|Next)$/ }).last().click();
   await page.waitForTimeout(600);
   await page.screenshot({ path: join(OUT, 'tips-session-new.png') });
-  if (!/colon goes in for you/.test(await page.locator('body').innerText())) failures.push('screen tips: new session kick-off step missing');
+  if (!/Something your squad will recognise/.test(await page.locator('body').innerText())) failures.push('screen tips: new session first step missing');
   if (errors.length) failures.push(`screen tips: runtime errors:\n  ${[...new Set(errors)].join('\n  ')}`);
   await page.close();
   table.notifications = saved;
+}
+
+// Every screen's tour, step by step at Galaxy S8 size: the spotlight must sit exactly on the
+// thing the step describes (no drifting onto the wrong field), and the bubble must be on screen.
+{
+  rpcs.get_match_reveals = [];
+  const saved = table.notifications;
+  table.notifications = [];
+  table.friendships = people.slice(1, 6).map((p) => ({ user_a: ME, user_b: p.id, a: people[0], b: p }));
+  const TOUR_PAGES = [
+    ['matches', '/matches'], ['leagues', '/leagues'], ['create', '/create'], ['profile', '/profile'], ['session', `/session/${SID}`],
+    ['session-new', '/session/new'], ['friends', '/friends'], ['achievements', '/achievements'], ['edit-profile', '/settings/profile'],
+    ['compare', '/compare'], ['find', '/session/find'], ['lineup', `/session/${SID}/lineup`], ['group-settings', `/group/${GID}/settings`],
+    ['settings', '/settings'], ['vote', `/session/${SID}/vote`], ['notifications', '/notifications'], ['payments', '/payments'],
+  ];
+  const { page, errors } = await openPage({ width: 360, height: 740 }, { tips: true });
+  const report = [];
+  for (const [tour, path] of TOUR_PAGES) {
+    await page.goto(base + path, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1800);
+    const checked = [];
+    for (let i = 0; i < 20; i++) {
+      const state = await page.evaluate(() => {
+        const ring = document.querySelector('[id^="ring-"]');
+        const btn = [...document.querySelectorAll('[role="button"]')].map((b) => b.textContent?.trim()).filter((t) => /^(Show me|Next|Got it)$/.test(t ?? ''));
+        if (!ring) return { ring: null, btn };
+        const id = ring.id.slice(5);
+        const r = ring.getBoundingClientRect();
+        const spot = document.getElementById(`spot-${id}`);
+        const t = spot?.getBoundingClientRect();
+        return { ring: id, btn, r: { x: r.left, y: r.top, w: r.width, h: r.height }, t: t ? { x: t.left, y: t.top, w: t.width, h: t.height } : null, vh: innerHeight };
+      });
+      if (state.ring && state.ring !== 'step') {
+        checked.push(state.ring);
+        if (!state.t) failures.push(`tour ${tour}: step ${state.ring} has no target on screen`);
+        // the ring is the target plus 6px padding (it pulses, so allow a little)
+        // compare centres (the ring pulses in size); tall targets are lit from the top (40% of the screen)
+        else if (Math.abs((state.r.x + state.r.w / 2) - (state.t.x + state.t.w / 2)) > 3
+          || Math.abs((state.r.y + state.r.h / 2) - (state.t.y - 6 + (Math.min(state.t.h, state.vh * 0.4) + 12) / 2)) > 3) {
+          failures.push(`tour ${tour}: spotlight off target on ${state.ring} (ring y=${Math.round(state.r.y)}, target y=${Math.round(state.t.y)})`);
+          await page.screenshot({ path: join(OUT, `tour-off-${tour}-${state.ring}.png`) });
+        }
+        if (state.r.y > state.vh || state.r.y + Math.min(state.r.h, state.vh * 0.4) < 0) failures.push(`tour ${tour}: ${state.ring} spotlight off screen`);
+      }
+      const nextBtn = page.getByRole('button', { name: /^(Show me|Next|Got it)$/ });
+      if (!(await nextBtn.count())) { if (i > 0 && !state.ring) break; await page.waitForTimeout(800); continue; }
+      const label = (await nextBtn.last().getAttribute('aria-label')) ?? (await nextBtn.last().innerText());
+      await page.getByRole('button', { name: /^(Show me|Next|Got it)$/ }).last().click();
+      await page.waitForTimeout(1500);
+      if (label === 'Got it') break;
+    }
+    report.push(`${tour}: ${checked.join(', ')}`);
+    if (!checked.length && !['vote', 'notifications', 'payments'].includes(tour)) failures.push(`tour ${tour}: didn't play`);
+  }
+  await (await import('node:fs/promises')).writeFile(join(OUT, 'tours.txt'), report.join('\n'));
+  if (errors.length) failures.push(`tours: runtime errors:\n  ${[...new Set(errors)].join('\n  ')}`);
+  await page.close();
+  table.notifications = saved;
+  table.friendships = [];
 }
 
 // Fit pass: every screen at small phone → desktop widths, dark and light. Flags anything that

@@ -30,7 +30,12 @@ export function Screen({
   const scrollRef = useRef<ScrollViewInstance>(null);
   const offset = useRef(0);
   const [scroller] = useState<ScreenScroll>(() => ({
-    scrollBy: (dy: number) => scrollRef.current?.scrollTo({ y: Math.max(0, offset.current + dy), animated: true }),
+    // jump (no animation) so whatever measures straight after sees the final position
+    scrollBy: (dy: number) => {
+      const y = Math.max(0, offset.current + dy);
+      offset.current = y;
+      scrollRef.current?.scrollTo({ y, animated: false });
+    },
   }));
   return (
     <SafeAreaView edges={isDesktop ? [] : edges} style={[styles.flex, { backgroundColor: colors.bg }]}>
