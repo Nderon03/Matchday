@@ -27,6 +27,23 @@ const needsScroll = (r: Rect, sh: number) => {
   return !visible || !room;
 };
 
+const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
+/**
+ * Measure once the target has stopped moving (still scrolling, or the screen still loading and
+ * shifting things down), so the spotlight never lands on the wrong place.
+ */
+async function measureSettled(ref: RefObject<HostInstance | null>) {
+  let last = await measure(ref);
+  for (let i = 0; i < 12; i++) {
+    await wait(110);
+    const now = await measure(ref);
+    if (!now) return null;
+    if (last && Math.abs(now.x - last.x) < 1 && Math.abs(now.y - last.y) < 1 && Math.abs(now.h - last.h) < 1) return now;
+    last = now;
+  }
+  return last;
+}
+
 const measure = (ref: RefObject<HostInstance | null>) => new Promise<Rect | null>((resolve) => {
   const node = ref.current;
   if (!node) return resolve(null);
@@ -67,12 +84,12 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
     for (let i = from; i < list.length; i++) {
       // no target: a centred card (a welcome or a closing note)
       const t = list[i].target;
-      let r = t ? await measure(t) : { x: 0, y: 0, w: 0, h: 0, centred: true };
+      let r = t ? await measureSettled(t) : { x: 0, y: 0, w: 0, h: 0, centred: true };
       // off screen, or no room for the bubble either side: scroll it into view first
       if (r && t && needsScroll(r, winH.current) && scroller.current) {
         scroller.current.scrollBy(r.y - winH.current * 0.22);
-        await new Promise((res) => setTimeout(res, 450));
-        r = await measure(t);
+        await wait(250);
+        r = await measureSettled(t);
       }
       if (r) { setIndex(i); setRect(r); return true; }
     }

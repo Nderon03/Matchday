@@ -97,8 +97,8 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
       <GroupAccessPicker value={accessOf(form)} onChange={(a) => setForm({ ...form, ...accessToSettings(a) })} />
       {!!cfg && (
         <>
-          <Spot id="gs.rules"><SectionTitle title="Game rules" /></Spot>
-          <Card padded={false}>
+          <SectionTitle title="Game rules" />
+          <Spot id="gs.rules"><Card padded={false}>
             <SettingRow icon="git-merge-outline" title="Track assists" hint="Players can claim assists">
               <Switch value={cfg.track_assists} onValueChange={(v) => setCfg({ ...cfg, track_assists: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Track assists" />
             </SettingRow>
@@ -134,13 +134,13 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
                 </Text>
               </View>
             )}
-          </Card>
+          </Card></Spot>
         </>
       )}
       <Button title="Save changes" size="lg" loading={busy === 'save'} onPress={save} />
 
-      <Spot id="gs.members"><SectionTitle title={`Members · ${members.length}`} /></Spot>
-      <Card padded={false}>
+      <SectionTitle title={`Members · ${members.length}`} />
+      <Spot id="gs.members"><Card padded={false}>
         {members.map((m, i) => {
           const canManage = m.role !== 'owner' && m.user_id !== userId;
           return (
@@ -157,7 +157,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
             </Pressable>
           );
         })}
-      </Card>
+      </Card></Spot>
       <Sheet visible={!!managing} onClose={() => setManaging(null)} title={managing?.profile.display_name ?? ''}>
         {!!managing && (
           <View>

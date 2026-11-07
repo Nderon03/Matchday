@@ -17,7 +17,7 @@ import { CONTACT_EMAIL } from '@/legal/content';
 import { reportError, sentryEnabled } from '@/lib/sentry';
 import { haptics } from '@/lib/haptics';
 import { CalendarSyncSheet } from '@/features/CalendarSync';
-import { ScreenHelp, TIPS_KEY, tourKey } from '@/features/ScreenHelp';
+import { ScreenHelp, Spot, TIPS_KEY, tourKey } from '@/features/ScreenHelp';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SCREEN_TOURS } from '@/features/screenTours';
 
@@ -69,29 +69,29 @@ export default function Settings() {
       <Card padded={false} style={{ paddingHorizontal: space.lg }}>
         <ListItem title="Edit profile" subtitle="Photo, name, username, position, bio" left={icon('person-circle-outline')} onPress={() => router.push('/settings/profile')} />
         <Divider />
-        <ListItem title="Notifications" subtitle="Push, email and what you hear about" left={icon('notifications-outline')} onPress={() => router.push('/settings/notifications')} />
+        <Spot id="settings.notifications"><ListItem title="Notifications" subtitle="Push, email and what you hear about" left={icon('notifications-outline')} onPress={() => router.push('/settings/notifications')} /></Spot>
         <Divider />
-        <ListItem title="Payouts" subtitle="Receive session fees with Stripe" left={icon('wallet-outline')} onPress={() => router.push('/settings/payouts')} />
+        <Spot id="settings.payouts"><ListItem title="Payouts" subtitle="Receive session fees with Stripe" left={icon('wallet-outline')} onPress={() => router.push('/settings/payouts')} /></Spot>
         <Divider />
         <ListItem title="Payment history" left={icon('receipt-outline')} onPress={() => router.push('/payments')} />
         <Divider />
-        <ListItem title="Sync with my calendar" subtitle="All your games in Google or Apple Calendar" left={icon('calendar-outline')} onPress={() => setCalendarOpen(true)} />
+        <Spot id="settings.calendar"><ListItem title="Sync with my calendar" subtitle="All your games in Google or Apple Calendar" left={icon('calendar-outline')} onPress={() => setCalendarOpen(true)} /></Spot>
         <Divider />
         <ListItem title="Blocked players" left={icon('ban-outline')} onPress={() => router.push('/settings/blocked')} />
       </Card>
 
       <SectionTitle title="Privacy" />
-      <Card>
+      <Spot id="settings.privacy"><Card>
         <View style={{ gap: space.sm }}>
           <Text variant="small" tone="muted">Who can see your statistics, achievements and bio? Group members always see your record within that group.</Text>
           {!!prefs.data && (
             <Segmented value={prefs.data.profile_visibility} onChange={setVisibility} options={[{ value: 'public', label: 'Everyone' }, { value: 'friends', label: 'Friends' }, { value: 'private', label: 'Only me' }]} />
           )}
         </View>
-      </Card>
+      </Card></Spot>
 
       <SectionTitle title="Appearance" />
-      <Segmented value={preference} onChange={setPreference} options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }, { value: 'system', label: 'System' }]} />
+      <Spot id="settings.theme"><Segmented value={preference} onChange={setPreference} options={[{ value: 'dark', label: 'Dark' }, { value: 'light', label: 'Light' }, { value: 'system', label: 'System' }]} /></Spot>
       {Platform.OS !== 'web' && (
         <Card padded={false} style={{ paddingHorizontal: space.lg }}>
           <ListItem
@@ -107,24 +107,24 @@ export default function Settings() {
       <Card padded={false}>
         <ListItem title="Replay the app tour" subtitle="A 30-second look around" left={icon('play-circle-outline')} onPress={() => router.navigate('/?tour=1')} />
         <Divider />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm }}>
+        <Spot id="settings.tips" style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm }}>
           {icon('sparkles-outline')}
           <View style={{ flex: 1 }}>
             <Text>Tips on new screens</Text>
             <Text variant="caption" tone="muted">A quick tour the first time you open each screen. The ? button always works.</Text>
           </View>
           <Switch value={tipsOn} onValueChange={setTips} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Tips on new screens" />
-        </View>
+        </Spot>
         <Divider />
         <ListItem title="Show all tips again" left={icon('refresh-outline')} onPress={resetTips} />
         <Divider />
-        <ListItem title="Help & FAQ" subtitle="Payments, waiting lists, medals, hosting" left={icon('help-circle-outline')} onPress={() => router.push('/help')} />
+        <Spot id="settings.faq"><ListItem title="Help & FAQ" subtitle="Payments, waiting lists, medals, hosting" left={icon('help-circle-outline')} onPress={() => router.push('/help')} /></Spot>
         <Divider />
         <ListItem title="Terms of Use" left={icon('document-text-outline')} onPress={() => router.push('/legal/terms')} />
         <Divider />
         <ListItem title="Privacy Policy" left={icon('shield-checkmark-outline')} onPress={() => router.push('/legal/privacy')} />
         <Divider />
-        <ListItem title="Contact us" subtitle={CONTACT_EMAIL} left={icon('mail-outline')} onPress={() => Linking.openURL(`mailto:${CONTACT_EMAIL}`)} />
+        <Spot id="settings.contact"><ListItem title="Contact us" subtitle={CONTACT_EMAIL} left={icon('mail-outline')} onPress={() => Linking.openURL(`mailto:${CONTACT_EMAIL}`)} /></Spot>
       </Card>
 
       <SectionTitle title="Account" />

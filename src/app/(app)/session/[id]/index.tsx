@@ -460,8 +460,8 @@ export default function SessionScreen() {
           : null;
         return (
           <View style={{ gap: space.sm }}>
-            <Spot id="session.host"><SectionTitle title="Host controls" /></Spot>
-            <Card>
+            <SectionTitle title="Host controls" />
+            <Spot id="session.host"><Card>
               <View style={{ gap: space.md }}>
                 {!!step && (
                   <View style={{ gap: space.xs }}>
@@ -471,7 +471,7 @@ export default function SessionScreen() {
                 )}
                 <Button title="More host tools" icon="ellipsis-horizontal" variant="secondary" onPress={() => setToolsOpen(true)} />
               </View>
-            </Card>
+            </Card></Spot>
           </View>
         );
       })()}
