@@ -4,7 +4,7 @@
  * during onboarding and it is recorded on their profile.
  */
 export const LEGAL_VERSION = '2026-11-04.1';
-export const LEGAL_UPDATED = '4 November 2026';
+export const LEGAL_UPDATED = '7 November 2026';
 export const OPERATOR = 'Nderon Beqiri';
 export const CONTACT_EMAIL = 'matchdayenquiries@hotmail.com';
 
@@ -76,6 +76,7 @@ export const PRIVACY: LegalDoc = {
         'Supabase — database, authentication, file storage and server functions.',
         'Stripe — card payments, payouts to hosts and identity checks for hosts (Stripe is also an independent controller for payment data; see stripe.com/privacy).',
         'Expo, Google (Firebase Cloud Messaging) and Apple (Push Notification service) — delivering push notifications.',
+        'Google — only if you choose “Continue with Google”: Google confirms who you are and shares your name, email address and profile photo with us.',
         'Resend — sending emails.',
         'YouTube (Google) — match videos are hosted on YouTube; video thumbnails load from YouTube and playing a video opens YouTube, which applies its own privacy policy.',
         'Sentry — crash and error reports so we can fix problems.',

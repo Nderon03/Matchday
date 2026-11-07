@@ -35,6 +35,8 @@ import { TickBurst } from '@/features/moments/TickBurst';
 import { MotmAnnouncement } from '@/features/moments/MotmAnnouncement';
 import { CalendarSyncSheet } from '@/features/CalendarSync';
 import { ScreenHelp, Spot } from '@/features/ScreenHelp';
+import { NeedPlayers } from '@/features/NeedPlayers';
+import { checkInOrQueue } from '@/lib/offline';
 
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -269,7 +271,7 @@ export default function SessionScreen() {
             </Text>
             {me?.status === 'confirmed' ? (
               <Row gap={space.sm} wrap>
-                {!!canCheckIn && <Button title="Check in" icon="checkmark-circle-outline" loading={busy === 'checkin'} onPress={() => run('checkin', () => rpc('check_in', { p_session: id }), 'Checked in — see you on the pitch')} />}
+                {!!canCheckIn && <Button title="Check in" icon="checkmark-circle-outline" loading={busy === 'checkin'} onPress={() => run('checkin', () => checkInOrQueue(id), (r) => (r === 'queued' ? 'No signal: you’ll be checked in as soon as you’re back online' : 'Checked in — see you on the pitch'))} />}
                 {!!me.checked_in_at && <Badge label="Checked in" tone="success" align="center" />}
                 {!dropoutsClosed && <Button title="Can’t make it" variant="secondary" loading={busy === 'rsvp-withdrawn'} onPress={async () => {
                   const guestsNote = myGuests.length ? ` Your guest${myGuests.length > 1 ? 's' : ''} will be removed too.` : '';
@@ -468,6 +470,9 @@ export default function SessionScreen() {
                     <Button title={step.title} icon={step.icon} size="lg" loading={busy === 'close'} onPress={step.onPress} />
                     <Text variant="caption" tone="muted" align="center">{step.detail}</Text>
                   </View>
+                )}
+                {s.status === 'scheduled' && s.max_attendance - (groups.confirmed.length + guestsIn.length) > 0 && (
+                  <Spot id="session.needplayers"><NeedPlayers sessionId={id} placesLeft={s.max_attendance - (groups.confirmed.length + guestsIn.length)} /></Spot>
                 )}
                 <Button title="More host tools" icon="ellipsis-horizontal" variant="secondary" onPress={() => setToolsOpen(true)} />
               </View>

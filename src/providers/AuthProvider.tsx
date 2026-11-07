@@ -6,6 +6,7 @@ import { startRecovery } from '@/lib/recovery';
 import { supabase } from '@/lib/supabase';
 import { q } from '@/lib/api';
 import type { Profile } from '@/types/db';
+import { clearOfflineCache } from '@/lib/offline';
 
 interface AuthCtx {
   session: Session | null;
@@ -35,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         startRecovery();
         router.replace('/reset-password');
       }
-      if (event === 'SIGNED_OUT') qc.clear();
+      if (event === 'SIGNED_OUT') { qc.clear(); clearOfflineCache(); }
     });
     return () => sub.subscription.unsubscribe();
   }, [qc]);
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut: async () => {
       await supabase.auth.signOut();
       qc.clear();
+      await clearOfflineCache();
       router.replace('/welcome');
     },
   }), [session, userId, profileQuery, initialising, qc]);

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, View } from 'react-native';
 import { Stack, router, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,6 +10,7 @@ import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_7
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { queryClient } from '@/lib/queryClient';
+import { restoreOfflineCache, startOfflineCache } from '@/lib/offline';
 import { routeForNotification } from '@/lib/notifications';
 import { useOtaUpdates } from '@/hooks/useOtaUpdates';
 import { Sentry, reportError, sentryEnabled } from '@/lib/sentry';
@@ -39,10 +40,17 @@ function ThemedStack() {
 
 function RootLayout() {
   const [loaded, error] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold });
+  // what you loaded last time, so the app opens with it even without signal
+  const [cacheReady, setCacheReady] = useState(false);
   useEffect(() => {
-    if (loaded || error) SplashScreen.hideAsync().catch(() => undefined);
-  }, [loaded, error]);
-  if (!loaded && !error) return null;
+    restoreOfflineCache().finally(() => setCacheReady(true));
+    return startOfflineCache();
+  }, []);
+  const ready = (loaded || !!error) && cacheReady;
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync().catch(() => undefined);
+  }, [ready]);
+  if (!ready) return null;
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>

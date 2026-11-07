@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Redirect, Stack, router, usePathname } from 'expo-router';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Loading } from '@/components/ui';
@@ -15,6 +15,8 @@ import { TermsUpdatePrompt } from '@/features/LegalAgreement';
 import { setCrashUser } from '@/lib/sentry';
 import { isRecovering } from '@/lib/recovery';
 import { useLiveRefresh } from '@/hooks/useLiveRefresh';
+import { flushCheckins } from '@/lib/offline';
+import { OfflineBanner } from '@/features/OfflineBanner';
 
 export default function AppLayout() {
   const { session, initialising, profile, profileLoading } = useAuth();
@@ -23,6 +25,12 @@ export default function AppLayout() {
   usePushRegistration(!!session && !!profile?.onboarded);
   useEffect(() => setCrashUser(session?.user.id ?? null), [session?.user.id]);
   useLiveRefresh();
+  // back in the app (maybe with signal again): send any check-ins made offline
+  useEffect(() => {
+    flushCheckins().catch(() => undefined);
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') flushCheckins().catch(() => undefined); });
+    return () => sub.remove();
+  }, []);
   // resume an invite link that was opened before signing in
   useEffect(() => {
     if (!session || !profile?.onboarded) return;
@@ -49,6 +57,7 @@ export default function AppLayout() {
       {!!(profile?.onboarded) && <PostMatchMoments />}
       {!!(profile?.onboarded) && <FriendAcceptedWatcher />}
       <TermsUpdatePrompt />
+      <OfflineBanner />
     </>
   );
 }

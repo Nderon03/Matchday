@@ -14,6 +14,7 @@ const TYPES: [string, string, string][] = [
   ['session_reminder', 'Kick-off reminders', '24 hours before a game you’re in'],
   ['lineup_announced', 'Line-ups announced', 'When the host confirms teams'],
   ['waitlist_promoted', 'Waiting list', 'When a space opens up for you'],
+  ['players_needed', 'Games needing players', 'When a game near you or a friend’s game is short'],
   ['waitlist_offer', 'Last-minute places', 'On the day: a place is yours if you take it within 30 minutes'],
   ['spot_open', 'Unfilled places (hosts)', 'When nobody on the waiting list takes a free place'],
   ['host_summary', 'Weekly summary (hosts)', 'Monday morning: who’s in, who hasn’t replied, what’s unpaid'],

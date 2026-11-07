@@ -6,7 +6,8 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,
-      gcTime: 10 * 60_000,
+      // kept a day so what you've loaded can be saved for when there's no signal (see lib/offline)
+      gcTime: 24 * 3600_000,
       retry: (count, error) => {
         const code = (error as AppError)?.code;
         if (code === 'forbidden' || code === 'not_found' || code === 'not_authenticated') return false;

@@ -44,6 +44,7 @@ export const SCREEN_TOURS = {
     { target: t('session.info'), emoji: '📍', title: 'When, where and the price', body: 'Add it to your calendar, get directions, and see the kick-off forecast.' },
     { target: t('session.rsvp'), emoji: '✋', title: 'Are you in?', body: 'Say you’re in or can’t make it. Drop-outs close 24 hours before kick-off; after that, tap to tell the host.' },
     { target: t('session.host'), emoji: '🧢', title: 'Host controls', body: 'One button for the next step (teams, scores, approvals), and “More host tools” for the rest.' },
+    { target: t('session.needplayers'), emoji: '📣', title: 'Need players?', body: 'Short on numbers? One tap asks friends of your squad and players who play nearby.' },
     { target: t('session.squad'), emoji: '👥', title: 'The squad', body: 'Who’s playing. Tap “See squad” for everyone and their guests.' },
   ]),
   'session-new': tour('session-new', 'new sessions', { emoji: '🗓️', title: 'New session', body: 'Only the essentials, top to bottom. Swipe or tap the arrows to change each choice.' }, [

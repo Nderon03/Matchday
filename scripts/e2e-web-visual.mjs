@@ -743,6 +743,26 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   table.friendships = [];
 }
 
+// No signal at the pitch: what you'd loaded is still there after a restart, with a banner.
+{
+  rpcs.get_match_reveals = [];
+  const saved = table.notifications;
+  table.notifications = [];
+  const { page, errors } = await openPage({ width: 375, height: 812 });
+  await page.goto(base + `/session/${SID}`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(4500); // saved a few seconds after loading
+  await page.route(/example\.supabase\.co/, (r) => r.abort('internetdisconnected'));
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(4000);
+  const t = await page.locator('body').innerText();
+  if (!/Wednesday Football/.test(t) || !/Riverside Sports Centre/.test(t)) failures.push('offline: saved game page not shown without signal');
+  if (!/Offline · showing what was saved/.test(t)) failures.push('offline: no offline banner');
+  await page.screenshot({ path: join(OUT, 'offline-session.png') });
+  await page.close();
+  table.notifications = saved;
+  void errors;
+}
+
 // Fit pass: every screen at small phone → desktop widths, dark and light. Flags anything that
 // pokes out sideways (a horizontal page scroll, or a visible element past the screen edge that
 // isn't inside something meant to scroll sideways or clip).

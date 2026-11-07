@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Button, Text } from '@/components/ui';
+import { Button, Text, useToast } from '@/components/ui';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { LogoVisual, PitchVisual, StatsVisual } from './visuals';
+import { env } from '@/lib/env';
+import { friendlyAuthError, signInWithProvider } from '@/features/auth';
 
 export const INTRO_SEEN_KEY = 'matchday.introSeen';
 
@@ -22,6 +24,7 @@ const DOT_GAP = 10;
 /** First-launch intro: three swipeable slides with small entrance animations, ending in sign-up / sign-in. */
 export function IntroCarousel() {
   const { colors, reduceMotion } = useTheme();
+  const toast = useToast();
   const [width, setWidth] = useState(0);
   const [index, setIndex] = useState(0);
   const [ready, setReady] = useState(false);
@@ -131,6 +134,10 @@ export function IntroCarousel() {
       <View style={{ gap: space.sm, paddingBottom: space.lg, minHeight: 116, justifyContent: 'flex-end' }}>
         {onLast ? (
           <>
+            {env.oauthProviders.includes('google') && (
+              <Button title="Continue with Google" variant="outline" size="lg" icon="logo-google"
+                onPress={() => signInWithProvider('google').catch((e) => toast.error(friendlyAuthError(e)))} />
+            )}
             <Button title="Create account" size="lg" onPress={() => router.push('/sign-up')} />
             <Button title="I already have an account" variant="secondary" size="lg" onPress={() => router.push('/sign-in')} />
           </>
