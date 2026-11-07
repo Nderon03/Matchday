@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Card, ErrorState, Header, Row, Screen, SectionTitle, Sheet, SkeletonList, Text } from '@/components/ui';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
 import { StreakCard } from '@/components/football/Streak';
-import { CardStylePicker } from '@/features/CardStylePicker';
 import { LEVELS, MAX_POINTS, SEASON_CHAMPION, TRACKS, levelInfo, rarityLabel, type TrackDef } from '@/domain/achievements';
 import { formatDate, plural } from '@/domain/format';
 import { useMyAchievements, type MyAchievement, type MyAchievements } from '@/hooks/queries';
@@ -13,6 +12,7 @@ import { shareText } from '@/lib/share';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { ScreenHelp, Spot } from '@/features/ScreenHelp';
+import { router } from 'expo-router';
 
 const native = Platform.OS !== 'web';
 
@@ -29,6 +29,7 @@ function tracksFrom(d: MyAchievements): TrackState[] {
 
 export default function Achievements() {
   const mine = useMyAchievements();
+  const { colors } = useTheme();
   const { isWide } = useLayout();
   const [open, setOpen] = useState<TrackState | null>(null);
   const d = mine.data;
@@ -63,8 +64,18 @@ export default function Achievements() {
             )}
           </Spot>
 
-          <Spot id="ach.card"><SectionTitle title="Player card" /></Spot>
-          <CardStylePicker />
+          <Spot id="ach.card">
+            <Card onPress={() => router.push('/settings/profile')} accessibilityLabel="Customise your card">
+              <Row gap={space.md}>
+                <Ionicons name="color-palette-outline" size={24} color={colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text variant="bodyStrong">Customise your card</Text>
+                  <Text variant="caption" tone="muted">Styles, titles and medals you’ve unlocked</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+              </Row>
+            </Card>
+          </Spot>
         </>
       )}
       {!!open && !!d && <TrackSheet t={open} players={d.players} onClose={() => setOpen(null)} />}

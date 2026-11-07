@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { router } from 'expo-router';
+import { router, usePreventRemove } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, Card, Divider, Header, Input, ListItem, Screen, SwipeSelect, Text, useToast } from '@/components/ui';
+import { Button, Card, Divider, Header, Input, ListItem, Screen, SwipeSelect, Text, useConfirm, useToast } from '@/components/ui';
 import { ClubShield, Flag } from '@/components/football/Identity';
-import { CardStylePicker } from '@/features/CardStylePicker';
+import { CardStylePicker, useMyCardData, type CardDraft } from '@/features/CardStylePicker';
 import { ClubPicker, CountryPicker, clubName, countryName } from '@/features/IdentityPickers';
 import { useAuth } from '@/providers/AuthProvider';
 import { useUsernameCheck } from '@/hooks/useUsernameCheck';
+import { keys } from '@/hooks/queries';
 import { supabase } from '@/lib/supabase';
 import { rpc } from '@/lib/api';
 import { pickAndUpload } from '@/lib/storage';
@@ -17,10 +18,18 @@ import { space } from '@/theme/tokens';
 import type { PlayerPosition } from '@/types/db';
 import { ScreenHelp } from '@/features/ScreenHelp';
 
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * Edit profile. Nothing is saved until you press Save (photo, card style, title and medals
+ * included); leaving with changes asks whether to discard them.
+ */
 export default function EditProfile() {
   const { profile, userId, refreshProfile } = useAuth();
   const toast = useToast();
+  const confirm = useConfirm();
   const qc = useQueryClient();
+  const card = useMyCardData();
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
   const [username, setUsername] = useState(profile?.username ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
@@ -28,10 +37,26 @@ export default function EditProfile() {
   const [avatar, setAvatar] = useState(profile?.avatar_url ?? null);
   const [nationality, setNationality] = useState<string | null>(profile?.nationality ?? null);
   const [club, setClub] = useState<string | null>(profile?.supported_club ?? null);
+  const savedCard: CardDraft | null = card ? { style: card.card_style ?? 'classic', title: card.title ?? null, medals: card.medals ?? [] } : null;
+  const [cardDraft, setCardDraft] = useState<CardDraft | null>(null);
+  const draft = cardDraft ?? savedCard;
   const [picker, setPicker] = useState<'country' | 'club' | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const check = useUsernameCheck(username, profile?.username);
+
+  const dirty = !!profile && (
+    displayName !== profile.display_name || username !== profile.username || bio !== (profile.bio ?? '') || position !== profile.position
+    || avatar !== (profile.avatar_url ?? null) || nationality !== (profile.nationality ?? null) || club !== (profile.supported_club ?? null)
+    || (!!cardDraft && !!savedCard && !same(cardDraft, savedCard)));
+
+  // leaving with unsaved changes (back button, swipe, Android back, closing the tab): ask first
+  const [leaving, setLeaving] = useState(false);
+  const allowLeave = usePreventRemove(dirty && !leaving, ({ repeat }) => {
+    confirm({ title: 'Discard your changes?', message: 'You haven’t saved them. Save first to keep them.', confirmLabel: 'Discard', cancelLabel: 'Keep editing', destructive: true })
+      .then((ok) => { if (ok) { setLeaving(true); repeat(); } });
+  });
 
   const save = async () => {
     const parsed = profileSchema.safeParse({ display_name: displayName, bio, position });
@@ -39,11 +64,20 @@ export default function EditProfile() {
     setBusy(true);
     try {
       if (username !== profile?.username) await rpc('complete_onboarding', { p_username: username, p_display_name: displayName, p_position: position });
-      const { error } = await supabase.from('profiles').update({ display_name: displayName.trim(), bio: bio.trim() || null, position, nationality, supported_club: club }).eq('id', userId!);
+      const { error } = await supabase.from('profiles')
+        .update({ display_name: displayName.trim(), bio: bio.trim() || null, position, nationality, supported_club: club, avatar_url: avatar }).eq('id', userId!);
       if (error) throw error;
+      if (cardDraft && savedCard) {
+        if (cardDraft.style !== savedCard.style) await rpc('set_card_style', { p_style: cardDraft.style });
+        if (cardDraft.title !== savedCard.title) await rpc('set_card_title', { p_title: cardDraft.title });
+        if (!same(cardDraft.medals, savedCard.medals)) await rpc('set_card_medals', { p_codes: cardDraft.medals });
+      }
       await refreshProfile();
-      qc.invalidateQueries({ queryKey: ['player', userId] });
+      qc.invalidateQueries({ queryKey: ['player'] });
+      qc.invalidateQueries({ queryKey: keys.myAchievements });
       toast.success('Profile saved');
+      setLeaving(true);
+      allowLeave();
       router.back();
     } catch (e) {
       toast.error(e);
@@ -54,29 +88,27 @@ export default function EditProfile() {
 
   return (
     <Screen edges={['top', 'bottom']} maxWidth={560}>
-      <Header title="Edit profile" right={<ScreenHelp id="edit-profile" />} />
-      <CardStylePicker
-        overrides={{ display_name: displayName || profile?.display_name || '', avatar_url: avatar, position, nationality, supported_club: club }}
-        actions={(
-        <View style={{ flexDirection: 'row', gap: space.sm, justifyContent: 'center' }}>
-          <Button title="Change photo" size="sm" variant="secondary" icon="camera-outline" onPress={async () => {
-            try {
-              const url = await pickAndUpload('avatars', userId!);
-              if (!url) return;
-              const { error } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', userId!);
-              if (error) throw error;
-              setAvatar(url);
-              refreshProfile();
-            } catch (e) { toast.error(e); }
-          }} />
-          {!!avatar && <Button title="Remove" size="sm" variant="ghost" onPress={async () => {
-            await supabase.from('profiles').update({ avatar_url: null }).eq('id', userId!);
-            setAvatar(null);
-            refreshProfile();
-          }} />}
-        </View>
-        )}
-      />
+      <Header title="Edit profile" right={<ScreenHelp id="edit-profile" ready={!!draft} />} />
+      {!!draft && (
+        <CardStylePicker
+          draft={draft}
+          onDraft={setCardDraft}
+          overrides={{ display_name: displayName || profile?.display_name || '', avatar_url: avatar, position, nationality, supported_club: club }}
+          actions={(
+            <View style={{ flexDirection: 'row', gap: space.sm, justifyContent: 'center' }}>
+              <Button title="Change photo" size="sm" variant="secondary" icon="camera-outline" loading={uploading} onPress={async () => {
+                try {
+                  setUploading(true);
+                  // the picture is uploaded now but only used once you save
+                  const url = await pickAndUpload('avatars', userId!);
+                  if (url) setAvatar(url);
+                } catch (e) { toast.error(e); } finally { setUploading(false); }
+              }} />
+              {!!avatar && <Button title="Remove" size="sm" variant="ghost" onPress={() => setAvatar(null)} />}
+            </View>
+          )}
+        />
+      )}
       <Input label="Display name" value={displayName} onChangeText={setDisplayName} error={errors.display_name} maxLength={40} />
       <Input label="Username" value={username} onChangeText={(v) => setUsername(v.replace(/\s/g, ''))} autoCapitalize="none" icon="at"
         error={check.state === 'taken' || check.state === 'invalid' ? check.message : null} hint={check.message ?? undefined} />
@@ -90,7 +122,7 @@ export default function EditProfile() {
       </Card>
       <CountryPicker visible={picker === 'country'} value={nationality} onClose={() => setPicker(null)} onPick={(c) => { setNationality(c); setPicker(null); }} />
       <ClubPicker visible={picker === 'club'} value={club} onClose={() => setPicker(null)} onPick={(c) => { setClub(c); setPicker(null); }} />
-      <Button title="Save" size="lg" loading={busy} disabled={check.state === 'taken' || check.state === 'invalid'} onPress={save} />
+      <Button title={dirty ? 'Save changes' : 'Save'} size="lg" loading={busy} disabled={uploading || check.state === 'taken' || check.state === 'invalid'} onPress={save} />
     </Screen>
   );
 }

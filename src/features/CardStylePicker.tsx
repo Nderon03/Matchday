@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Chip, Row, SwipeSelect, Text, useToast } from '@/components/ui';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
@@ -10,11 +10,11 @@ import { CardFX } from '@/components/football/CardFX';
 import { CardMedals, PERFECT_RELIABILITY_GAMES, PlayerCard, type PlayerCardData } from '@/components/football/PlayerCard';
 import { CARD_STYLES, SEASON_CHAMPION, TRACKS, cardStyle, levelInfo, medalPoints, parseCode, type CardStyle } from '@/domain/achievements';
 import { plural } from '@/domain/format';
-import { keys, useMyAchievements, usePlayerProfile, type MyAchievement } from '@/hooks/queries';
+import { useMyAchievements, usePlayerProfile, type MyAchievement } from '@/hooks/queries';
 import { useReliability } from '@/features/Reliability';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { q, rpc } from '@/lib/api';
+import { q } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
@@ -75,52 +75,51 @@ export function useMyCardData(): PlayerCardData | null {
   };
 }
 
+export interface CardDraft { style: string; title: string | null; medals: string[] }
+
 /**
- * Your card on top, every style underneath. Tap a style to see it on your card straight away:
- * ones you've unlocked are applied, locked ones are a preview with how close you are.
- * `overrides` lets Edit profile show unsaved changes (name, photo, flag...) on the card live.
+ * Your card on top, every style underneath. Tap a style or title to see it on your card straight
+ * away; locked ones are a preview with how close you are. Nothing is saved here: Edit profile
+ * keeps the choices in `draft` and saves them with everything else.
+ * `overrides` shows other unsaved changes (name, photo, flag...) on the card live.
  */
-export function CardStylePicker({ overrides, actions }: { overrides?: Partial<PlayerCardData>; actions?: React.ReactNode }) {
+export function CardStylePicker({ draft, onDraft, overrides, actions }: {
+  draft: CardDraft; onDraft: (d: CardDraft) => void; overrides?: Partial<PlayerCardData>; actions?: React.ReactNode;
+}) {
   const { colors } = useTheme();
   const mine = useMyAchievements();
   const card = useMyCardData();
-  const qc = useQueryClient();
-  const toast = useToast();
-  const [picked, setPicked] = useState<string | null>(null);
-  const [medals, setMedals] = useState<string[] | null>(null);
-  // undefined = not touched; null = no title; otherwise previewing / using that title
-  const [title, setTitle] = useState<string | null | undefined>(undefined);
-  const shownTitle = title === undefined ? card?.title ?? null : title;
-  const titleLockedPreview = !!title && !!mine.data && !!card && !titleUnlocked(cardTitle(title)!, {
-    codes: new Set(mine.data.items.filter((i) => i.unlocked_at).map((i) => i.code)), points: mine.data.points,
-    perfectlyReliable: card.reliability?.pct === 100 && (card.reliability?.attended ?? 0) >= PERFECT_RELIABILITY_GAMES,
-  });
-  const [preview, setPreview] = useState<string | null>(null);
+  // locked things you're just looking at (not chosen)
+  const [previewStyle, setPreviewStyle] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string | null>(null);
   const points = mine.data?.points ?? 0;
-  const current = picked ?? mine.data?.card_style ?? 'classic';
-  const shown = cardStyle(preview ?? current);
+  const have = {
+    codes: new Set((mine.data?.items ?? []).filter((i) => i.unlocked_at).map((i) => i.code)), points,
+    perfectlyReliable: card?.reliability?.pct === 100 && (card?.reliability?.attended ?? 0) >= PERFECT_RELIABILITY_GAMES,
+  };
+  const shown = cardStyle(previewStyle ?? draft.style);
   const locked = points < shown.points;
+  const shownTitle = previewTitle ?? draft.title;
+  const titleLockedPreview = !!previewTitle;
 
-  const choose = async (s: CardStyle) => {
-    setPreview(s.id);
+  const chooseStyle = (s: CardStyle) => {
     haptics.tap();
-    if (points < s.points || s.id === current) return;
-    const before = current;
-    setPicked(s.id);
-    try {
-      await rpc('set_card_style', { p_style: s.id });
-      if (s.fx >= 3) haptics.success();
-      qc.invalidateQueries({ queryKey: keys.myAchievements });
-      qc.invalidateQueries({ queryKey: ['player'] });
-    } catch (e) {
-      setPicked(before);
-      toast.error(e);
-    }
+    if (points < s.points) return setPreviewStyle(s.id);
+    setPreviewStyle(null);
+    if (s.fx >= 3 && s.id !== draft.style) haptics.success();
+    onDraft({ ...draft, style: s.id });
+  };
+  const chooseTitle = (id: string | null) => {
+    haptics.tap();
+    const t = cardTitle(id);
+    if (t && !titleUnlocked(t, have)) return setPreviewTitle(id);
+    setPreviewTitle(null);
+    onDraft({ ...draft, title: id });
   };
 
   const row = (list: CardStyle[]) => (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm, paddingVertical: 2 }}>
-      {list.map((s) => <Tile key={s.id} s={s} points={points} selected={(preview ?? current) === s.id} unlocked={points >= s.points} onPress={() => choose(s)} />)}
+      {list.map((s) => <Tile key={s.id} s={s} points={points} selected={(previewStyle ?? draft.style) === s.id} unlocked={points >= s.points} onPress={() => chooseStyle(s)} />)}
     </ScrollView>
   );
   return (
@@ -128,7 +127,7 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
       {card ? (
         <View>
           <Spot id="ep.card" style={{ opacity: locked ? 0.92 : 1 }}>
-            <PlayerCard data={{ ...card, ...overrides, card_style: shown.id, medals: medals ?? card.medals, title: shownTitle }} />
+            <PlayerCard data={{ ...card, ...overrides, card_style: shown.id, medals: draft.medals, title: shownTitle }} />
           </Spot>
           {(locked || titleLockedPreview) && (
             <View style={{ position: 'absolute', top: space.sm, right: space.sm, flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -142,11 +141,8 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
         <View style={{ height: 230, borderRadius: radius.xl, backgroundColor: colors.surfaceAlt }} />
       )}
       {actions}
-      {!!mine.data && !!card && (
-        <Spot id="ep.title"><TitleChooser value={shownTitle} saved={card.title ?? null} points={points}
-          codes={new Set(mine.data.items.filter((i) => i.unlocked_at).map((i) => i.code))}
-          perfectlyReliable={card.reliability?.pct === 100 && (card.reliability?.attended ?? 0) >= PERFECT_RELIABILITY_GAMES}
-          onPreview={setTitle} /></Spot>
+      {!!mine.data && (
+        <Spot id="ep.title"><TitleChooser value={shownTitle} have={have} onChoose={chooseTitle} /></Spot>
       )}
       {locked ? (
         <View style={{ gap: 6 }}>
@@ -162,51 +158,28 @@ export function CardStylePicker({ overrides, actions }: { overrides?: Partial<Pl
           </Text>
         </View>
       ) : (
-        <Text variant="caption" tone="muted" align="center">{shown.name} · in use{shown.fx ? '' : ' · earn medals to unlock animated cards'}</Text>
+        <Text variant="caption" tone="muted" align="center">{shown.name}{shown.fx ? '' : ' · earn medals to unlock animated cards'}</Text>
       )}
       <Text variant="caption" tone="muted">Colours</Text>
       {row(CARD_STYLES.filter((s) => s.base))}
       <Text variant="caption" tone="muted">Earned with medals · you have {plural(points, 'point')}</Text>
       {row(CARD_STYLES.filter((s) => !s.base))}
-      {!!mine.data && <Spot id="ep.medals"><MedalChooser items={mine.data.items} value={medals ?? card?.medals ?? []} onChange={setMedals} st={shown} /></Spot>}
+      {!!mine.data && <Spot id="ep.medals"><MedalChooser items={mine.data.items} value={draft.medals} onChange={(medals) => onDraft({ ...draft, medals })} st={shown} /></Spot>}
     </View>
   );
 }
 
 /**
- * Pick a title for under your name. Free ones and unlocked ones are applied as you tap; locked
- * ones show on your card as a preview with what it takes to unlock them.
+ * Pick a title for under your name. Unlocked ones are chosen as you tap; locked ones show on
+ * your card as a preview with what it takes to unlock them.
  */
-function TitleChooser({ value, saved, points, codes, perfectlyReliable, onPreview }: {
-  value: string | null; saved: string | null; points: number; codes: Set<string>; perfectlyReliable: boolean;
-  onPreview: (id: string | null) => void;
+function TitleChooser({ value, have, onChoose }: {
+  value: string | null; have: { codes: Set<string>; points: number; perfectlyReliable: boolean }; onChoose: (id: string | null) => void;
 }) {
   const { colors } = useTheme();
-  const qc = useQueryClient();
-  const toast = useToast();
-  const [savedNow, setSavedNow] = useState(saved);
-  const have = { codes, points, perfectlyReliable };
   const shown = cardTitle(value);
   const lockedShown = !!shown && !titleUnlocked(shown, have);
   const unlockedCount = CARD_TITLES.filter((t) => titleUnlocked(t, have)).length;
-
-  const choose = async (id: string | null) => {
-    onPreview(id);
-    haptics.tap();
-    const t = cardTitle(id);
-    if ((t && !titleUnlocked(t, have)) || id === savedNow) return;
-    const before = savedNow;
-    setSavedNow(id);
-    try {
-      await rpc('set_card_title', { p_title: id });
-      qc.invalidateQueries({ queryKey: ['player'] });
-    } catch (e) {
-      setSavedNow(before);
-      onPreview(before);
-      toast.error(e);
-    }
-  };
-
   return (
     <View style={{ gap: space.sm }}>
       <Text variant="caption" tone="muted">Title · {unlockedCount}/{CARD_TITLES.length} unlocked</Text>
@@ -217,11 +190,11 @@ function TitleChooser({ value, saved, points, codes, perfectlyReliable, onPrevie
         </Row>
       )}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 2 }}>
-        <Chip label="None" selected={!value} onPress={() => choose(null)} />
+        <Chip label="None" selected={!value} onPress={() => onChoose(null)} />
         {[...CARD_TITLES].sort((a, b) => Number(titleUnlocked(b, have)) - Number(titleUnlocked(a, have))).map((t) => {
           const open = titleUnlocked(t, have);
           return (
-            <Chip key={t.id} label={t.label} selected={value === t.id} onPress={() => choose(t.id)}
+            <Chip key={t.id} label={t.label} selected={value === t.id} onPress={() => onChoose(t.id)}
               icon={open ? undefined : <Ionicons name="lock-closed" size={11} color={colors.textFaint} />} />
           );
         })}
@@ -232,11 +205,10 @@ function TitleChooser({ value, saved, points, codes, perfectlyReliable, onPrevie
 
 /**
  * Pick up to three earned medals to show along the bottom of your card, and which level of each
- * (your best, or a lower one if you prefer the colour). Saved as you tap.
+ * (your best, or a lower one if you prefer the colour).
  */
 function MedalChooser({ items, value, onChange, st }: { items: MyAchievement[]; value: string[]; onChange: (v: string[]) => void; st: CardStyle }) {
   const { colors } = useTheme();
-  const qc = useQueryClient();
   const toast = useToast();
   const earned = items.filter((i) => i.unlocked_at);
   const tracks = [
@@ -244,18 +216,7 @@ function MedalChooser({ items, value, onChange, st }: { items: MyAchievement[]; 
     { track: SEASON_CHAMPION.code, name: SEASON_CHAMPION.name, icon: SEASON_CHAMPION.icon, codes: earned.some((i) => i.code === SEASON_CHAMPION.code) ? [SEASON_CHAMPION.code] : [] },
   ].filter((t) => t.codes.length);
 
-  const save = async (next: string[]) => {
-    const before = value;
-    onChange(next);
-    haptics.tap();
-    try {
-      await rpc('set_card_medals', { p_codes: next });
-      qc.invalidateQueries({ queryKey: ['player'] });
-    } catch (e) {
-      onChange(before);
-      toast.error(e);
-    }
-  };
+  const save = (next: string[]) => { haptics.tap(); onChange(next); };
   const pick = (track: { codes: string[] }, code: string | null) => {
     const others = value.filter((c) => !track.codes.includes(c));
     if (code && others.length >= 3) return toast.show('Up to 3 medals on your card. Turn one off first.');

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState, type RefObject } from 
 import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, useWindowDimensions, type HostInstance } from 'react-native';
 import { Button, Text } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
+import { useScreenScroll } from '@/components/ui/ScreenScroll';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 
@@ -15,6 +16,16 @@ export interface CoachStep {
   body: string;
 }
 interface Rect { x: number; y: number; w: number; h: number; centred?: boolean }
+
+const BUBBLE_GUESS = 190;
+const MAX_HOLE = 0.4;
+/** whether something needs scrolling into view to point at it with a bubble */
+const needsScroll = (r: Rect, sh: number) => {
+  const h = Math.min(r.h, sh * MAX_HOLE);
+  const visible = r.y >= 0 && r.y + h <= sh;
+  const room = r.y + h + 20 + BUBBLE_GUESS <= sh || r.y - 20 - BUBBLE_GUESS >= 0;
+  return !visible || !room;
+};
 
 const measure = (ref: RefObject<HostInstance | null>) => new Promise<Rect | null>((resolve) => {
   const node = ref.current;
@@ -44,13 +55,25 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
   const latest = useRef({ steps, onDone });
   useEffect(() => { latest.current = { steps, onDone }; });
 
+  const scroll = useScreenScroll();
+  const scroller = useRef(scroll);
+  const winH = useRef(sh);
+  useEffect(() => { scroller.current = scroll; winH.current = sh; });
+  const [bubbleH, setBubbleH] = useState(BUBBLE_GUESS);
+
   const go = useCallback(async (from: number) => {
     const list = latest.current.steps;
     // find the next step that's actually on screen
     for (let i = from; i < list.length; i++) {
       // no target: a centred card (a welcome or a closing note)
       const t = list[i].target;
-      const r = t ? await measure(t) : { x: 0, y: 0, w: 0, h: 0, centred: true };
+      let r = t ? await measure(t) : { x: 0, y: 0, w: 0, h: 0, centred: true };
+      // off screen, or no room for the bubble either side: scroll it into view first
+      if (r && t && needsScroll(r, winH.current) && scroller.current) {
+        scroller.current.scrollBy(r.y - winH.current * 0.22);
+        await new Promise((res) => setTimeout(res, 450));
+        r = await measure(t);
+      }
       if (r) { setIndex(i); setRect(r); return true; }
     }
     return false;
@@ -112,8 +135,12 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
   }
 
   const pad = 6;
-  const hole = { x: rect.x - pad, y: rect.y - pad, w: rect.w + pad * 2, h: rect.h + pad * 2 };
-  const below = hole.y + hole.h / 2 < sh / 2;
+  // very tall things (a whole grid) are lit from the top, so the bubble still fits
+  const hole = { x: rect.x - pad, y: rect.y - pad, w: rect.w + pad * 2, h: Math.min(rect.h, sh * MAX_HOLE) + pad * 2 };
+  const fitsBelow = hole.y + hole.h + 14 + bubbleH <= sh - 8;
+  const fitsAbove = hole.y - 14 - bubbleH >= 8;
+  const below = fitsBelow || !fitsAbove;
+  const bubbleTop = Math.min(hole.y + hole.h + 14, sh - bubbleH - 8);
   const bubbleW = Math.min(320, sw - space.lg * 2);
   const centre = hole.x + hole.w / 2;
   const bubbleX = Math.max(space.lg, Math.min(sw - space.lg - bubbleW, centre - bubbleW / 2));
@@ -135,11 +162,13 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
 
         {/* speech bubble with an arrow pointing at it */}
         <Animated.View style={{ position: 'absolute', left: bubbleX, width: bubbleW,
-          ...(below ? { top: hole.y + hole.h + 14 } : { bottom: sh - hole.y + 14 }),
+          ...(below ? { top: bubbleTop } : { bottom: sh - hole.y + 14 }),
           opacity: appear, transform: [{ translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [below ? -8 : 8, 0] }) }] }}>
-          <View style={{ position: 'absolute', left: arrowX - bubbleX, width: 16, height: 16, backgroundColor: colors.surface, transform: [{ rotate: '45deg' }],
-            ...(below ? { top: -7 } : { bottom: -7 }) }} />
-          <Pressable onPress={(e) => e.stopPropagation()} style={{ backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.lg, gap: space.sm }}>
+          {(!below || bubbleTop === hole.y + hole.h + 14) && (
+            <View style={{ position: 'absolute', left: arrowX - bubbleX, width: 16, height: 16, backgroundColor: colors.surface, transform: [{ rotate: '45deg' }],
+              ...(below ? { top: -7 } : { bottom: -7 }) }} />
+          )}
+          <Pressable onPress={(e) => e.stopPropagation()} onLayout={(e) => setBubbleH(Math.round(e.nativeEvent.layout.height))} style={{ backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.lg, gap: space.sm }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
               <Text style={{ fontSize: 22 }}>{step.emoji}</Text>
               <Text variant="bodyStrong" style={{ flex: 1 }}>{step.title}</Text>

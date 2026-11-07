@@ -49,7 +49,7 @@ export const SCREEN_TOURS = {
   ]),
   achievements: tour('achievements', 'medals', { emoji: '🏅', title: 'Medals', body: 'Each medal levels up from Bronze to Legend as you play.' }, [
     { target: t('ach.grid'), emoji: '📈', title: 'Your progress', body: 'Tap a medal to see every level and how close you are.' },
-    { target: t('ach.card'), emoji: '🃏', title: 'Unlock card styles', body: 'Medal points unlock Bronze, Silver, Gold, Platinum and Hall of Fame cards.' },
+    { target: t('ach.card'), emoji: '🃏', title: 'Unlock card styles', body: 'Medal points unlock Bronze to Hall of Fame cards. Pick yours here.' },
   ]),
   'edit-profile': tour('edit-profile', 'editing your profile', { emoji: '🎨', title: 'Make your card yours', body: 'Everything you change shows on your card straight away.' }, [
     { target: t('ep.card'), emoji: '🪪', title: 'Live preview', body: 'This is your card as others see it. Tap a locked style or title to preview it.' },

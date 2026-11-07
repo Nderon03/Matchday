@@ -225,12 +225,20 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
         }
       }} />}
       {!!isOwner && (
-        <Button title="Delete group" variant="danger" onPress={() => run('delete', async () => {
-          const { error } = await supabase.from('groups').delete().eq('id', id);
-          if (error) throw error;
-          toast.show('Group deleted. Players keep their career statistics.');
-          router.replace('/leagues');
-        })} />
+        <Button title="Delete group" variant="danger" loading={busy === 'delete'} onPress={async () => {
+          const ok = await confirm({
+            title: `Delete ${g.name}?`,
+            message: `This removes the group, its tables, seasons and upcoming games for all ${members.length} members. It can’t be undone. Players keep their career stats.`,
+            confirmLabel: 'Delete group', cancelLabel: 'Keep it', destructive: true,
+          });
+          if (!ok) return;
+          run('delete', async () => {
+            const { error } = await supabase.from('groups').delete().eq('id', id);
+            if (error) throw error;
+            toast.show('Group deleted. Players keep their career statistics.');
+            router.replace('/leagues');
+          });
+        }} />
       )}
     </Screen>
   );

@@ -1,5 +1,5 @@
-import React from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, type ScrollViewProps, type ViewStyle } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, type ScrollViewInstance, type ScrollViewProps, type ViewStyle } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -8,6 +8,7 @@ import { space } from '@/theme/tokens';
 import { useLayout } from '@/hooks/useLayout';
 import { Text } from './Text';
 import { IconButton } from './Button';
+import { ScreenScrollContext, type ScreenScroll } from './ScreenScroll';
 
 /** Standard scrollable screen with responsive max-width and pull-to-refresh. */
 export function Screen({
@@ -25,6 +26,12 @@ export function Screen({
   const { colors } = useTheme();
   const { isDesktop } = useLayout();
   const inner: ViewStyle = { width: '100%', maxWidth, alignSelf: 'center', paddingHorizontal: padded ? (isDesktop ? space.xxxl : space.lg) : 0 };
+  // remember where we are so a tour can scroll to what it's pointing at
+  const scrollRef = useRef<ScrollViewInstance>(null);
+  const offset = useRef(0);
+  const [scroller] = useState<ScreenScroll>(() => ({
+    scrollBy: (dy: number) => scrollRef.current?.scrollTo({ y: Math.max(0, offset.current + dy), animated: true }),
+  }));
   return (
     <SafeAreaView edges={isDesktop ? [] : edges} style={[styles.flex, { backgroundColor: colors.bg }]}>
       {/* Keep the focused field and any bottom bar above the on-screen keyboard.
@@ -37,14 +44,19 @@ export function Screen({
       >
         {scroll ? (
           <ScrollView
+            ref={scrollRef}
+            scrollEventThrottle={32}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             automaticallyAdjustKeyboardInsets={Platform.OS === 'ios' && !footer}
             contentContainerStyle={[{ paddingBottom: space.huge, paddingTop: isDesktop ? space.xxl : space.sm }, contentStyle]}
             refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.primary} /> : undefined}
             {...rest}
+            onScroll={(e) => { offset.current = e.nativeEvent.contentOffset.y; rest.onScroll?.(e); }}
           >
-            <View style={[inner, { gap: space.lg }]}>{children}</View>
+            <ScreenScrollContext.Provider value={scroller}>
+              <View style={[inner, { gap: space.lg }]}>{children}</View>
+            </ScreenScrollContext.Provider>
           </ScrollView>
         ) : (
           <View style={[styles.flex, inner, contentStyle]}>{children}</View>

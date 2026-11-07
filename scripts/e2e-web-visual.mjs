@@ -185,7 +185,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['group', `/group/${GID}`, 'Player of the Month'],
     ['session-new', '/session/new', 'Postcode'],
     ['done-redirect', `/done?kind=paid&session=${SID}`, 'Host dashboard'],
-    ['achievements', '/achievements', 'Hall of Fame'],
+    ['achievements', '/achievements', 'Customise your card'],
     ['help', '/help', 'Help & FAQ'],
     ['edit-profile', '/settings/profile', 'Club you support'],
     ['group-settings', `/group/${GID}/settings`, 'Members ·'],
@@ -234,6 +234,11 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       // one About box (no separate rules), compact rows, members open a small sheet
       const t = await page.locator('body').innerText();
       if (/Make admin|Make moderator/.test(t) || !/About/.test(t) || !/game rules/i.test(t)) failures.push(`${vpName}: group settings layout unexpected`);
+      await page.getByRole('button', { name: 'Delete group' }).click();
+      await page.waitForTimeout(400);
+      if (!/Delete Wednesday Football\?/.test(await page.locator('body').innerText())) failures.push(`${vpName}: no confirmation before deleting a group`);
+      await page.getByRole('button', { name: 'Keep it' }).click();
+      await page.waitForTimeout(300);
       await page.screenshot({ path: join(OUT, `auth-${vpName}-group-settings.png`), fullPage: true });
       // first group: a quick skippable tour, ending in the invite sheet; ? replays it
       await page.goto(base + `/group/${GID}?new=1`, { waitUntil: 'networkidle' });
@@ -259,6 +264,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.waitForTimeout(400);
     }
     if (name === 'edit-profile') {
+      calls.length = 0;
       // your card is on top; tapping a locked style previews it on the card with how close you are
       await page.getByRole('button', { name: /^Hall of Fame card/ }).click();
       await page.waitForTimeout(500);
@@ -267,7 +273,15 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.screenshot({ path: join(OUT, `auth-${vpName}-card-preview.png`) });
       await page.getByRole('button', { name: /^Crimson card/ }).click();
       await page.waitForTimeout(300);
-      if (!/Crimson · in use/.test(await page.locator('body').innerText())) failures.push(`${vpName}: base colour not applied`);
+      if (!/Crimson\n/.test(await page.locator('body').innerText()) || /Hall of Fame unlocks/.test(await page.locator('body').innerText())) failures.push(`${vpName}: base colour not applied`);
+      // nothing is saved until Save; leaving asks first
+      if (calls.includes('set_card_style')) failures.push(`${vpName}: card style saved before pressing Save`);
+      await page.getByRole('button', { name: 'Back' }).first().click();
+      await page.waitForTimeout(400);
+      if (!/Discard your changes\?/.test(await page.locator('body').innerText())) failures.push(`${vpName}: no discard prompt when leaving with changes`);
+      await page.getByRole('button', { name: 'Keep editing' }).click();
+      await page.waitForTimeout(300);
+      if (!/Edit profile/.test(await page.locator('body').innerText())) failures.push(`${vpName}: 'Keep editing' left the page`);
       if (!/Medals on your card · 3\/3/.test(await page.locator('body').innerText())) failures.push(`${vpName}: medal chooser missing`);
       // titles: a locked one previews on the card with what unlocks it
       await page.getByText('Main Character', { exact: true }).last().click();
@@ -275,6 +289,12 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       const tt = await page.locator('body').innerText();
       if (!/Preview · to unlock “Main Character”: Win MOTM 50 times/.test(tt) || !(await page.getByLabel('Title: Main Character').count())) failures.push(`${vpName}: locked title preview missing`);
       await page.getByText('Edit profile').first().scrollIntoViewIfNeeded(); await page.screenshot({ path: join(OUT, `auth-${vpName}-card-title.png`) });
+      calls.length = 0;
+      await page.getByRole('button', { name: 'Save changes' }).click();
+      await page.waitForTimeout(800);
+      if (!calls.includes('set_card_style') || calls.includes('set_card_title')) failures.push(`${vpName}: Save didn't save the card style (or saved a locked title): ${calls.join(',')}`);
+      await page.goto(base + path, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
     }
     if (name === 'create') {
       await page.goto(base + '/session/new', { waitUntil: 'networkidle' });
