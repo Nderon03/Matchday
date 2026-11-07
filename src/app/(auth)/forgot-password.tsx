@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Button, Header, Input, Screen, Text } from '@/components/ui';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { Button, Input, Text } from '@/components/ui';
+import { AuthShell } from '@/features/AuthShell';
+import { useTheme } from '@/theme/ThemeProvider';
 import { supabase } from '@/lib/supabase';
 import { authRedirectUrl } from '@/lib/links';
 import { emailSchema } from '@/domain/validation';
@@ -8,6 +12,7 @@ import { friendlyAuthError } from '@/features/auth';
 import { space } from '@/theme/tokens';
 
 export default function ForgotPassword() {
+  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -22,19 +27,20 @@ export default function ForgotPassword() {
     setSent(true);
   };
   return (
-    <Screen edges={['top', 'bottom']} maxWidth={480}>
-      <Header title="Reset password" />
-      <View style={{ gap: space.lg }}>
-        {sent ? (
-          <Text tone="muted">If an account exists for {email}, a reset link is on its way. You can open it on any device — check your junk folder if it doesn’t arrive in a minute.</Text>
-        ) : (
-          <>
-            <Text tone="muted">Enter your email and we’ll send you a link to reset your password.</Text>
-            <Input label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" placeholder="you@example.com" icon="mail-outline" error={error} />
-            <Button title="Send reset link" loading={busy} onPress={submit} />
-          </>
-        )}
-      </View>
-    </Screen>
+    <AuthShell kicker="Locked out?" title={sent ? 'Link on its way.' : 'Reset your password.'}
+      subtitle={sent ? `If there’s an account for ${email}, a reset link is in your inbox. Open it on any device.` : 'Enter your email and we’ll send you a link to choose a new one.'}
+      footer={<Button title="Back to sign in" variant="ghost" onPress={() => router.replace('/sign-in')} />}>
+      {sent ? (
+        <View style={{ alignItems: 'center', gap: space.sm, paddingVertical: space.sm }}>
+          <Ionicons name="paper-plane" size={40} color={colors.primary} />
+          <Text variant="small" tone="muted" align="center">Check your junk folder if it doesn’t arrive in a minute.</Text>
+        </View>
+      ) : (
+        <>
+          <Input label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" placeholder="you@example.com" icon="mail-outline" error={error} onSubmitEditing={submit} />
+          <Button title="Send reset link" size="lg" iconRight="arrow-forward" loading={busy} onPress={submit} />
+        </>
+      )}
+    </AuthShell>
   );
 }

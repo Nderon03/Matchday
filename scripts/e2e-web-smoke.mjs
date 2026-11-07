@@ -31,9 +31,9 @@ const failures = [];
 const viewports = { phone: { width: 375, height: 812 }, desktop: { width: 1366, height: 900 } };
 const routes = [
   ['welcome', '/welcome', 'MATCHDAY'],
-  ['sign-in', '/sign-in', 'Welcome back'],
-  ['sign-up', '/sign-up', 'Create your account'],
-  ['forgot', '/forgot-password', 'Reset password'],
+  ['sign-in', '/sign-in', 'Ready for kick-off?'],
+  ['sign-up', '/sign-up', 'Join the squad.'],
+  ['forgot', '/forgot-password', 'Reset your password.'],
   ['home-redirect', '/', 'MATCHDAY'],
   ['not-found', '/this-does-not-exist', 'Page not found'],
 ];
@@ -61,8 +61,23 @@ for (const [vpName, vp] of Object.entries(viewports)) {
   if (outline !== 'none') failures.push(`${vpName}: focused input still shows a browser outline (${outline})`);
   await page.screenshot({ path: join(OUT, `${vpName}-input-focus.png`) });
   // client-side validation on sign-up
+  // sign-up is two steps: who you are, then your login
   await page.goto(base + '/sign-up', { waitUntil: 'networkidle' });
-  await page.getByRole('button', { name: 'Create account' }).click();
+  await page.waitForTimeout(700);
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.waitForTimeout(200);
+  if (!/Required/.test(await page.locator('body').innerText())) failures.push(`${vpName}: sign-up step 1 validation missing`);
+  await page.getByLabel('Your name').first().fill('Sam Carter');
+  await page.getByLabel('Username').first().fill('samcarter');
+  await page.waitForTimeout(900);
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.waitForTimeout(700);
+  if (!/Nice one, Sam\./.test(await page.locator('body').innerText())) failures.push(`${vpName}: sign-up step 2 not reached`);
+  await page.getByLabel('Password').first().fill('football123');
+  await page.waitForTimeout(200);
+  if (!/Good|Strong/.test(await page.locator('body').innerText())) failures.push(`${vpName}: password strength missing`);
+  await page.screenshot({ path: join(OUT, `${vpName}-sign-up-step2.png`) });
+  await page.getByRole('button', { name: 'Create my account' }).click();
   await page.waitForTimeout(200);
   if (!(await page.locator('body').innerText()).includes('Enter a valid email address')) failures.push(`${vpName}: sign-up validation message missing`);
   if (errors.length) failures.push(`${vpName}: runtime errors:\n  ${[...new Set(errors)].join('\n  ')}`);
