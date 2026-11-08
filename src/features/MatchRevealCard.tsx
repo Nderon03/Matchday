@@ -31,7 +31,9 @@ export function MatchRevealCard({ r, onDone }: { r: MatchReveal; onDone: () => v
   const [shown, setShown] = useState(reduceMotion ? rating ?? 0 : 0);
 
   useEffect(() => {
-    if (special) haptics.success();
+    // the full-time whistle as your match card opens; a thump on top when it was a big one
+    haptics.whistle();
+    if (special) setTimeout(() => haptics.goal(), 400);
     if (reduceMotion) return;
     Animated.sequence([
       Animated.timing(card, { toValue: 1, duration: 240, easing: Easing.out(Easing.cubic), useNativeDriver: native }),

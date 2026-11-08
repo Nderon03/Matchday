@@ -106,7 +106,7 @@ export function CardStylePicker({ draft, onDraft, overrides, actions }: {
     haptics.tap();
     if (points < s.points) return setPreviewStyle(s.id);
     setPreviewStyle(null);
-    if (s.fx >= 3 && s.id !== draft.style) haptics.success();
+    if (s.fx >= 3 && s.id !== draft.style) haptics.unlock();
     onDraft({ ...draft, style: s.id });
   };
   const chooseTitle = (id: string | null) => {

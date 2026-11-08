@@ -44,7 +44,7 @@ function Announcement({ winners, isMe, onClose }: { winners: MotmWinner[]; isMe:
     const t = setTimeout(() => {
       drum.stop();
       Animated.timing(flip, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.cubic), useNativeDriver: native }).start();
-      setTimeout(() => { setRevealed(true); haptics.success(); }, 350);
+      setTimeout(() => { setRevealed(true); haptics.goal(); }, 350);
     }, 1500);
     return () => { clearTimeout(t); drum.stop(); };
   }, [flip, pulse, reduceMotion]);

@@ -12,6 +12,7 @@ import { space } from '@/theme/tokens';
 import type { GoalSubmission, SubmissionStatus } from '@/types/db';
 import { plural } from '@/domain/format';
 import { ScreenHelp } from '@/features/ScreenHelp';
+import { haptics } from '@/lib/haptics';
 
 const STATUS: Record<SubmissionStatus, { label: string; tone: 'warning' | 'success' | 'danger' | 'primary' | 'neutral' }> = {
   pending: { label: 'Awaiting approval', tone: 'warning' },
@@ -157,7 +158,7 @@ function GoalsBody({ id }: { id: string }) {
       {!!d.isManager && (
         <View style={{ gap: space.sm }}>
           <SectionTitle title={`To approve · ${reviewable.length}`} action={reviewable.filter((x) => x.status === 'pending').length > 1 ? 'Approve all' : undefined}
-            onAction={() => run('bulk', () => rpc<number>('bulk_approve_goals', { p_session: id }), (n) => `${plural(n, 'claim')} approved`)} />
+            onAction={() => run('bulk', () => rpc<number>('bulk_approve_goals', { p_session: id }), (n) => `${plural(n, 'claim')} approved`).then((r) => { if (r !== undefined) haptics.goal(); })} />
           {reviewable.length === 0 && <Text tone="muted" variant="small">No claims waiting. {pending.some((x) => x.user_id === userId) ? 'Your own claim needs another host or a teammate to approve it.' : ''}</Text>}
           {reviewable.map((sub) => {
             const p = nameOf(sub.user_id);
@@ -176,7 +177,7 @@ function GoalsBody({ id }: { id: string }) {
                     </View>
                   </Row>
                   <Row gap={space.sm} wrap>
-                    <Button title="Approve" size="sm" icon="checkmark" loading={busy === `ap-${sub.id}`} onPress={() => run(`ap-${sub.id}`, () => rpc('review_goal_submission', { p_submission: sub.id, p_action: 'approved' }), 'Approved')} />
+                    <Button title="Approve" size="sm" icon="checkmark" loading={busy === `ap-${sub.id}`} onPress={() => run(`ap-${sub.id}`, () => rpc('review_goal_submission', { p_submission: sub.id, p_action: 'approved' }), 'Approved').then((r) => { if (r !== undefined) haptics.goal(); })} />
                     <Button title="Correct" size="sm" variant="secondary" onPress={() => { setReview({ sub, action: 'corrected' }); setReviewGoals(sub.goals); setReason(''); }} />
                     <Button title="Ask" size="sm" variant="ghost" onPress={() => { setReview({ sub, action: 'clarification_requested' }); setReason(''); }} />
                     <Button title="Reject" size="sm" variant="danger" onPress={() => { setReview({ sub, action: 'rejected' }); setReason(''); }} />

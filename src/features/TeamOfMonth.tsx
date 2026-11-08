@@ -27,7 +27,7 @@ export function TeamOfMonth({ groupId, groupName }: { groupId: string; groupName
   const label = monthLabel(new Date(`${month}T12:00:00Z`));
   return (
     <View style={{ gap: space.sm }}>
-      <SectionTitle title="Team of the Month" />
+      <SectionTitle title="Matchday Dream Team" />
       <Segmented value={offset} onChange={setOffset} options={[{ value: '0', label: 'This month' }, { value: '-1', label: 'Last month' }]} />
       {!!q.data && !team && (
         <Text variant="small" tone="muted">
@@ -36,7 +36,7 @@ export function TeamOfMonth({ groupId, groupName }: { groupId: string; groupName
       )}
       {!!team && (
         <>
-          <ShareFrame ref={ref} label="Team of the month">
+          <ShareFrame ref={ref} label="Dream Team">
           <View style={{ borderRadius: radius.xl, overflow: 'hidden', backgroundColor: '#0E3B22' }}>
             <Svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
               <Defs><LinearGradient id="tm" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor="#14532D" /><Stop offset="1" stopColor="#0C3A20" /></LinearGradient></Defs>
@@ -47,7 +47,7 @@ export function TeamOfMonth({ groupId, groupName }: { groupId: string; groupName
               <Rect x="30%" y="86%" width="40%" height="16%" stroke="rgba(255,255,255,0.18)" strokeWidth={2} fill="none" />
             </Svg>
             <View style={{ padding: space.lg, paddingBottom: space.md }}>
-              <Text variant="overline" color="#86EFAC">Team of the Month · {label}</Text>
+              <Text variant="overline" color="#86EFAC">Matchday Dream Team · {label}</Text>
               <Text variant="h3" color="#F4F6F8" numberOfLines={1}>{groupName}</Text>
             </View>
             <View style={{ height: 330 }}>
@@ -63,10 +63,10 @@ export function TeamOfMonth({ groupId, groupName }: { groupId: string; groupName
           </ShareFrame>
           <Button title="Share team" icon="share-social-outline" variant="secondary" size="sm"
             onPress={() => shareViewAsImage(ref, `matchday-team-of-the-month-${month}`,
-              `${groupName} Team of the Month (${label}): ${team.players.map((p) => p.player.display_name).join(', ')}. Player of the Month: ${team.captain.display_name}`).catch(() => undefined)} />
+              `${groupName} Matchday Dream Team (${label}): ${team.players.map((p) => p.player.display_name).join(', ')}. Player of the Month: ${team.captain.display_name}`).catch(() => undefined)} />
         </>
       )}
-      {!!q.error && <Text variant="small" tone="muted">Couldn’t load the Team of the Month.</Text>}
+      {!!q.error && <Text variant="small" tone="muted">Couldn’t load the Dream Team.</Text>}
     </View>
   );
 }

@@ -8,6 +8,7 @@ import { rpc } from '@/lib/api';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { ScreenHelp } from '@/features/ScreenHelp';
+import { haptics } from '@/lib/haptics';
 
 export default function ResultsScreen() {
   const { id, correct } = useLocalSearchParams<{ id: string; correct?: string }>();
@@ -124,6 +125,7 @@ export default function ResultsScreen() {
           options={[12, 24, 48, 72].map((h) => ({ value: h, label: `${h} hours`, detail: h === 24 ? 'Usually long enough for everyone to vote.' : undefined }))} />
         <Button title="Complete & open voting" icon="flag" loading={busy === 'complete'} onPress={async () => {
           const ok = await run('complete', () => rpc('complete_session', { p_session: id, p_voting_hours: votingHours }), 'Full time! Voting is open.');
+          if (ok !== undefined) haptics.whistle();
           if (ok !== undefined) { setCompleteOpen(false); router.replace(`/session/${id}`); }
         }} />
       </Sheet>

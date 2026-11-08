@@ -357,7 +357,7 @@ export default function GroupScreen() {
 
       {tab === 'history' && (
         <View style={{ gap: space.sm }}>
-          <SectionTitle title="Records" />
+          <SectionTitle title="Record Book" />
           {!!records.isLoading && <Loading />}
           {!!records.error && <ErrorState error={records.error} onRetry={records.refetch} compact />}
           {!!records.data && ([

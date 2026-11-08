@@ -87,7 +87,7 @@ function Celebration({ item, more, players, newStyle, onDone }: { item: MyAchiev
   const [text] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
 
   useEffect(() => {
-    haptics.success();
+    haptics.unlock();
     if (reduceMotion) return;
     Animated.sequence([
       Animated.timing(card, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: native }),
