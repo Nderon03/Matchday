@@ -119,7 +119,7 @@ export default function SessionScreen() {
   const respond = (r: RsvpStatus) => run(`rsvp-${r}`, () => rpc<string>('respond_to_session', { p_session: id, p_response: r }),
     (res) => {
       if (res === 'confirmed') { haptics.in(); setJustIn(Date.now()); }
-      return res === 'confirmed' ? 'You’re in! ⚽' : res === 'waitlisted' ? 'Session full — you’re on the waiting list' : 'Response saved';
+      return res === 'confirmed' ? 'You’re in! ⚽' : res === 'waitlisted' ? 'Game full — you’re on the waiting list' : 'Response saved';
     });
 
   const openFinalise = async () => {

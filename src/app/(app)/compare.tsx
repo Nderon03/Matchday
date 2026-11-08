@@ -183,7 +183,7 @@ export default function Compare() {
                   <View style={{ alignItems: 'center', flex: 1 }}><Text variant="stat">{d.rivalry.draws}</Text><Text variant="caption" tone="muted">Draws</Text></View>
                   <View style={{ alignItems: 'center', flex: 1 }}><Text variant="stat">{d.rivalry.b_wins}</Text><Text variant="caption" tone="muted" numberOfLines={1}>{nameB} wins</Text></View>
                 </Row>
-                <Text variant="small" tone="muted" align="center">Goals in those sessions: {d.rivalry.a_goals} – {d.rivalry.b_goals}</Text>
+                <Text variant="small" tone="muted" align="center">Goals in those games: {d.rivalry.a_goals} – {d.rivalry.b_goals}</Text>
                 {!!d.rivalry.last && <Text variant="small" tone="muted" align="center">Last met: {d.rivalry.last.name}, {formatDate(d.rivalry.last.played_at)} ({d.rivalry.last.a_score}–{d.rivalry.last.b_score})</Text>}
               </View>
             )}

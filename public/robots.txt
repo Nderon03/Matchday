@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /session/
+Disallow: /group/
+Disallow: /done
+
+Sitemap: https://matchdayapp.org/sitemap.xml

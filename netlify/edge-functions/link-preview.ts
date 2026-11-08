@@ -1,5 +1,6 @@
-// Adds WhatsApp / iMessage / social link-preview tags to invite links (/invite/<code>), using a
-// short public summary from the database. Everything else about the page is unchanged.
+// Adds WhatsApp / iMessage / social link-preview tags to every page of matchdayapp.org. Invite links
+// (/invite/<code>) get a short public summary from the database; other pages get their own title and
+// description. Everything else about the page is unchanged.
 import type { Config, Context } from 'https://edge.netlify.com';
 
 type Preview = {
@@ -92,15 +93,32 @@ export function describe(p: Preview): { title: string; description: string } {
   };
 }
 
+// the public pages people share; anything else gets the homepage text
+const HOME = { title: 'MATCHDAY · Your weekly game, sorted', description: 'Invites, waiting lists, fair teams, stats, MOTM votes and payments for your 5-a-side. Free on Android and in your browser.' };
+const PAGES: Record<string, { title: string; description: string }> = {
+  '/': HOME,
+  '/welcome': HOME,
+  '/sign-up': { title: 'Join MATCHDAY', description: 'Create your free account: organise your weekly game, get a player card that levels up, and settle up without chasing.' },
+  '/sign-in': { title: 'Sign in · MATCHDAY', description: HOME.description },
+  '/help': { title: 'Help & FAQ · MATCHDAY', description: 'How games, teams, payments, stats, medals and the Dream Team work on MATCHDAY.' },
+  '/legal/privacy': { title: 'Privacy Policy · MATCHDAY', description: 'What MATCHDAY collects, why, and your rights.' },
+  '/legal/terms': { title: 'Terms of Use · MATCHDAY', description: 'The terms for using MATCHDAY.' },
+  '/legal/delete-account': { title: 'Delete your account · MATCHDAY', description: 'How to delete your MATCHDAY account and data.' },
+};
+const clean = (pathname: string) => pathname.replace(/\/+$/, '') || '/';
+export const pageText = (pathname: string) => PAGES[clean(pathname)] ?? HOME;
+
 export default async (request: Request, context: Context) => {
   const res = await context.next();
   if (!(res.headers.get('content-type') ?? '').includes('text/html')) return res;
   const url = new URL(request.url);
-  const code = url.pathname.split('/')[2] ?? '';
+  const invite = url.pathname.startsWith('/invite/');
+  const path = clean(url.pathname);
+  const code = invite ? url.pathname.split('/')[2] ?? '' : '';
   let preview: Preview = null;
   const base = Netlify.env.get('EXPO_PUBLIC_SUPABASE_URL');
   const key = Netlify.env.get('EXPO_PUBLIC_SUPABASE_ANON_KEY');
-  if (base && key && /^[A-Za-z0-9]{6,40}$/.test(code)) {
+  if (invite && base && key && /^[A-Za-z0-9]{6,40}$/.test(code)) {
     try {
       const r = await fetch(`${base}/rest/v1/rpc/get_link_preview`, {
         method: 'POST',
@@ -113,7 +131,7 @@ export default async (request: Request, context: Context) => {
       // no preview: the page still works
     }
   }
-  const { title, description } = describe(preview);
+  const { title, description } = invite ? describe(preview) : pageText(url.pathname);
   // a friend's own card picture when they have one (only saved while their profile is public)
   const image = preview?.kind === 'friend' && preview.card_image && base
     ? `${base}/storage/v1/object/public/share-cards/${preview.card_image}`
@@ -130,14 +148,16 @@ export default async (request: Request, context: Context) => {
     `<meta property="og:image:alt" content="${esc(title)}">`,
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="description" content="${esc(description)}">`,
+    // public pages get a canonical address (the homepage is / even when opened as /welcome)
+    ...(!invite && PAGES[path] ? [`<link rel="canonical" href="${esc(url.origin + (path === '/welcome' ? '/' : path))}">`] : []),
   ].join('');
   const html = (await res.text())
     .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
     .replace('</head>', `${tags}</head>`);
   const headers = new Headers(res.headers);
   headers.delete('content-length');
-  headers.set('cache-control', 'public, max-age=60');
+  if (invite) headers.set('cache-control', 'public, max-age=60');
   return new Response(html, { status: res.status, headers });
 };
 
-export const config: Config = { path: '/invite/*' };
+export const config: Config = { path: '/*', excludedPath: ['/_expo/*', '/assets/*', '/*.png', '/*.ico', '/*.js', '/*.css', '/*.json', '/*.txt', '/*.xml', '/*.ttf'] };

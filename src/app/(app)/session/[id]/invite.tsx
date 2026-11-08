@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button, Card, ErrorState, Header, Loading, Screen, SectionTitle, Text } from '@/components/ui';
 import { PeoplePicker } from '@/components/football/PeoplePicker';
 import { InviteQr } from '@/components/football/InviteQr';
+import { gameInviteMessage } from '@/domain/inviteMessage';
 import { keys, useFriends, useSessionDetail, type PublicProfile } from '@/hooks/queries';
 import { useAction } from '@/hooks/useAction';
 import { q, rpc } from '@/lib/api';
@@ -56,7 +57,12 @@ export default function InviteScreen() {
         <View style={{ gap: space.md }}>
           <Text variant="bodyStrong">Share a link</Text>
           <Text variant="small" tone="muted">Anyone with the link can join the invite list (expires in 7 days).</Text>
-          <InviteQr kind="session" targetId={id} message={`Join ${d.session.name} on MATCHDAY`} />
+          <InviteQr kind="session" targetId={id} message={`Join ${d.session.name} on MATCHDAY`}
+            pitch={(url) => gameInviteMessage({
+              name: d.session.name, starts_at: d.session.starts_at, venue: d.session.venue, format_size: d.session.format_size,
+              places_left: d.session.max_attendance ? d.session.max_attendance - d.attendance.filter((a) => a.status === 'confirmed').length : null,
+              price_pence: d.session.payment_mode === 'free' ? 0 : d.session.price_pence,
+            }, url)} />
         </View>
       </Card>
       <SectionTitle title="Friends & group members" />

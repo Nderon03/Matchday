@@ -98,6 +98,7 @@ const reveal = {
   motm: true, motm_shared: false, prev_max_goals: 2, prev_max_assists: 2, prev_best_rating: '8.10', prev_rated: 12,
 };
 const rpcs = {
+  create_invite_link: 'Ab12Cd34',
   get_match_reveals: [],
   get_calendar_feed: 'a'.repeat(64),
   get_my_group_invites: [{ group_id: '66666666-6666-4666-8666-666666666666', name: 'Sunday Kickabout', logo_url: null, location: 'Mill Hill', members: 12, invited_by: 'Alex Reid', created_at: ago(0.2) }],
@@ -192,6 +193,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['help', '/help', 'Help & FAQ'],
     ['edit-profile', '/settings/profile', 'Club you support'],
     ['group-settings', `/group/${GID}/settings`, 'Members ·'],
+    ['invite', `/session/${SID}/invite`, 'Message for your group chat'],
   ]) {
     await page.goto(base + path, { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);

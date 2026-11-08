@@ -102,7 +102,7 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
   const roomy = w >= 460;
   const cells: [string, string | number][] = [
     // no stats (private profile) shows dashes rather than misleading zeros
-    ['Games', s ? s.sessions : '–'], ['Wins', s ? s.wins : '–'], ['Win %', s ? `${Number(s.win_pct).toFixed(0)}%` : '–'], ['MOTM', s ? s.motm : '–'],
+    ['Matches', s ? s.fixtures : '–'], ['Wins', s ? s.wins : '–'], ['Win %', s ? `${Number(s.win_pct).toFixed(0)}%` : '–'], ['MOTM', s ? s.motm : '–'],
     ['Goals', s ? s.goals : '–'], ['Assists', s ? s.assists : '–'], ['G/A', s ? s.goals + s.assists : '–'], ['Medals', data.achievements ?? 0],
   ];
   return (

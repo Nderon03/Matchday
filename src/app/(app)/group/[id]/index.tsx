@@ -11,6 +11,7 @@ import { SessionCard } from '@/components/football/SessionCard';
 import { Leaderboard } from '@/components/football/Leaderboard';
 import { FeedItemCard } from '@/components/football/FeedItem';
 import { InviteQr } from '@/components/football/InviteQr';
+import { groupInviteMessage } from '@/domain/inviteMessage';
 import { keys, useFeed, useFriends, useGroup, useGroupSessions } from '@/hooks/queries';
 import { PeoplePicker } from '@/components/football/PeoplePicker';
 import { toggleIn } from '@/domain/sets';
@@ -407,8 +408,8 @@ export default function GroupScreen() {
             <Text variant="small" tone="muted">Only admins can invite people to this invite-only group.</Text>
           )}
           <Text variant="smallStrong" tone="muted">Not friends yet or not on MATCHDAY?</Text>
-          <Text variant="caption" tone="faint">Share this link or let them scan the QR code. It expires in 7 days.</Text>
-          <InviteQr kind="group" targetId={id} message={`Join ${g.name} on MATCHDAY`} />
+          <Text variant="caption" tone="faint">Send this to your group chat, or let them scan the QR code. The link expires in 7 days.</Text>
+          <InviteQr kind="group" targetId={id} message={`Join ${g.name} on MATCHDAY`} pitch={(url) => groupInviteMessage(g.name, url)} />
         </ScrollView>
       </Sheet>
       <Sheet visible={seasonOpen} onClose={() => setSeasonOpen(false)} title="New season">
