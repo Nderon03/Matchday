@@ -9,7 +9,15 @@ WebBrowser.maybeCompleteAuthSession();
 /** Optional OAuth sign-in. Works once the provider is enabled in Supabase Auth settings. */
 export async function signInWithProvider(provider: 'google' | 'apple') {
   const redirectTo = authRedirectUrl();
-  const { data, error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo, skipBrowserRedirect: Platform.OS !== 'web' } });
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo,
+      skipBrowserRedirect: Platform.OS !== 'web',
+      // always let people choose which Google account (otherwise Google silently picks the last one)
+      queryParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
+    },
+  });
   if (error) throw toAppError(error);
   if (Platform.OS === 'web') return;
   const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
