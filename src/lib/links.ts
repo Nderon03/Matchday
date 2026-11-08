@@ -23,6 +23,14 @@ export function inviteUrl(code: string) {
   return base ? `${base}/invite/${code}` : Linking.createURL(`/invite/${code}`);
 }
 
+/**
+ * Where sign-in and email links come back to. In the app it's always exactly
+ * `matchday://auth/callback` (Linking.createURL writes `matchday:///…` with three slashes, which
+ * doesn't match the Redirect URLs allowed in Supabase, so Supabase would send people to the
+ * website instead of back into the app).
+ */
 export function authRedirectUrl() {
-  return Linking.createURL('/auth/callback');
+  if (Platform.OS === 'web') return Linking.createURL('/auth/callback');
+  const scheme = Linking.createURL('/').split(':')[0];
+  return scheme === 'exp' || scheme === 'exps' ? Linking.createURL('/auth/callback') : `${scheme}://auth/callback`;
 }
