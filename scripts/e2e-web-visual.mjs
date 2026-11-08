@@ -27,7 +27,10 @@ const people = names.map((n, i) => ({ id: i === 0 ? ME : `2222222${i}-2222-4222-
 const SID = '33333333-3333-4333-8333-333333333333';
 const FID = '44444444-4444-4444-8444-444444444444';
 const GID = '55555555-5555-4555-8555-555555555555';
-const kickoff = (() => { const d = new Date(Date.now() + 86400_000); d.setHours(19, 0, 0, 0); return d.toISOString(); })();
+// Store shots use a game later today, so Home is in Matchday mode with the countdown
+const kickoff = process.env.STORE_SHOTS === '1'
+  ? (() => { const d = new Date(Date.now() + 2 * 3600_000 + 14 * 60_000); return (d.getDate() === new Date().getDate() ? d : new Date(Date.now() + 5 * 60_000)).toISOString(); })()
+  : (() => { const d = new Date(Date.now() + 86400_000); d.setHours(19, 0, 0, 0); return d.toISOString(); })();
 const session = { id: SID, group_id: GID, host_id: ME, name: 'Wednesday Football', starts_at: kickoff, duration_minutes: 60, venue: 'Riverside Sports Centre, Pitch 2', location: 'London', postcode: 'NW7 2EU', latitude: 51.6142, longitude: -0.2447, format_size: 5, max_attendance: 10, visibility: 'group', description: 'Bring both bibs.', payment_mode: 'upfront', price_pence: 600, currency: 'gbp', mode: 'single', motm_mode: 'session', status: 'scheduled', rsvp_deadline: null, voting_closes_at: null, template_id: null, host_confirmed_at: null };
 const team = (side, ids) => ({ id: `t${side}`, fixture_id: FID, side, name: side === 'A' ? 'Bibs' : 'Non-bibs', colour: side === 'A' ? '#22C55E' : '#F5F5F5', score: null,
   players: ids.map((uid, i) => ({ fixture_team_id: `t${side}`, fixture_id: FID, user_id: uid, position: ['GK', 'DEF', 'DEF', 'MID', 'FWD'][i] ?? 'ANY', is_goalkeeper: i === 0, is_substitute: false, sort_order: i })) });
@@ -175,7 +178,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   table.notifications.forEach((n) => { n.read_at = null; });
   const { page, errors } = await openPage(vp, { dpr: store ? 2 : 1 });
   for (const [name, path, expected] of [
-    ['home', '/', 'Next up'], ['session', `/session/${SID}`, 'Host controls'], ['lineup', `/session/${SID}/lineup`, 'Balance teams'],
+    ['home', '/', process.env.STORE_SHOTS === '1' ? 'KICK-OFF IN' : 'Next up'], ['session', `/session/${SID}`, 'Host controls'], ['lineup', `/session/${SID}/lineup`, 'Balance teams'],
     ['leagues', '/leagues', 'My groups'], ['profile', '/profile', '100% RELIABLE'], ['create', '/create', 'New game'],
     ['payments', `/session/${SID}/payments`, 'Host dashboard'], ['settings', '/settings', 'Terms of Use'],
     ['notifications', '/notifications', 'Notifications'], ['privacy', '/legal/privacy', 'Privacy Policy'],
@@ -402,8 +405,8 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     if (store && ['home', 'session', 'lineup', 'achievements', 'profile', 'group', 'payments'].includes(name)) {
       await mkdir(join(OUT, 'store-raw'), { recursive: true });
       await page.evaluate(() => window.scrollTo(0, 0));
-      // the group shot shows Team of the Month
-      if (name === 'group') await page.getByText('Team of the Month').first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
+      // the group shot shows the Dream Team
+      if (name === 'group') await page.getByText(/Dream Team/).first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
       await page.waitForTimeout(name === 'group' ? 1200 : 200);
       await page.screenshot({ path: join(OUT, 'store-raw', `${name}.png`) });
     }

@@ -65,16 +65,16 @@ export function MatchdayHero({ game, onPress, children }: { game: MatchdayGame; 
     : phase === 'live' ? `${game.name} is live, ${minutesIn} minutes in.` : `Full time at ${game.name}.`;
 
   return (
-    <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={label}
-      onLayout={(e) => setW(e.nativeEvent.layout.width)}
-      style={({ pressed }) => ({ borderRadius: radius.xl, overflow: 'hidden', backgroundColor: '#06140C', borderWidth: 1, borderColor: `${PITCH}55`,
-        transform: [{ scale: pressed ? 0.99 : 1 }] })}>
+    <View onLayout={(e) => setW(e.nativeEvent.layout.width)}
+      style={{ borderRadius: radius.xl, overflow: 'hidden', backgroundColor: '#06140C', borderWidth: 1, borderColor: `${PITCH}55` }}>
       {w > 0 && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
           <StadiumHero height={190} width={w} fadeTo="#06140C" ball={false} />
         </View>
       )}
-      <View style={{ padding: space.lg, gap: space.sm, minHeight: 190, justifyContent: 'flex-end' }}>
+      {/* only the scoreboard is tappable: buttons passed as children sit outside it (no button inside a button on web) */}
+      <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={label}
+        style={({ pressed }) => ({ padding: space.lg, paddingBottom: children ? space.sm : space.lg, gap: space.sm, minHeight: children ? 170 : 190, justifyContent: 'flex-end', opacity: pressed ? 0.92 : 1 })}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           {phase === 'live' ? (
             <Animated.View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444', opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.3] }) }} />
@@ -100,8 +100,8 @@ export function MatchdayHero({ game, onPress, children }: { game: MatchdayGame; 
         <Text variant="small" color="#B6C7BD" numberOfLines={1}>
           {kick}{place ? ` · ${place}` : ''}{game.max_attendance ? ` · ${game.confirmed ?? 0}/${game.max_attendance} in` : ''}
         </Text>
-        {!!children && <View style={{ marginTop: space.xs }}>{children}</View>}
-      </View>
-    </Pressable>
+      </Pressable>
+      {!!children && <View style={{ paddingHorizontal: space.lg, paddingBottom: space.lg, paddingTop: space.xs }}>{children}</View>}
+    </View>
   );
 }
