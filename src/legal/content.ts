@@ -4,8 +4,10 @@
  * during onboarding and it is recorded on their profile.
  */
 export const LEGAL_VERSION = '2026-11-04.1';
-export const LEGAL_UPDATED = '7 November 2026';
+export const LEGAL_UPDATED = '8 November 2026';
 export const OPERATOR = 'Nderon Beqiri';
+/** The name MATCHDAY is published under (Google Play developer name). */
+export const TRADING_NAME = "Ned's Games";
 export const CONTACT_EMAIL = 'matchdayenquiries@hotmail.com';
 
 export interface LegalSection {
@@ -23,7 +25,7 @@ export interface LegalDoc {
 export const PRIVACY: LegalDoc = {
   title: 'Privacy Policy',
   intro: [
-    `MATCHDAY is run by ${OPERATOR}, an individual based in the United Kingdom ("we", "us"). We are the data controller for the personal data described here. Questions or requests: ${CONTACT_EMAIL}.`,
+    `MATCHDAY is run by ${OPERATOR}, trading as ${TRADING_NAME}, an individual based in the United Kingdom ("we", "us"). We are the data controller for the personal data described here. Questions or requests: ${CONTACT_EMAIL}.`,
     'This policy explains what we collect when you use the MATCHDAY app or website, why, who we share it with and the rights you have under UK data protection law (UK GDPR and the Data Protection Act 2018).',
   ],
   sections: [
@@ -121,7 +123,7 @@ export const PRIVACY: LegalDoc = {
 export const TERMS: LegalDoc = {
   title: 'Terms of Use',
   intro: [
-    `These terms are an agreement between you and ${OPERATOR} ("we", "us"), who runs MATCHDAY. By creating an account you agree to them. Contact: ${CONTACT_EMAIL}.`,
+    `These terms are an agreement between you and ${OPERATOR}, trading as ${TRADING_NAME} ("we", "us"), who runs MATCHDAY. By creating an account you agree to them. Contact: ${CONTACT_EMAIL}.`,
   ],
   sections: [
     {

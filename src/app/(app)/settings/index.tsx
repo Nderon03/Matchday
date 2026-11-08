@@ -13,7 +13,7 @@ import { space } from '@/theme/tokens';
 import type { ProfileVisibility } from '@/types/db';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
-import { CONTACT_EMAIL } from '@/legal/content';
+import { CONTACT_EMAIL, TRADING_NAME } from '@/legal/content';
 import { reportError, sentryEnabled } from '@/lib/sentry';
 import { haptics } from '@/lib/haptics';
 import { CalendarSyncSheet } from '@/features/CalendarSync';
@@ -141,6 +141,7 @@ export default function Settings() {
           toast.success('Test error sent to Sentry');
         }
       }}>{versionLabel()}</Text>
+      <Text variant="caption" tone="faint" align="center" style={{ marginTop: -space.md }}>by {TRADING_NAME}</Text>
 
       <CalendarSyncSheet visible={calendarOpen} onClose={() => setCalendarOpen(false)} />
       <Sheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete your account">
