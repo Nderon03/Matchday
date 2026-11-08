@@ -18,6 +18,8 @@ import { usePriceLabel } from '@/hooks/useFees';
 import { useLayout } from '@/hooks/useLayout';
 import { NearlyThere } from '@/features/moments/NearlyThere';
 import { HelpButton } from '@/features/ScreenHelp';
+import { MatchdayHero, isMatchday } from '@/features/MatchdayHero';
+import { useNow } from '@/hooks/useNow';
 
 function greeting() {
   const h = new Date().getHours();
@@ -46,6 +48,7 @@ export default function Home() {
   const { isWide } = useLayout();
   const home = useHome();
   const [allTasks, setAllTasks] = useState(false);
+  const now = useNow(60_000);
   const [helpOpen, setHelpOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   // Settings → Replay the app tour comes here with ?tour=1
@@ -114,9 +117,16 @@ export default function Home() {
           )}
 
           <View style={{ gap: space.sm }}>
-            <SectionTitle title="Next up" />
-            {next ? (
-              <Card variant="highlight" onPress={() => router.push(`/session/${next.id}`)} accessibilityLabel={`Next session ${next.name}`}>
+            <SectionTitle title={next && isMatchday(next.starts_at, now) ? 'Today' : 'Next up'} />
+            {next && isMatchday(next.starts_at, now) ? (
+              <MatchdayHero game={next} onPress={() => router.push(`/session/${next.id}`)}>
+                <Row gap={space.sm}>
+                  <Button title={next.lineup_ready ? 'Teams' : 'Squad'} size="sm" variant="secondary" icon="shirt-outline" onPress={() => router.push(`/session/${next.id}/lineup`)} />
+                  <Button title="Open game" size="sm" iconRight="arrow-forward" onPress={() => router.push(`/session/${next.id}`)} />
+                </Row>
+              </MatchdayHero>
+            ) : next ? (
+              <Card variant="highlight" onPress={() => router.push(`/session/${next.id}`)} accessibilityLabel={`Next game: ${next.name}`}>
                 <View style={{ gap: space.md }}>
                   <Row style={{ justifyContent: 'space-between' }}>
                     <Text variant="overline" tone="primary">{next.format_size}-a-side</Text>
@@ -136,7 +146,7 @@ export default function Home() {
               </Card>
             ) : (
               <Card>
-                <EmptyState icon="calendar-outline" title="No upcoming games" message="Organise a kickabout and invite your squad." action={{ label: 'Create a session', onPress: () => router.push('/create') }} />
+                <EmptyState icon="calendar-outline" title="No upcoming games" message="Organise a kickabout and invite your squad." action={{ label: 'Create a game', onPress: () => router.push('/create') }} />
               </Card>
             )}
           </View>

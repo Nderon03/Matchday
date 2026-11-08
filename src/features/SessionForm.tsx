@@ -145,7 +145,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         const newInvites = [...invitees].filter((id) => !(initial?.invitee_ids ?? []).includes(id));
         if (newInvites.length) await rpc('invite_to_session', { p_session: editing.id, p_users: newInvites });
         qc.invalidateQueries({ queryKey: ['session', editing.id] });
-        toast.success('Session updated');
+        toast.success('Game updated');
         router.back();
       } else {
         const id = await rpc<string>('create_session', { p: body });
@@ -155,7 +155,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         }
         qc.invalidateQueries({ queryKey: ['sessions'] });
         qc.invalidateQueries({ queryKey: ['home'] });
-        toast.success(`Session created${invitees.size ? ` · ${invitees.size} invited` : ''}${savePreset ? ' · saved as a preset' : ''}`);
+        toast.success(`Game created${invitees.size ? ` · ${invitees.size} invited` : ''}${savePreset ? ' · saved as a preset' : ''}`);
         router.replace(`/session/${id}`);
       }
     } catch (e) {
@@ -175,7 +175,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
 
   return (
     <View style={{ gap: space.xl }}>
-      <Spot id="form.name"><Input label="Session name" value={name} onChangeText={setName} placeholder="e.g. Wednesday Football" maxLength={60} error={errors.name} /></Spot>
+      <Spot id="form.name"><Input label="Game name" value={name} onChangeText={setName} placeholder="e.g. Wednesday Football" maxLength={60} error={errors.name} /></Spot>
 
       {!!groups.data?.length && <Spot id="form.group"><SwipeSelect label="Group" value={groupId} onChange={selectGroup} options={groupOptions} /></Spot>}
 
@@ -280,7 +280,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         )}
         <View style={{ flex: 1 }}>
       <Button
-        title={editing ? 'Save changes' : `Create session${paymentMode !== 'free' && pence ? ` · players pay ${priceLabel(pence).total}` : ''}`}
+        title={editing ? 'Save changes' : `Create game${paymentMode !== 'free' && pence ? ` · players pay ${priceLabel(pence).total}` : ''}`}
         size="lg"
         loading={busy}
         onPress={submit}

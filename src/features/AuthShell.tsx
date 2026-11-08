@@ -23,9 +23,12 @@ export function Rise({ delay = 0, children }: { delay?: number; children: React.
 }
 
 /** Night match under the lights: a pitch in perspective, sweeping floodlights and a ball. */
-function StadiumHero({ height }: { height: number }) {
-  const { colors, reduceMotion } = useTheme();
-  const { width } = useWindowDimensions();
+export function StadiumHero({ height, width: fixedWidth, fadeTo, ball = true }: { height: number; width?: number; fadeTo?: string; ball?: boolean }) {
+  const { colors: themeColors, reduceMotion } = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
+  const width = fixedWidth ?? windowWidth;
+  // what it fades into at the bottom (the page, or a card)
+  const colors = { ...themeColors, bg: fadeTo ?? themeColors.bg };
   const [sweep] = useState(() => new Animated.Value(0));
   const [bob] = useState(() => new Animated.Value(0));
   useEffect(() => {
@@ -44,7 +47,7 @@ function StadiumHero({ height }: { height: number }) {
     return () => loops.forEach((l) => l.stop());
   }, [sweep, bob, reduceMotion]);
 
-  const w = Math.max(width, 360);
+  const w = fixedWidth ?? Math.max(width, 360);
   const h = height;
   const beam = (side: 1 | -1) => (
     <Animated.View pointerEvents="none" style={{ position: 'absolute', top: -40, [side === 1 ? 'left' : 'right']: -w * 0.15, width: w * 0.8, height: h + 60, opacity: 0.55,
@@ -96,12 +99,12 @@ function StadiumHero({ height }: { height: number }) {
         </Defs>
         <Rect width={w} height={h * 0.45} fill="url(#fade)" />
       </Svg>
-      <Animated.View style={{ position: 'absolute', left: w / 2 - 17, top: h * 0.66 - 44,
+      {ball && <Animated.View style={{ position: 'absolute', left: w / 2 - 17, top: h * 0.66 - 44,
         transform: [{ translateY: bob.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) }, { rotate: bob.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '25deg'] }) }] }}>
         <Ionicons name="football" size={34} color="#F4F6F8" />
-      </Animated.View>
-      <Animated.View style={{ position: 'absolute', left: w / 2 - 14, top: h * 0.66 - 6, width: 28, height: 6, borderRadius: 3, backgroundColor: '#000',
-        opacity: bob.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0.2] }), transform: [{ scaleX: bob.interpolate({ inputRange: [0, 1], outputRange: [1, 0.7] }) }] }} />
+      </Animated.View>}
+      {ball && <Animated.View style={{ position: 'absolute', left: w / 2 - 14, top: h * 0.66 - 6, width: 28, height: 6, borderRadius: 3, backgroundColor: '#000',
+        opacity: bob.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0.2] }), transform: [{ scaleX: bob.interpolate({ inputRange: [0, 1], outputRange: [1, 0.7] }) }] }} />}
     </View>
   );
 }

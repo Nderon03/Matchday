@@ -78,7 +78,7 @@ function Sidebar() {
           <Pressable key={t.name} ref={tourRef(`tab-${t.name}`)} nativeID={`spot-tab-${t.name}`} onPress={() => router.navigate(t.href as any)} accessibilityRole="menuitem" accessibilityState={{ selected: active }}
             style={({ hovered }: any) => [styles.navItem, { backgroundColor: t.name === 'create' ? colors.primary : active ? colors.primaryMuted : hovered ? colors.surfaceAlt : 'transparent' }]}>
             <Ionicons name={active ? t.active : t.icon} size={20} color={t.name === 'create' ? colors.onPrimary : active ? colors.primary : colors.textMuted} />
-            <Text variant="bodyStrong" color={t.name === 'create' ? colors.onPrimary : active ? colors.primary : colors.text}>{t.name === 'create' ? 'Create session' : t.label}</Text>
+            <Text variant="bodyStrong" color={t.name === 'create' ? colors.onPrimary : active ? colors.primary : colors.text}>{t.name === 'create' ? 'Create game' : t.label}</Text>
           </Pressable>
         );
       })}

@@ -17,6 +17,12 @@ production access, whichever comes first. Keep the closed test stable until then
   served from matchdayapp.org).
 - [ ] **One-tap add to calendar** on phones (`expo-calendar`) instead of the Google Calendar link.
 - [ ] **iPhone build** and TestFlight.
+- [ ] **Match sounds** (`expo-audio`, needs the new build): a soft whistle at full time, a crowd swell on the
+  MOTM reveal and a ball thud on "I'm in", with a Sound switch next to Vibration in Settings (off when the
+  phone is on silent). Not added before this build because a new native module stops over-the-air updates
+  reaching the build testers already have.
+- [ ] **Google's native account picker** (`@react-native-google-signin/google-signin`) instead of the browser sheet.
+- [ ] **Sign in with Apple** (native sheet on iPhone; required by the App Store when Google sign-in is offered).
 
 ## Setup on your side
 1. **Google Cloud** → APIs & Services → Credentials → create OAuth client IDs:

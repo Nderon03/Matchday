@@ -3,7 +3,7 @@ import { Animated, Easing, Platform, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { Text } from '@/components/ui';
 import { useTheme } from '@/theme/ThemeProvider';
-import { radius, space } from '@/theme/tokens';
+import { radius, space, fonts } from '@/theme/tokens';
 
 const native = Platform.OS !== 'web';
 const G = '#22C55E';
@@ -142,7 +142,7 @@ export function StatsVisual({ active }: { active: boolean }) {
     <Animated.View style={{ width: 256, borderRadius: radius.xl, padding: space.lg, gap: space.md, backgroundColor: '#13261B', borderWidth: 1, borderColor: 'rgba(34,197,94,0.35)',
       opacity: card, transform: [{ perspective: 800 }, { rotateX: card.interpolate({ inputRange: [0, 1], outputRange: ['35deg', '0deg'] }) }, { translateY: card.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-        <Text style={{ fontSize: 44, lineHeight: 48, fontWeight: '800', color: colors.text }}><CountUp to={7.8} decimals={1} active={active} /></Text>
+        <Text style={{ fontSize: 52, lineHeight: 54, fontFamily: fonts.scoreHeavy, color: colors.text }}><CountUp to={7.8} decimals={1} active={active} /></Text>
         <View style={{ flex: 1 }}>
           <Text variant="bodyStrong">You</Text>
           <Text variant="caption" tone="muted" numberOfLines={1}>Midfielder</Text>

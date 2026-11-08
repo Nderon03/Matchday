@@ -7,6 +7,7 @@ import {
 } from '@/components/ui';
 import { PaymentBadge } from '@/components/football/PaymentBadge';
 import { ResultCard } from '@/components/football/ResultCard';
+import { ShareFrame } from '@/components/football/ShareFrame';
 import { shareViewAsImage } from '@/lib/share';
 import { statusBadge } from '@/components/football/SessionCard';
 import { keys, useSessionDetail } from '@/hooks/queries';
@@ -36,6 +37,7 @@ import { MotmAnnouncement } from '@/features/moments/MotmAnnouncement';
 import { CalendarSyncSheet } from '@/features/CalendarSync';
 import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 import { NeedPlayers } from '@/features/NeedPlayers';
+import { MatchdayHero, isMatchday } from '@/features/MatchdayHero';
 import { checkInOrQueue } from '@/lib/offline';
 
 export default function SessionScreen() {
@@ -81,8 +83,8 @@ export default function SessionScreen() {
     };
   }, [d]);
 
-  if (detail.isLoading) return <Screen><Header title="Session" /><Loading /></Screen>;
-  if (!d || !groups) return <Screen><Header title="Session" /><ErrorState error={detail.error} onRetry={detail.refetch} /></Screen>;
+  if (detail.isLoading) return <Screen><Header title="Game" /><Loading /></Screen>;
+  if (!d || !groups) return <Screen><Header title="Game" /><ErrorState error={detail.error} onRetry={detail.refetch} /></Screen>;
 
   const s = d.session;
   const me = d.me;
@@ -198,6 +200,10 @@ export default function SessionScreen() {
           </Row>
         )}
       />
+
+      {['scheduled', 'in_progress', 'completed'].includes(s.status) && isMatchday(s.starts_at, now) && (
+        <MatchdayHero game={{ ...s, confirmed: groups.confirmed.length + guestsIn.length }} />
+      )}
 
       <Spot id="session.info"><Card>
         <View style={{ gap: space.md }}>
@@ -399,8 +405,8 @@ export default function SessionScreen() {
       )}
       {s.status === 'finalised' && (
         <View style={{ gap: space.sm }}>
+          <ShareFrame ref={resultRef} label="Full time">
           <ResultCard
-            ref={resultRef}
             data={{
               name: s.name, date: s.starts_at, formatSize: s.format_size,
               fixtures: d.fixtures.map((f) => ({ number: f.number, a: f.teams[0]?.name ?? 'A', b: f.teams[1]?.name ?? 'B', scoreA: f.teams[0]?.score ?? null, scoreB: f.teams[1]?.score ?? null })),
@@ -416,6 +422,7 @@ export default function SessionScreen() {
               })(),
             }}
           />
+          </ShareFrame>
           <Button title="Share match report" icon="share-social-outline" size="sm"
             onPress={() => shareViewAsImage(resultRef, `matchday-${s.id}`, `${s.name}: ${d.fixtures.map((f) => `${f.teams[0]?.score}-${f.teams[1]?.score}`).join(', ')} on MATCHDAY`).catch(() => undefined)} />
           <SectionTitle title="Man of the Match" />
@@ -612,10 +619,10 @@ export default function SessionScreen() {
             <ListItem key={t.title} title={t.title} left={<Ionicons name={t.icon} size={20} color={colors.textMuted} />} onPress={() => { setToolsOpen(false); router.push(t.go); }} />
           ))}
           {['scheduled', 'in_progress'].includes(s.status) && (
-            <ListItem title="Cancel session" danger left={<Ionicons name="close-circle-outline" size={20} color={colors.danger} />} onPress={async () => {
+            <ListItem title="Cancel game" danger left={<Ionicons name="close-circle-outline" size={20} color={colors.danger} />} onPress={async () => {
               setToolsOpen(false);
-              const r = await confirm({ title: 'Cancel this session?', message: 'Everyone will be notified and any payments refunded or released.', confirmLabel: 'Cancel session', cancelLabel: 'Keep it', destructive: true, reasonLabel: 'Reason (optional, shown to players)' });
-              if (r) run('cancel', () => rpc('cancel_session', { p_session: id, p_reason: typeof r === 'object' && r.reason ? r.reason : null }), 'Session cancelled');
+              const r = await confirm({ title: 'Cancel this game?', message: 'Everyone will be notified and any payments refunded or released.', confirmLabel: 'Cancel game', cancelLabel: 'Keep it', destructive: true, reasonLabel: 'Reason (optional, shown to players)' });
+              if (r) run('cancel', () => rpc('cancel_session', { p_session: id, p_reason: typeof r === 'object' && r.reason ? r.reason : null }), 'Game cancelled');
             }} />
           )}
         </ScrollView>

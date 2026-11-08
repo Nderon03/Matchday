@@ -130,7 +130,7 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
         )}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: compact ? space.md : space.lg }}>
           <View style={{ alignItems: 'center' }}>
-            <Text variant="display" color="#F4F6F8" style={{ fontSize: compact ? 34 : 44, lineHeight: compact ? 38 : 48 }}>{rating(s?.rating)}</Text>
+            <Text variant="display" color="#F4F6F8" style={{ fontSize: compact ? 42 : 54, lineHeight: compact ? 44 : 56 }}>{rating(s?.rating)}</Text>
             <Text variant="overline" color={st.accent}>{data.position === 'ANY' ? 'ALL' : data.position}</Text>
             {(!!data.nationality || !!data.supported_club) && (
               <View style={{ alignItems: 'center', gap: 6, marginTop: 6 }}>

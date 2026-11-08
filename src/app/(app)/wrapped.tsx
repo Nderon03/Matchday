@@ -9,6 +9,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { rating, plural } from '@/domain/format';
 import { radius, space } from '@/theme/tokens';
 import { ScreenHelp } from '@/features/ScreenHelp';
+import { ShareFrame } from '@/components/football/ShareFrame';
 
 function periods() {
   const now = new Date();
@@ -49,7 +50,8 @@ export default function Wrapped() {
       {!!w.error && <ErrorState error={w.error} onRetry={w.refetch} />}
       {!!d && (
         <>
-          <View ref={ref} collapsable={false} style={{ borderRadius: radius.xl, overflow: 'hidden', backgroundColor: '#0B1410' }}>
+          <ShareFrame ref={ref} label="Wrapped">
+          <View style={{ borderRadius: radius.xl, overflow: 'hidden', backgroundColor: '#0B1410' }}>
             <Svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
               <Defs><LinearGradient id="w" x1="0" y1="0" x2="0.4" y2="1"><Stop offset="0" stopColor="#15532F" /><Stop offset="1" stopColor="#090D0B" /></LinearGradient></Defs>
               <Rect width="100%" height="100%" fill="url(#w)" />
@@ -67,7 +69,7 @@ export default function Wrapped() {
               ) : (
                 <>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                    <Big value={d.sessions} label="Sessions played" />
+                    <Big value={d.sessions} label="Games played" />
                     <Big value={d.goals} label="Goals scored" />
                     <Big value={`${d.wins}-${d.draws}-${d.losses}`} label="Won · drawn · lost" />
                     <Big value={rating(d.rating)} label="Average rating" />
@@ -83,6 +85,7 @@ export default function Wrapped() {
               <Text variant="caption" color="#6F8378">Your football. Your squad. Your statistics.</Text>
             </View>
           </View>
+          </ShareFrame>
           <Button title="Share" icon="share-social-outline" onPress={() => shareViewAsImage(ref, `matchday-wrapped-${key}`, `My MATCHDAY ${p.label}: ${plural(d.sessions, 'session')}, ${plural(d.goals, 'goal')}, ${d.motm} MOTM`).catch(toast.error)} />
         </>
       )}

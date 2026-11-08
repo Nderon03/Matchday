@@ -8,6 +8,7 @@ import { shareViewAsImage } from '@/lib/share';
 import { MIN_RATED_GAMES, monthLabel, monthStart, pickTeamOfMonth, type MonthCandidate, type Picked } from '@/domain/teamOfMonth';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
+import { ShareFrame } from '@/components/football/ShareFrame';
 
 const native = Platform.OS !== 'web';
 // where each slot sits on the pitch (% across, % down): keeper at the bottom, attackers at the top
@@ -35,7 +36,8 @@ export function TeamOfMonth({ groupId, groupName }: { groupId: string; groupName
       )}
       {!!team && (
         <>
-          <View ref={ref} collapsable={false} style={{ borderRadius: radius.xl, overflow: 'hidden', backgroundColor: '#0E3B22' }}>
+          <ShareFrame ref={ref} label="Team of the month">
+          <View style={{ borderRadius: radius.xl, overflow: 'hidden', backgroundColor: '#0E3B22' }}>
             <Svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
               <Defs><LinearGradient id="tm" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor="#14532D" /><Stop offset="1" stopColor="#0C3A20" /></LinearGradient></Defs>
               <Rect width="100%" height="100%" fill="url(#tm)" />
@@ -58,6 +60,7 @@ export function TeamOfMonth({ groupId, groupName }: { groupId: string; groupName
               <Text variant="overline" color="#22C55E">MATCHDAY</Text>
             </View>
           </View>
+          </ShareFrame>
           <Button title="Share team" icon="share-social-outline" variant="secondary" size="sm"
             onPress={() => shareViewAsImage(ref, `matchday-team-of-the-month-${month}`,
               `${groupName} Team of the Month (${label}): ${team.players.map((p) => p.player.display_name).join(', ')}. Player of the Month: ${team.captain.display_name}`).catch(() => undefined)} />

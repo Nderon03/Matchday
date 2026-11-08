@@ -23,7 +23,7 @@ export const SCREEN_TOURS = {
   ]),
   create: tour('create', 'Create', { emoji: '➕', title: 'Make something', body: 'Start a game, a group, or invite friends.' }, [
     { target: t('create.presets'), emoji: '⭐', title: 'Your presets', body: 'Games you starred. One tap starts a new one with the same settings.' },
-    { target: t('create.session'), emoji: '⚽', title: 'New session', body: 'Pick a day, format and price. Takes about 30 seconds.' },
+    { target: t('create.session'), emoji: '⚽', title: 'New game', body: 'Pick a day, format and price. Takes about 30 seconds.' },
     { target: t('create.group'), emoji: '👥', title: 'New group', body: 'For your regular squad: its own tables, seasons and awards.' },
     { target: t('create.friends'), emoji: '🤝', title: 'Invite friends', body: 'Add mates by username or QR so you can invite them to games.' },
   ]),
@@ -47,7 +47,7 @@ export const SCREEN_TOURS = {
     { target: t('session.needplayers'), emoji: '📣', title: 'Need players?', body: 'Short on numbers? One tap asks friends of your squad and players who play nearby.' },
     { target: t('session.squad'), emoji: '👥', title: 'The squad', body: 'Who’s playing. Tap “See squad” for everyone and their guests.' },
   ]),
-  'session-new': tour('session-new', 'new sessions', { emoji: '🗓️', title: 'New session', body: 'Only the essentials, top to bottom. Swipe or tap the arrows to change each choice.' }, [
+  'session-new': tour('session-new', 'new games', { emoji: '🗓️', title: 'New game', body: 'Only the essentials, top to bottom. Swipe or tap the arrows to change each choice.' }, [
     { target: t('form.name'), emoji: '✏️', title: 'Name it', body: 'Something your squad will recognise, like “Wednesday Football”.' },
     { target: t('form.group'), emoji: '👥', title: 'Group', body: 'Pick one of your groups so it counts in their tables, or leave it as a one-off.' },
     { target: t('form.when'), emoji: '⏰', title: 'Kick-off', body: 'Tap the date for a calendar; type the time and the colon goes in for you.' },
@@ -92,8 +92,8 @@ export const SCREEN_TOURS = {
   lineup: tour('lineup', 'line-ups', { emoji: '👕', title: 'Line-ups', body: 'Pick fair teams for each game.' }, [
     { target: t('lineup.balance'), emoji: '⚖️', title: 'Balance teams', body: 'We suggest teams from ratings and form. Tap a player to move them or make them keeper.' },
   ]),
-  vote: tour('vote', 'voting', { emoji: '⭐', title: 'Vote', body: 'Pick one Man of the Match for the whole session and rate the players. It’s anonymous.' }, []),
-  results: tour('results', 'scores', { emoji: '🥅', title: 'Scores', body: 'Enter the score for each game, then complete the session to open voting.' }, []),
+  vote: tour('vote', 'voting', { emoji: '⭐', title: 'Vote', body: 'Pick one Man of the Match for the whole game and rate the players. It’s anonymous.' }, []),
+  results: tour('results', 'scores', { emoji: '🥅', title: 'Scores', body: 'Enter the score for each game, then complete the game to open voting.' }, []),
   goals: tour('goals', 'goals', { emoji: '⚽', title: 'Goals', body: 'Players claim their goals and assists; the host approves them before they count.' }, []),
   attendance: tour('attendance', 'attendance', { emoji: '✅', title: 'Attendance', body: 'Swipe each player to Played, Arrived late or Absent. Only verified players get stats.' }, []),
   'session-payments': tour('session-payments', 'payments', { emoji: '💷', title: 'Payments', body: 'Who’s paid, who owes, and payouts. Mark cash payments here.' }, []),

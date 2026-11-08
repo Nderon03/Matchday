@@ -8,7 +8,7 @@ import { highlightText, matchHighlights, type Highlight, type MatchReveal } from
 import { formatKickoff } from '@/domain/format';
 import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
-import { radius, space } from '@/theme/tokens';
+import { radius, space, fonts } from '@/theme/tokens';
 
 const native = Platform.OS !== 'web';
 
@@ -76,7 +76,7 @@ export function MatchRevealCard({ r, onDone }: { r: MatchReveal; onDone: () => v
           <Animated.View style={{ alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
             opacity: stats, transform: [{ scale: stats.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }}>
             <View style={{ alignItems: 'center' }}>
-              <Text style={{ fontSize: 44, lineHeight: 50, fontWeight: '800', color: rating === null ? colors.textFaint : colors.text }}>
+              <Text style={{ fontSize: 52, lineHeight: 56, fontFamily: fonts.scoreHeavy, color: rating === null ? colors.textFaint : colors.text }}>
                 {rating === null ? '–' : shown.toFixed(1)}
               </Text>
               <Text variant="caption" tone="muted">{rating === null ? 'Not enough ratings' : 'Your rating'}</Text>

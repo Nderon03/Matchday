@@ -110,10 +110,13 @@ export const fonts = {
   semibold: 'Inter_600SemiBold',
   bold: 'Inter_700Bold',
   heavy: 'Inter_800ExtraBold',
+  // the scoreboard face: scores, ratings, countdowns and big numbers, like TV football graphics
+  score: 'BarlowCondensed_700Bold',
+  scoreHeavy: 'BarlowCondensed_800ExtraBold',
 };
 
 export const type = {
-  display: { fontFamily: fonts.heavy, fontSize: 34, lineHeight: 40, letterSpacing: -0.8 },
+  display: { fontFamily: fonts.scoreHeavy, fontSize: 40, lineHeight: 44, letterSpacing: 0 },
   h1: { fontFamily: fonts.bold, fontSize: 26, lineHeight: 32, letterSpacing: -0.5 },
   h2: { fontFamily: fonts.bold, fontSize: 20, lineHeight: 26, letterSpacing: -0.3 },
   h3: { fontFamily: fonts.semibold, fontSize: 17, lineHeight: 22, letterSpacing: -0.2 },
@@ -123,8 +126,8 @@ export const type = {
   smallStrong: { fontFamily: fonts.semibold, fontSize: 13, lineHeight: 18 },
   caption: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 16, letterSpacing: 0.2 },
   overline: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 14, letterSpacing: 1.1, textTransform: 'uppercase' as const },
-  stat: { fontFamily: fonts.heavy, fontSize: 28, lineHeight: 32, letterSpacing: -0.6, fontVariant: ['tabular-nums' as const] },
-  statSmall: { fontFamily: fonts.bold, fontSize: 18, lineHeight: 22, fontVariant: ['tabular-nums' as const] },
+  stat: { fontFamily: fonts.scoreHeavy, fontSize: 32, lineHeight: 36, letterSpacing: 0.2, fontVariant: ['tabular-nums' as const] },
+  statSmall: { fontFamily: fonts.score, fontSize: 21, lineHeight: 24, letterSpacing: 0.2, fontVariant: ['tabular-nums' as const] },
 };
 
 export type TypeVariant = keyof typeof type;

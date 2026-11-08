@@ -115,7 +115,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
       {!d.can_view_stats ? (
         <Card><EmptyState icon="lock-closed-outline" title="Stats are private" message={`${p.display_name} only shares statistics with friends.`} /></Card>
       ) : !s || s.sessions === 0 ? (
-        <Card><EmptyState icon="football-outline" title="No verified games yet" message="Statistics appear once a session is finalised." /></Card>
+        <Card><EmptyState icon="football-outline" title="No verified games yet" message="Your stats appear once your first game’s results are in." /></Card>
       ) : (
         <>
           <SectionTitle title={groupId ? 'Group record' : 'Career'} />
@@ -137,7 +137,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
 
           {d.recent_results?.length > 0 && (
             <>
-              <SectionTitle title="Recent sessions" />
+              <SectionTitle title="Recent games" />
               <Card padded={false}>
                 {d.recent_results.slice(0, 3).map((r: any, i: number) => (
                   <Row key={r.session_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>

@@ -71,7 +71,7 @@ export default function Settings() {
         <Divider />
         <Spot id="settings.notifications"><ListItem title="Notifications" subtitle="Push, email and what you hear about" left={icon('notifications-outline')} onPress={() => router.push('/settings/notifications')} /></Spot>
         <Divider />
-        <Spot id="settings.payouts"><ListItem title="Payouts" subtitle="Receive session fees with Stripe" left={icon('wallet-outline')} onPress={() => router.push('/settings/payouts')} /></Spot>
+        <Spot id="settings.payouts"><ListItem title="Payouts" subtitle="Get paid for hosting, through Stripe" left={icon('wallet-outline')} onPress={() => router.push('/settings/payouts')} /></Spot>
         <Divider />
         <Spot id="settings.history"><ListItem title="Payment history" left={icon('receipt-outline')} onPress={() => router.push('/payments')} /></Spot>
         <Divider />

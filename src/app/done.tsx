@@ -14,7 +14,7 @@ import { space } from '@/theme/tokens';
  */
 const COPY = {
   paid: { icon: 'checkmark-circle', title: 'Payment received', message: 'Thanks! Your payment status updates in MATCHDAY within a few seconds.' },
-  cancelled: { icon: 'close-circle', title: 'Payment cancelled', message: 'You have not been charged. You can pay any time from the session.' },
+  cancelled: { icon: 'close-circle', title: 'Payment cancelled', message: 'You have not been charged. You can pay any time from the game page.' },
   payouts: { icon: 'wallet', title: 'Payout setup saved', message: 'Your Stripe details were submitted. MATCHDAY shows your payout status once Stripe has checked them.' },
   'payouts-retry': { icon: 'refresh-circle', title: 'Let’s try that again', message: 'The setup link expired. Go back to MATCHDAY and tap “Set up payouts” again.' },
 } as const;

@@ -24,7 +24,7 @@ export default function MyPayments() {
           <StatTile compact label="Paid (all time)" value={formatPence(paid.reduce((a, p) => a + p.amount_pence, 0))} accent />
         </Row>
       )}
-      {payments.data?.length === 0 && <EmptyState icon="card-outline" title="No payments yet" message="Session fees you pay through MATCHDAY appear here with receipts." />}
+      {payments.data?.length === 0 && <EmptyState icon="card-outline" title="No payments yet" message="Game fees you pay through MATCHDAY show up here, with receipts." />}
       {outstanding.length > 0 && <SectionTitle title="Outstanding" />}
       {[...outstanding, ...list.filter((p) => !outstanding.includes(p))].map((p, i) => (
         <React.Fragment key={p.id}>

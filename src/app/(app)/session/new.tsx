@@ -15,7 +15,7 @@ export default function NewSession() {
     enabled: !!templateId,
     queryFn: () => q<any>(supabase.from('session_templates').select('*').eq('id', templateId!).single()),
   });
-  if (templateId && template.isLoading) return <Screen><Header title="New session" /><Loading /></Screen>;
+  if (templateId && template.isLoading) return <Screen><Header title="New game" /><Loading /></Screen>;
   let initial: SessionFormInitial | undefined = groupId ? { group_id: groupId, visibility: 'group' } : undefined;
   const t = template.data;
   if (t) {
@@ -31,7 +31,7 @@ export default function NewSession() {
   }
   return (
     <Screen edges={['top', 'bottom']} maxWidth={720}>
-      <Header title={t ? `New: ${t.name}` : 'New session'} subtitle="Takes about 30 seconds" right={<ScreenHelp id="session-new" />} />
+      <Header title={t ? `New: ${t.name}` : 'New game'} subtitle="Takes about 30 seconds" right={<ScreenHelp id="session-new" />} />
       <SessionForm initial={initial} />
     </Screen>
   );

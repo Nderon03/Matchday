@@ -127,7 +127,7 @@ function GroupSettingsForm({ id, data }: { id: string; data: GroupDetail }) {
                 </Row>
                 <Row style={{ justifyContent: 'space-between' }}>
                   <Text variant="small" style={{ flex: 1 }}>On-time games to reset</Text>
-                  <Stepper size="sm" value={cfg.late_fine_reset_after} onChange={(v) => setCfg({ ...cfg, late_fine_reset_after: v })} min={1} max={20} label="On-time sessions to reset" />
+                  <Stepper size="sm" value={cfg.late_fine_reset_after} onChange={(v) => setCfg({ ...cfg, late_fine_reset_after: v })} min={1} max={20} label="On-time games to reset" />
                 </Row>
                 <Text variant="caption" tone="muted">
                   Doubles each time: {[0, 1, 2, 3].map((n) => formatPence(Math.min(cfg.late_fine_cap_pence, cfg.late_fine_base_pence * 2 ** n))).join(' → ')}. Added to their next payment in this group.

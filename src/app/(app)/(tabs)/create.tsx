@@ -59,7 +59,7 @@ export default function Create() {
         <View style={{ gap: space.sm }}>
           <Spot id="create.presets"><SectionTitle title="Presets" /></Spot>
           {templates.data.map((t) => (
-            <Card key={t.id} onPress={() => router.push({ pathname: '/session/new', params: { templateId: t.id } })} accessibilityLabel={`New session from ${t.name}`}>
+            <Card key={t.id} onPress={() => router.push({ pathname: '/session/new', params: { templateId: t.id } })} accessibilityLabel={`New game from ${t.name}`}>
               <Row gap={space.md}>
                 <Ionicons name="star" size={20} color={colors.warning} />
                 <View style={{ flex: 1 }}>
@@ -75,12 +75,12 @@ export default function Create() {
         </View>
       )}
       <View style={{ gap: space.md }}>
-        <Spot id="create.session"><Action icon="add-circle" title="New session" body="Pick a date, format and invite your squad." onPress={() => router.push('/session/new')} primary /></Spot>
+        <Spot id="create.session"><Action icon="add-circle" title="New game" body="Pick a date, format and invite your squad." onPress={() => router.push('/session/new')} primary /></Spot>
         <Spot id="create.group"><Action icon="people" title="New group" body="A squad with its own tables and seasons." onPress={() => router.push('/group/new')} /></Spot>
         <Spot id="create.friends"><Action icon="person-add" title="Invite friends" body="Search by username or share your QR code." onPress={() => router.push('/friends')} /></Spot>
       </View>
       {!templates.data?.length && (
-        <Text variant="caption" tone="faint">Tip: tap ☆ when creating a session (or on a game you host) to save it as a preset for next time.</Text>
+        <Text variant="caption" tone="faint">Tip: tap ☆ when creating a game (or on a game you host) to save it as a preset for next time.</Text>
       )}
     </Screen>
   );

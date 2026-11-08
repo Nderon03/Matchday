@@ -110,7 +110,7 @@ export function FinesPanel({ groupId, isAdmin }: { groupId: string; isAdmin: boo
           <SectionTitle title="Group fines" />
           {all.isLoading && <Loading />}
           {!!all.error && <ErrorState error={all.error} onRetry={all.refetch} compact />}
-          {all.data?.length === 0 && <Text tone="muted" variant="small">No fines yet. Mark players as “Arrived late” on a session’s attendance screen.</Text>}
+          {all.data?.length === 0 && <Text tone="muted" variant="small">No fines yet. Mark players as “Arrived late” on a game’s attendance screen.</Text>}
           {[...owedByPlayer.entries()].map(([uid, o]) => (
             <Card key={uid} variant="alt">
               <Row gap={space.md}>

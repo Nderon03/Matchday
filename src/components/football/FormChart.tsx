@@ -10,7 +10,7 @@ export function RatingChart({ points, height = 140 }: { points: { rating: number
   const { colors } = useTheme();
   const [width, setWidth] = React.useState(0);
   if (points.length < 2) {
-    return <Text tone="muted" variant="small">Rating history appears after two rated sessions.</Text>;
+    return <Text tone="muted" variant="small">Your rating history appears after two rated games.</Text>;
   }
   const pad = 24;
   const min = Math.max(1, Math.floor(Math.min(...points.map((p) => p.rating)) - 1));

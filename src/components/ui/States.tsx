@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Animated, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Animated, Easing, Platform, View, type ViewStyle } from 'react-native';
+import Svg, { Circle, Line, Rect } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
@@ -50,6 +51,37 @@ export function SkeletonList({ rows = 4 }: { rows?: number }) {
   );
 }
 
+/** A little pitch with the screen's icon on the centre spot, gently bobbing: empty screens with character. */
+function PitchArt({ icon }: { icon: keyof typeof Ionicons.glyphMap }) {
+  const { colors, reduceMotion } = useTheme();
+  const [bob] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    if (reduceMotion) return;
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(bob, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(bob, { toValue: 0, duration: 1200, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [bob, reduceMotion]);
+  const line = colors.primary;
+  return (
+    <View style={{ width: 150, height: 92, marginBottom: space.sm, alignItems: 'center', justifyContent: 'center' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width={150} height={92} style={{ position: 'absolute' }}>
+        <Rect x={1} y={1} width={148} height={90} rx={12} fill={colors.primaryMuted} stroke={line} strokeOpacity={0.35} strokeWidth={1.5} />
+        <Line x1={75} y1={1} x2={75} y2={91} stroke={line} strokeOpacity={0.35} strokeWidth={1.5} />
+        <Circle cx={75} cy={46} r={22} stroke={line} strokeOpacity={0.35} strokeWidth={1.5} fill="none" />
+        <Rect x={1} y={28} width={16} height={36} stroke={line} strokeOpacity={0.35} strokeWidth={1.5} fill="none" />
+        <Rect x={133} y={28} width={16} height={36} stroke={line} strokeOpacity={0.35} strokeWidth={1.5} fill="none" />
+      </Svg>
+      <Animated.View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 1.5, borderColor: line,
+        alignItems: 'center', justifyContent: 'center', transform: [{ translateY: bob.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }}>
+        <Ionicons name={icon} size={18} color={line} />
+      </Animated.View>
+    </View>
+  );
+}
+
 export function EmptyState({ icon = 'football-outline', title, message, action }: {
   icon?: keyof typeof Ionicons.glyphMap;
   title: string;
@@ -59,9 +91,7 @@ export function EmptyState({ icon = 'football-outline', title, message, action }
   const { colors } = useTheme();
   return (
     <View style={{ alignItems: 'center', padding: space.xxl, gap: space.sm }}>
-      <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primaryMuted, alignItems: 'center', justifyContent: 'center', marginBottom: space.xs }}>
-        <Ionicons name={icon} size={26} color={colors.primary} />
-      </View>
+      <PitchArt icon={icon} />
       <Text variant="h3" align="center">{title}</Text>
       {!!message && <Text tone="muted" align="center" style={{ maxWidth: 320 }}>{message}</Text>}
       {!!action && <Button title={action.label} onPress={action.onPress} style={{ marginTop: space.md }} />}

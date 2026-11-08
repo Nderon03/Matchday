@@ -48,7 +48,7 @@ export function MatchVideos({ detail: d, now }: { detail: SessionDetail; now: nu
             <Text variant="bodyStrong" style={{ flex: 1 }} numberOfLines={1}>{v.title ?? 'Match video'}</Text>
             {!!d.isManager && (
               <IconButton icon="trash-outline" label="Remove video" size={32} onPress={async () => {
-                if (await confirm({ title: 'Remove this video?', message: 'It will no longer show on the session. The video stays on YouTube.', confirmLabel: 'Remove', destructive: true })) {
+                if (await confirm({ title: 'Remove this video?', message: 'It won’t show on the game any more. The video stays on YouTube.', confirmLabel: 'Remove', destructive: true })) {
                   run(`rm-${v.id}`, () => rpc('remove_session_video', { p_video: v.id }), 'Video removed');
                 }
               }} />

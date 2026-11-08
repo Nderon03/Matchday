@@ -23,7 +23,7 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
   const me = rows.find((r) => r.is_me);
   // has my position moved since I last looked at this exact table?
   const delta = useRankChange(`${scope}.${groupId ?? ''}.${seasonId ?? period}.${category}`, lb.isFetching ? null : me?.rank);
-  const unitOne = category === 'win_pct' ? 'appearance' : category === 'rating' || category === 'form' || category === 'improved' ? 'rated session' : 'game';
+  const unitOne = category === 'win_pct' ? 'appearance' : category === 'rating' || category === 'form' || category === 'improved' ? 'rated game' : 'game';
   const units = (n: number) => plural(n, unitOne);
   const fmt = (v: number) => formatValue(category, v);
   const def = CATEGORIES.find((c) => c.key === category)!;
@@ -41,9 +41,9 @@ export function Leaderboard({ scope, groupId, seasons, minAppearances }: { scope
       </Row>
       <Text variant="h3">{def.label}</Text>
       {(category === 'win_pct') && <Text variant="caption" tone="muted">Minimum {plural(minAppearances ?? 5, 'appearance')} to qualify.</Text>}
-      {(category === 'rating' || category === 'form') && <Text variant="caption" tone="muted">Minimum 3 rated sessions. Every session counts equally.</Text>}
+      {(category === 'rating' || category === 'form') && <Text variant="caption" tone="muted">Minimum 3 rated games. Every game counts equally.</Text>}
       {category === 'ga' && <Text variant="caption" tone="muted">Goals and assists added together: every goal you score or set up.</Text>}
-      {category === 'improved' && <Text variant="caption" tone="muted">Recent-half average minus early-half average (min. 6 rated sessions).</Text>}
+      {category === 'improved' && <Text variant="caption" tone="muted">Recent-half average minus early-half average (min. 6 rated games).</Text>}
 
       {!!lb.isLoading && <SkeletonList rows={6} />}
       {!!lb.error && <ErrorState error={lb.error} onRetry={lb.refetch} compact />}

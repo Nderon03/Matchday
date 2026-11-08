@@ -103,7 +103,7 @@ export default function ResultsScreen() {
           <Button title={`Add game ${last.number + 1}`} icon="add" variant="secondary" onPress={() => setNextOpen(true)} disabled={!last.played} />
           {!last.played && d.fixtures.length > 0 && <Text variant="caption" tone="faint" align="center">Record game {last.number} before adding another.</Text>}
           <SectionTitle title="Full time" />
-          <Button title="Complete session" icon="flag" size="lg" disabled={!allPlayed} onPress={() => setCompleteOpen(true)} />
+          <Button title="Complete game" icon="flag" size="lg" disabled={!allPlayed} onPress={() => setCompleteOpen(true)} />
           {!allPlayed && <Text variant="caption" tone="muted" align="center">Every game needs a score — record it or remove the game.</Text>}
         </View>
       )}
@@ -115,7 +115,7 @@ export default function ResultsScreen() {
         <Button title="Pick manually" icon="hand-left-outline" variant="ghost" onPress={() => addFixture('manual')} />
       </Sheet>
 
-      <Sheet visible={completeOpen} onClose={() => setCompleteOpen(false)} title="Complete session">
+      <Sheet visible={completeOpen} onClose={() => setCompleteOpen(false)} title="Complete game">
         <Text tone="muted">
           Scores lock, attendance is settled (players in a line-up are verified unless you marked them absent), and players are asked to submit goals, vote for MOTM and rate each other.
           {s.payment_mode === 'after' ? ' Payment requests are sent now.' : ''}

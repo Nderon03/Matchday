@@ -54,7 +54,7 @@ export default function VoteScreen() {
     return <Screen><Header title="Vote" /><EmptyState icon="lock-closed-outline" title="Voting is for players who took part" message="Only verified participants can vote and rate." /></Screen>;
   }
   if (!v.open && !allDone) {
-    return <Screen><Header title="Vote" /><EmptyState icon="time-outline" title="Voting has closed" message="Results are revealed once the host finalises the session." action={{ label: 'Back to session', onPress: () => router.replace(`/session/${id}`) }} /></Screen>;
+    return <Screen><Header title="Vote" /><EmptyState icon="time-outline" title="Voting has closed" message="Results are revealed once the host finalises the game." action={{ label: 'Back to the game', onPress: () => router.replace(`/session/${id}`) }} /></Screen>;
   }
 
   const submit = async () => {

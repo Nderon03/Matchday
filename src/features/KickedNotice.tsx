@@ -32,13 +32,13 @@ export function KickedNotice() {
   };
 
   return (
-    <Sheet visible onClose={() => close(false)} title={isGroup ? 'Removed from a group' : 'Removed from a session'}>
+    <Sheet visible onClose={() => close(false)} title={isGroup ? 'Removed from a group' : 'Removed from a game'}>
       <View style={{ alignItems: 'center', gap: space.sm, paddingVertical: space.sm }}>
         <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: colors.dangerMuted, alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="person-remove" size={26} color={colors.danger} />
         </View>
         <Text variant="h3" align="center">
-          {isGroup ? `An admin removed you from ${notice.data.group_name ?? 'a group'}` : `The host removed you from ${notice.data.session_name ?? 'a session'}`}
+          {isGroup ? `An admin removed you from ${notice.data.group_name ?? 'a group'}` : `The host removed you from ${notice.data.session_name ?? 'a game'}`}
         </Text>
         {notice.data.reason ? <Text align="center">Reason: {notice.data.reason}</Text> : null}
         <Text variant="small" tone="muted" align="center">
@@ -47,7 +47,7 @@ export function KickedNotice() {
       </View>
       <View style={{ flexDirection: 'row', gap: space.sm }}>
         <Button title="OK" variant="secondary" style={{ flex: 1 }} onPress={() => close(false)} />
-        {!isGroup && <Button title="View session" style={{ flex: 1 }} onPress={() => close(true)} />}
+        {!isGroup && <Button title="View game" style={{ flex: 1 }} onPress={() => close(true)} />}
       </View>
     </Sheet>
   );

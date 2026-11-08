@@ -7,10 +7,12 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter';
+import { BarlowCondensed_700Bold, BarlowCondensed_800ExtraBold } from '@expo-google-fonts/barlow-condensed';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { queryClient } from '@/lib/queryClient';
 import { restoreOfflineCache, startOfflineCache } from '@/lib/offline';
+import { LaunchCurtain } from '@/features/LaunchCurtain';
 import { routeForNotification } from '@/lib/notifications';
 import { useOtaUpdates } from '@/hooks/useOtaUpdates';
 import { Sentry, reportError, sentryEnabled } from '@/lib/sentry';
@@ -34,12 +36,13 @@ function ThemedStack() {
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }} />
+      <LaunchCurtain />
     </>
   );
 }
 
 function RootLayout() {
-  const [loaded, error] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold });
+  const [loaded, error] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold, BarlowCondensed_700Bold, BarlowCondensed_800ExtraBold });
   // what you loaded last time, so the app opens with it even without signal
   const [cacheReady, setCacheReady] = useState(false);
   useEffect(() => {

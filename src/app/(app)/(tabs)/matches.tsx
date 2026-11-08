@@ -36,7 +36,7 @@ export default function Matches() {
         <EmptyState
           icon={tab === 'upcoming' ? 'calendar-outline' : 'time-outline'}
           title={tab === 'upcoming' ? 'Nothing scheduled' : 'No match history yet'}
-          message={tab === 'upcoming' ? 'Join a public game near you, create a session, or wait for an invite from your squad.' : 'Finalised sessions you played in will appear here.'}
+          message={tab === 'upcoming' ? 'Join a public game near you, create a game, or wait for an invite from your squad.' : 'Games you’ve played show up here once the results are in.'}
           action={tab === 'upcoming' ? { label: 'Find a public game', onPress: () => router.push('/session/find') } : undefined}
         />
       )}

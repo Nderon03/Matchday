@@ -176,7 +176,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   const { page, errors } = await openPage(vp, { dpr: store ? 2 : 1 });
   for (const [name, path, expected] of [
     ['home', '/', 'Next up'], ['session', `/session/${SID}`, 'Host controls'], ['lineup', `/session/${SID}/lineup`, 'Balance teams'],
-    ['leagues', '/leagues', 'My groups'], ['profile', '/profile', '100% RELIABLE'], ['create', '/create', 'New session'],
+    ['leagues', '/leagues', 'My groups'], ['profile', '/profile', '100% RELIABLE'], ['create', '/create', 'New game'],
     ['payments', `/session/${SID}/payments`, 'Host dashboard'], ['settings', '/settings', 'Terms of Use'],
     ['notifications', '/notifications', 'Notifications'], ['privacy', '/legal/privacy', 'Privacy Policy'],
     ['terms', '/legal/terms', 'Terms of Use'], ['delete', '/legal/delete-account', 'Delete your account'],
@@ -378,7 +378,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.getByRole('button', { name: 'More host tools' }).click();
       await page.waitForTimeout(300);
       const tools = await page.locator('body').innerText();
-      if (!tools.includes('Line-ups') || !tools.includes('Cancel session') || tools.includes('Repeat next week')) failures.push(`${vpName}: host tools list incomplete`);
+      if (!tools.includes('Line-ups') || !tools.includes('Cancel game') || tools.includes('Repeat next week')) failures.push(`${vpName}: host tools list incomplete`);
       if (!(await page.getByRole('button', { name: 'Save as a preset' }).count())) failures.push(`${vpName}: preset star missing`);
       await page.screenshot({ path: join(OUT, `auth-${vpName}-host-tools.png`) });
       await page.getByRole('button', { name: 'Close' }).last().click();

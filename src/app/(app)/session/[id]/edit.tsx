@@ -8,12 +8,12 @@ import { ScreenHelp } from '@/features/ScreenHelp';
 export default function EditSession() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const detail = useSessionDetail(id);
-  if (detail.isLoading) return <Screen><Header title="Edit session" /><Loading /></Screen>;
-  if (!detail.data) return <Screen><Header title="Edit session" /><ErrorState error={detail.error} onRetry={detail.refetch} /></Screen>;
+  if (detail.isLoading) return <Screen><Header title="Edit game" /><Loading /></Screen>;
+  if (!detail.data) return <Screen><Header title="Edit game" /><ErrorState error={detail.error} onRetry={detail.refetch} /></Screen>;
   const s = detail.data.session;
   return (
     <Screen edges={['top', 'bottom']} maxWidth={720}>
-      <Header title="Edit session" right={<ScreenHelp id="session-new" />} />
+      <Header title="Edit game" right={<ScreenHelp id="session-new" />} />
       <SessionForm
         editing={s}
         initial={{ ...s, invitee_ids: detail.data.invited.map((p) => p.id) }}

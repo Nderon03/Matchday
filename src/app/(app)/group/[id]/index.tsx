@@ -169,13 +169,13 @@ export default function GroupScreen() {
         <View style={{ gap: space.lg }}>
           {!!g.description && <Text tone="muted">{g.description}</Text>}
           <Row gap={space.sm}>
-            <StatTile compact label="Sessions" value={records.data?.sessions_played ?? '–'} />
+            <StatTile compact label="Games" value={records.data?.sessions_played ?? '–'} />
             <StatTile compact label="Goals" value={records.data?.goals_scored ?? '–'} />
             <Pressable style={{ flex: 1 }} onPress={() => setTab('members')} accessibilityRole="button" accessibilityLabel={`${plural(members.length, 'member')}, see all`}>
               <StatTile compact label="Members ›" value={members.length} />
             </Pressable>
           </Row>
-          {!!myRole && <View ref={createRef} collapsable={false}><Button title="Create a session for this group" icon="add" onPress={() => router.push({ pathname: '/session/new', params: { groupId: id } })} /></View>}
+          {!!myRole && <View ref={createRef} collapsable={false}><Button title="Create a game for this group" icon="add" onPress={() => router.push({ pathname: '/session/new', params: { groupId: id } })} /></View>}
           {finesHint.due && (
             <Card variant="alt">
               <Row gap={space.sm}>
@@ -220,7 +220,7 @@ export default function GroupScreen() {
       {tab === 'games' && (
         <View style={{ gap: space.md }}>
           <SectionTitle title="Coming up" />
-          {upcoming.length === 0 && <EmptyState icon="calendar-outline" title="No upcoming fixtures" action={myRole ? { label: 'Create a session', onPress: () => router.push({ pathname: '/session/new', params: { groupId: id } }) } : undefined} />}
+          {upcoming.length === 0 && <EmptyState icon="calendar-outline" title="No upcoming fixtures" action={myRole ? { label: 'Create a game', onPress: () => router.push({ pathname: '/session/new', params: { groupId: id } }) } : undefined} />}
           {upcoming.map((s) => <SessionCard key={s.id} session={s} />)}
         </View>
       )}
@@ -363,8 +363,8 @@ export default function GroupScreen() {
           {!!records.data && ([
             ['Highest-scoring game', records.data.highest_scoring_fixture, (r: any) => `${r.score} · ${r.name}, ${formatDate(r.date)}`],
             ['Biggest victory', records.data.biggest_victory, (r: any) => `${r.score} · ${r.name}, ${formatDate(r.date)}`],
-            ['Most goals in a session', records.data.most_goals_in_session, (r: any) => `${r.user.display_name} · ${plural(r.value, 'goal')}`],
-            ['Highest session rating', records.data.highest_session_rating, (r: any) => `${r.user.display_name} · ${Number(r.value).toFixed(1)}`],
+            ['Most goals in a game', records.data.most_goals_in_session, (r: any) => `${r.user.display_name} · ${plural(r.value, 'goal')}`],
+            ['Highest match rating', records.data.highest_session_rating, (r: any) => `${r.user.display_name} · ${Number(r.value).toFixed(1)}`],
             ['Most consecutive wins', records.data.most_consecutive_wins, (r: any) => `${r.user.display_name} · ${plural(r.value, 'game')}`],
             ['Longest unbeaten run', records.data.longest_unbeaten, (r: any) => `${r.user.display_name} · ${plural(r.value, 'game')}`],
             ['Most MOTM in a season', records.data.most_motm_in_season, (r: any) => `${r.user.display_name} · ${r.value} (${r.season})`],

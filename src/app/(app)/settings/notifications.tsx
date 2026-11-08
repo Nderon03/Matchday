@@ -10,7 +10,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 
 const TYPES: [string, string, string][] = [
-  ['session_invite', 'Session invitations', 'When someone invites you to play'],
+  ['session_invite', 'Game invites', 'When someone invites you to play'],
   ['session_reminder', 'Kick-off reminders', '24 hours before a game you’re in'],
   ['lineup_announced', 'Line-ups announced', 'When the host confirms teams'],
   ['waitlist_promoted', 'Waiting list', 'When a space opens up for you'],
@@ -23,7 +23,7 @@ const TYPES: [string, string, string][] = [
   ['voting_reminder', 'Voting reminders', 'Before voting closes'],
   ['goals_reminder', 'Goal reminders', 'If you forget to submit goals'],
   ['goals_awaiting_approval', 'Goals to approve (hosts)', 'When players submit goals'],
-  ['payment_required', 'Payment requests', 'When a session fee is due'],
+  ['payment_required', 'Payment requests', 'When a game fee is due'],
   ['session_finalised', 'Results', 'When results and MOTM are published'],
   ['session_video', 'Match videos', 'When the host adds a video of a game'],
   ['achievement_unlocked', 'Achievements', 'When you unlock something new'],
