@@ -386,8 +386,8 @@ export default function GroupScreen() {
       )}
 
       <Coachmarks steps={tourSteps} visible={tourOpen || firstTour.due} onDone={endTour} finishLabel={isNew === '1' ? 'Invite my squad' : 'Got it'} />
-      <Sheet visible={inviteOpen} onClose={() => { setInviteOpen(false); setPicked(new Set()); }} title={`Invite players to ${g.name}`}>
-        <ScrollView contentContainerStyle={{ gap: space.md }}>
+      <Sheet scroll={false} visible={inviteOpen} onClose={() => { setInviteOpen(false); setPicked(new Set()); }} title={`Invite players to ${g.name}`}>
+        <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: space.md }}>
           {canAdd ? (
             <>
               <Text variant="smallStrong" tone="muted">Your friends</Text>

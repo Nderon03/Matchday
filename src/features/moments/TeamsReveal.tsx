@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, ScrollView } from 'react-native';
 import { Avatar, Button, Text } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
 import type { SessionDetail } from '@/hooks/queries';
@@ -61,7 +61,7 @@ function Reveal({ teams, mine, mineColour, onClose }: { teams: { id: string; nam
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onClose} accessibilityLabel="Close" />
-      <View style={styles.centre} pointerEvents="box-none">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.centre, { flex: undefined, flexGrow: 1 }]} bounces={false} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View accessibilityViewIsModal style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Animated.View style={{ alignItems: 'center', opacity: title, transform: [{ translateY: title.interpolate({ inputRange: [0, 1], outputRange: [-10, 0] }) }] }}>
             <Text variant="overline" tone="primary">Line-ups confirmed</Text>
@@ -93,7 +93,7 @@ function Reveal({ teams, mine, mineColour, onClose }: { teams: { id: string; nam
           </Animated.View>
           <Button title="See the pitch" style={{ alignSelf: 'stretch' }} onPress={onClose} />
         </View>
-      </View>
+      </ScrollView>
     </Modal>
   );
 }

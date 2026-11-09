@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
@@ -84,11 +84,11 @@ export function HandshakeModal({ them, onClose }: { them: Friend | null; onClose
     <Modal visible transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onClose} accessibilityLabel="Close" />
       {!reduceMotion && <Confetti colour="#22C55E" />}
-      <View style={styles.centre} pointerEvents="box-none">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.centre, { flex: undefined, flexGrow: 1 }]} bounces={false} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View accessibilityViewIsModal style={[styles.card, { backgroundColor: colors.surface, borderColor: `${colors.primary}55` }]}>
           <HandshakeScene them={them} onClose={onClose} />
         </View>
-      </View>
+      </ScrollView>
     </Modal>
   );
 }
@@ -155,7 +155,7 @@ function NewFriendsModal({ friends, onClose }: { friends: Friend[]; onClose: () 
     <Modal visible transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onClose} accessibilityLabel="Close" />
       {!reduceMotion && <Confetti colour="#22C55E" />}
-      <View style={styles.centre} pointerEvents="box-none">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.centre, { flex: undefined, flexGrow: 1 }]} bounces={false} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View accessibilityViewIsModal style={[styles.card, { backgroundColor: colors.surface, borderColor: `${colors.primary}55`, gap: space.lg, alignItems: 'center' }]}>
           <Animated.View accessibilityLabel="Now teammates" style={{ transform: [{ scale: hand.interpolate({ inputRange: [0, 1], outputRange: [0.2, 1] }) }] }}><View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryMuted, borderWidth: 1, borderColor: `${colors.primary}66`, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="people" size={32} color={colors.primary} /></View></Animated.View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.sm }}>
@@ -173,7 +173,7 @@ function NewFriendsModal({ friends, onClose }: { friends: Friend[]; onClose: () 
           <Button title="See my friends" size="lg" style={{ alignSelf: 'stretch' }} onPress={() => { onClose(); router.push('/friends'); }} />
           <Button title="Done" variant="ghost" onPress={onClose} />
         </View>
-      </View>
+      </ScrollView>
     </Modal>
   );
 }

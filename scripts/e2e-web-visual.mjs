@@ -598,6 +598,23 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     Object.assign(table, saved.t);
   }
 
+  // a long sheet on a short phone: its last item can always be scrolled to (no Save stuck off-screen)
+  if (vpName === 'phone') {
+    await page.setViewportSize({ width: 320, height: 480 });
+    await page.goto(base + `/session/${SID}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(500);
+    await page.getByRole('button', { name: 'More host tools' }).click();
+    await page.waitForTimeout(500);
+    const lastItem = page.getByText('Cancel game').last();
+    await lastItem.scrollIntoViewIfNeeded().catch(() => undefined);
+    const box = await lastItem.boundingBox();
+    if (!box || box.y + box.height > 480 + 1 || box.y < 0) failures.push(`${vpName}: can't scroll to the bottom of a long sheet on a short phone`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-short-sheet.png`) });
+    await page.keyboard.press('Escape');
+    await page.setViewportSize(vp);
+    await page.waitForTimeout(300);
+  }
+
   // the host saves a game's score: straight to "what's next?" (new fair teams, same teams, or full time)
   {
     await page.goto(base + `/session/${SID}/results`, { waitUntil: 'networkidle' });
@@ -839,6 +856,21 @@ const offenders = async (page) => page.evaluate(() => {
     if (cs.visibility === 'hidden' || Number(cs.opacity) === 0 || cs.pointerEvents === 'none' && !el.textContent?.trim()) continue;
     if ((r.right > vw + 1 || r.left < -1) && !clipped(el)) out.push(`${(el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0, 50)} [${Math.round(r.left)}–${Math.round(r.right)}]`);
     if (out.length > 4) break;
+  }
+  // something you'd tap that sits below the screen with nothing to scroll it into view
+  const vh = document.documentElement.clientHeight;
+  const scrollsY = (el) => {
+    for (let p = el.parentElement; p && p !== document.documentElement; p = p.parentElement) {
+      const cs = getComputedStyle(p);
+      if (/(auto|scroll)/.test(cs.overflowY) && p.scrollHeight > p.clientHeight + 1) return true;
+    }
+    return document.documentElement.scrollHeight > vh + 1 && getComputedStyle(document.body).overflowY !== 'hidden';
+  };
+  for (const el of document.body.querySelectorAll('[role="button"], button, a, input, textarea')) {
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height || r.top < vh - 1) continue;
+    if (getComputedStyle(el).visibility === 'hidden') continue;
+    if (!scrollsY(el)) { out.push(`can't scroll to "${(el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0, 40)}" (top ${Math.round(r.top)} > ${vh})`); break; }
   }
   // text squeezed into an unreadable column
   for (const el of document.body.querySelectorAll('div[dir="auto"]')) {

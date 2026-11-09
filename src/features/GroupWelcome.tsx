@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -90,7 +90,7 @@ function Welcome({ group, number, total, squad, nextGame, onClose }: {
     <Modal visible transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onClose} accessibilityLabel="Close" />
       {!reduceMotion && <Confetti colour="#22C55E" />}
-      <View style={styles.centre} pointerEvents="box-none">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.centre, { flex: undefined, flexGrow: 1 }]} bounces={false} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Animated.View accessibilityViewIsModal style={[styles.card, {
           backgroundColor: colors.surface, borderColor: `${colors.primary}55`,
           opacity: card, transform: [{ scale: card.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }],
@@ -157,7 +157,7 @@ function Welcome({ group, number, total, squad, nextGame, onClose }: {
             )}
           </Animated.View>
         </Animated.View>
-      </View>
+      </ScrollView>
     </Modal>
   );
 }

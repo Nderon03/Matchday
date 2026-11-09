@@ -304,8 +304,8 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
         </Row>
       )}
 
-      <Sheet visible={!!sel} onClose={() => setSelected(null)} title={sel?.display_name ?? ''}>
-        <ScrollView contentContainerStyle={{ gap: space.sm }}>
+      <Sheet scroll={false} visible={!!sel} onClose={() => setSelected(null)} title={sel?.display_name ?? ''}>
+        <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: space.sm }}>
           <Row gap={space.sm} wrap>
             {selSide !== 'A' && <Chip label={`Move to ${names.A}`} onPress={() => { update(lineupOps.move(lineup, selected!, 'A', d.session.format_size)); setSelected(null); }} />}
             {selSide !== 'B' && <Chip label={`Move to ${names.B}`} onPress={() => { update(lineupOps.move(lineup, selected!, 'B', d.session.format_size)); setSelected(null); }} />}

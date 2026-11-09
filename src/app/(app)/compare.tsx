@@ -61,9 +61,9 @@ function PickSheet({ visible, people, exclude, onPick, onClose }: { visible: boo
   const t = term.trim().toLowerCase();
   const list = people.filter((p) => p.id !== exclude && (!t || p.display_name.toLowerCase().includes(t) || p.username.toLowerCase().includes(t)));
   return (
-    <Sheet visible={visible} onClose={onClose} title="Pick a player">
+    <Sheet scroll={false} visible={visible} onClose={onClose} title="Pick a player">
       <Input value={term} onChangeText={setTerm} placeholder="Search by name or @username" icon="search" autoCapitalize="none" autoCorrect={false} />
-      <ScrollView style={{ maxHeight: 380 }} keyboardShouldPersistTaps="handled">
+      <ScrollView style={{ maxHeight: 380, flexShrink: 1 }} keyboardShouldPersistTaps="handled">
         {list.map((p) => (
           <ListItem key={p.id} title={p.display_name} subtitle={`@${p.username}`} left={<Avatar uri={p.avatar_url} name={p.display_name} size={36} />}
             onPress={() => { onPick(p.id); setTerm(''); onClose(); }} />

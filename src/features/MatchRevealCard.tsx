@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Text } from '@/components/ui';
@@ -65,7 +65,7 @@ export function MatchRevealCard({ r, onDone }: { r: MatchReveal; onDone: () => v
     <Modal visible transparent animationType="fade" onRequestClose={onDone} statusBarTranslucent>
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onDone} accessibilityLabel="Close" />
       {special && !reduceMotion && <Confetti colour={highlights[0].kind === 'motm' ? '#F5B014' : '#22C55E'} />}
-      <View style={styles.centre} pointerEvents="box-none">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.centre, { flex: undefined, flexGrow: 1 }]} bounces={false} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Animated.View accessibilityViewIsModal style={[styles.card, {
           backgroundColor: colors.surface, borderColor: special ? `${colors.gold}66` : colors.border,
           opacity: card, transform: [{ translateY: card.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }],
@@ -125,7 +125,7 @@ export function MatchRevealCard({ r, onDone }: { r: MatchReveal; onDone: () => v
             <Button title="Done" style={{ flex: 1 }} onPress={onDone} />
           </View>
         </Animated.View>
-      </View>
+      </ScrollView>
     </Modal>
   );
 }

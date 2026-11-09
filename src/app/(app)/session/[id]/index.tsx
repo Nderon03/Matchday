@@ -653,8 +653,8 @@ export default function SessionScreen() {
         {groups.out.length > 0 && <Text variant="small" tone="faint">Not playing: {groups.out.map((p) => p.profile.display_name).join(', ')}</Text>}
       </View>
 
-      <Sheet visible={toolsOpen} onClose={() => setToolsOpen(false)} title="Host tools">
-        <ScrollView style={{ maxHeight: 460 }}>
+      <Sheet scroll={false} visible={toolsOpen} onClose={() => setToolsOpen(false)} title="Host tools">
+        <ScrollView style={{ maxHeight: 460, flexShrink: 1 }}>
           {[
             s.status !== 'finalised' && { icon: 'shirt-outline', title: 'Line-ups', go: `/session/${id}/lineup` },
             s.status !== 'finalised' && { icon: 'football-outline', title: 'Scores', go: `/session/${id}/results` },

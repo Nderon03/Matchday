@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Avatar, Button, Text } from '@/components/ui';
 import { Confetti } from '@/components/football/Confetti';
@@ -57,7 +57,7 @@ function Announcement({ winners, isMe, onClose, award }: { winners: MotmWinner[]
     <Modal visible transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onClose} accessibilityLabel="Close" />
       {revealed && !reduceMotion && <Confetti colour={GOLD} />}
-      <View style={styles.centre} pointerEvents="box-none">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.centre, { flex: undefined, flexGrow: 1 }]} bounces={false} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View accessibilityViewIsModal style={[styles.card, { backgroundColor: colors.surface, borderColor: `${GOLD}66` }]}>
           <Text variant="overline" style={{ color: GOLD }}>Full time</Text>
           <Text variant="h2" align="center" accessibilityRole="header">{award === 'Man of the Match' ? (shared ? 'And the Men of the Match are…' : 'And the Man of the Match is…') : `And the ${award} ${shared ? 'goes to…' : 'is…'}`}</Text>
@@ -86,7 +86,7 @@ function Announcement({ winners, isMe, onClose, award }: { winners: MotmWinner[]
           )}
           <Button title={revealed ? 'Nice' : 'Skip'} variant={revealed ? 'primary' : 'ghost'} style={{ alignSelf: 'stretch' }} onPress={onClose} />
         </View>
-      </View>
+      </ScrollView>
     </Modal>
   );
 }

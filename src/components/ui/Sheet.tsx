@@ -1,13 +1,17 @@
 import React from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { Text } from './Text';
 import { IconButton } from './Button';
 
-/** Bottom sheet on phones, centred dialog on wide screens. */
-export function Sheet({ visible, onClose, title, children }: { visible: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
+/**
+ * Bottom sheet on phones, centred dialog on wide screens. Its content scrolls when it's taller
+ * than the screen, so a Save button at the bottom is always reachable. Sheets that hold their
+ * own list pass scroll={false} (the list then shrinks to fit and scrolls itself).
+ */
+export function Sheet({ visible, onClose, title, children, scroll = true }: { visible: boolean; onClose: () => void; title: string; children: React.ReactNode; scroll?: boolean }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   return (
@@ -20,7 +24,13 @@ export function Sheet({ visible, onClose, title, children }: { visible: boolean;
               <Text variant="h3" style={{ flex: 1 }} accessibilityRole="header">{title}</Text>
               <IconButton icon="close" label="Close" size={34} onPress={onClose} />
             </View>
-            {children}
+            {scroll ? (
+              <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: space.md, paddingBottom: space.xs }} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                {children}
+              </ScrollView>
+            ) : (
+              <View style={{ flexShrink: 1, minHeight: 0, gap: space.md }}>{children}</View>
+            )}
           </View>
         </View>
       </KeyboardAvoidingView>

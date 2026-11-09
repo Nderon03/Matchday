@@ -162,9 +162,9 @@ function FriendInvite({ code, p }: { code: string; p: any }) {
 function FriendsNow({ them }: { them: any }) {
   const { reduceMotion } = useTheme();
   return (
-    <Screen edges={['top', 'bottom']} maxWidth={480} scroll={false}>
+    <Screen edges={['top', 'bottom']} maxWidth={480} contentStyle={{ flexGrow: 1, justifyContent: 'center' }}>
       {!reduceMotion && <Confetti colour="#22C55E" />}
-      <View style={{ flex: 1, justifyContent: 'center' }}>
+      <View style={{ justifyContent: 'center' }}>
         <HandshakeScene them={{ id: them.id, display_name: them.display_name, avatar_url: them.avatar_url }} />
         <Button title="Done" variant="ghost" onPress={() => router.replace('/')} style={{ marginTop: space.sm }} />
       </View>

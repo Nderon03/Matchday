@@ -117,8 +117,8 @@ function TrackTile({ t, index, width, onPress }: { t: TrackState; index: number;
 function TrackSheet({ t, players, onClose }: { t: TrackState; players: number; onClose: () => void }) {
   const { colors } = useTheme();
   return (
-    <Sheet visible onClose={onClose} title={t.def.name}>
-      <ScrollView style={{ maxHeight: 460 }} contentContainerStyle={{ gap: space.xs }}>
+    <Sheet scroll={false} visible onClose={onClose} title={t.def.name}>
+      <ScrollView style={{ maxHeight: 460, flexShrink: 1 }} contentContainerStyle={{ gap: space.xs }}>
         {t.items.map((i) => {
           const lvl = i.level ?? 1;
           const on = !!i.unlocked_at;

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button, Text } from '@/components/ui';
@@ -105,7 +105,7 @@ function Celebration({ item, more, players, newStyle, onDone }: { item: MyAchiev
     <Modal visible transparent animationType="fade" onRequestClose={done} statusBarTranslucent>
       <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={done} accessibilityLabel="Close" />
       {!reduceMotion && <Confetti colour={tier.colour} />}
-      <View style={styles.centre} pointerEvents="box-none">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.centre, { flex: undefined, flexGrow: 1 }]} bounces={false} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Animated.View accessibilityViewIsModal style={[styles.card, {
           backgroundColor: colors.surface, borderColor: `${tier.colour}66`,
           opacity: card, transform: [{ scale: card.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }],
@@ -139,7 +139,7 @@ function Celebration({ item, more, players, newStyle, onDone }: { item: MyAchiev
           </View>
           <Text variant="small" tone="primary" onPress={() => { done(); router.push('/achievements'); }}>See all achievements</Text>
         </Animated.View>
-      </View>
+      </ScrollView>
     </Modal>
   );
 }

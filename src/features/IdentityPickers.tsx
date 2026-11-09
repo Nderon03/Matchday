@@ -33,10 +33,10 @@ export function CountryPicker({ visible, value, onClose, onPick }: { visible: bo
     return p ? COUNTRIES.filter((c) => plain(c.name).split(/[\s-]+/).some((w) => w.startsWith(p)) || plain(c.name).startsWith(p)) : COUNTRIES;
   }, [q]);
   return (
-    <Sheet visible={visible} onClose={onClose} title="Nationality">
+    <Sheet scroll={false} visible={visible} onClose={onClose} title="Nationality">
       <Input value={q} onChangeText={setQ} placeholder="Search countries" icon="search" autoCorrect={false} />
       <FlatList
-        style={{ maxHeight: 420 }}
+        style={{ maxHeight: 420, flexShrink: 1 }}
         data={list}
         keyExtractor={(c) => c.code}
         keyboardShouldPersistTaps="handled"
@@ -53,10 +53,10 @@ export function ClubPicker({ visible, value, onClose, onPick }: { visible: boole
   const [q, setQ] = useState('');
   const list = useMemo(() => searchClubs(q, 300), [q]);
   return (
-    <Sheet visible={visible} onClose={onClose} title="Club you support">
+    <Sheet scroll={false} visible={visible} onClose={onClose} title="Club you support">
       <Input value={q} onChangeText={setQ} placeholder="Search clubs, e.g. Arsenal" icon="search" autoCorrect={false} />
       <FlatList
-        style={{ maxHeight: 420 }}
+        style={{ maxHeight: 420, flexShrink: 1 }}
         data={list}
         keyExtractor={(c) => c.id}
         keyboardShouldPersistTaps="handled"
