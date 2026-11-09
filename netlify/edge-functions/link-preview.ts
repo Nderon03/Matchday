@@ -108,6 +108,35 @@ const PAGES: Record<string, { title: string; description: string }> = {
 const clean = (pathname: string) => pathname.replace(/\/+$/, '') || '/';
 export const pageText = (pathname: string) => PAGES[clean(pathname)] ?? HOME;
 
+// what search engines and no-JavaScript visitors read (the app replaces it as soon as it loads)
+export function staticBody(page: { title: string; description: string }) {
+  return `<noscript><main style="font-family:system-ui,sans-serif;max-width:640px;margin:40px auto;padding:0 16px;color:#F4F6F8">
+<h1>${esc(page.title)}</h1>
+<p>${esc(page.description)}</p>
+<p>MATCHDAY is a free app for organising your regular 5-a-side or 7-a-side game: invites and a waiting list, fair teams balanced from ratings, goals, assists and Man of the Match votes, a player card that levels up from Bronze to Hall of Fame, and payments that settle up without chasing.</p>
+<ul>
+<li><a href="https://play.google.com/store/apps/details?id=app.matchday.android">Get MATCHDAY on Google Play</a></li>
+<li><a href="/sign-up">Start in your browser</a></li>
+<li><a href="/help">Help &amp; FAQ</a></li>
+<li><a href="/legal/privacy">Privacy Policy</a> · <a href="/legal/terms">Terms of Use</a></li>
+</ul>
+<p>MATCHDAY by Ned's Games. Works best with JavaScript turned on.</p>
+</main></noscript>`;
+}
+
+// tells Google the site's name and logo (shown in search results instead of the bare domain)
+export function structuredData(origin: string) {
+  return JSON.stringify([
+    { '@context': 'https://schema.org', '@type': 'WebSite', name: 'MATCHDAY', alternateName: ['MATCHDAY app', 'matchdayapp.org'], url: `${origin}/` },
+    { '@context': 'https://schema.org', '@type': 'Organization', name: 'MATCHDAY', url: `${origin}/`, logo: `${origin}/icon-512.png`, email: 'matchdayenquiries@hotmail.com' },
+    {
+      '@context': 'https://schema.org', '@type': 'MobileApplication', name: 'MATCHDAY', operatingSystem: 'ANDROID', applicationCategory: 'SportsApplication',
+      description: HOME.description, url: `${origin}/`, installUrl: 'https://play.google.com/store/apps/details?id=app.matchday.android',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'GBP' }, publisher: { '@type': 'Organization', name: "Ned's Games" },
+    },
+  ]).replace(/</g, '\\u003c');
+}
+
 export default async (request: Request, context: Context) => {
   const res = await context.next();
   if (!(res.headers.get('content-type') ?? '').includes('text/html')) return res;
@@ -149,11 +178,18 @@ export default async (request: Request, context: Context) => {
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta name="description" content="${esc(description)}">`,
     // public pages get a canonical address (the homepage is / even when opened as /welcome)
+    `<meta name="application-name" content="MATCHDAY">`,
+    `<link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png">`,
+    `<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">`,
+    `<link rel="apple-touch-icon" href="/apple-touch-icon.png">`,
+    ...(!invite && (path === '/' || path === '/welcome') ? [`<script type="application/ld+json">${structuredData(url.origin)}</script>`] : []),
     ...(!invite && PAGES[path] ? [`<link rel="canonical" href="${esc(url.origin + (path === '/welcome' ? '/' : path))}">`] : []),
   ].join('');
   const html = (await res.text())
-    .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
-    .replace('</head>', `${tags}</head>`);
+    .replace(/<title>[^<]*<\/title>/, () => `<title>${esc(title)}</title>`)
+    .replace(/<link rel="icon" href="\/favicon\.ico"\s*\/?>/, '')
+    .replace('</head>', () => `${tags}</head>`)
+    .replace(/<noscript>[\s\S]*?<\/noscript>/, () => staticBody({ title, description }));
   const headers = new Headers(res.headers);
   headers.delete('content-length');
   if (invite) headers.set('cache-control', 'public, max-age=60');
