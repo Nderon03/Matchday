@@ -574,6 +574,17 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     const rt = await page.locator('body').innerText();
     if (!rt.includes('Share match report') || !rt.includes('matchdayapp.org') || !/8\.2 rating · 2 goals · 1 assist/.test(rt)) failures.push(`${vpName}: match report card incomplete`);
     await page.getByText('matchdayapp.org').first().locator('xpath=../../..').screenshot({ path: join(OUT, `auth-${vpName}-match-report.png`) }).catch(() => undefined);
+    // goals page: team totals for the host, and correcting a tally includes assists
+    table.goal_submissions = [{ id: 's-2', session_id: SID, user_id: people[2].id, goals: 3, assists: 0, approved_goals: 3, approved_assists: 0, status: 'approved', fixture_breakdown: null, note: null, is_late: false, submitted_at: ago(0.2) }];
+    await page.goto(base + `/session/${SID}/goals`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    const gt = await page.locator('body').innerText();
+    if (!/Team totals/.test(gt) || !/scored 7: 5 ⚽ 1 🅰️ credited · 2 goals not credited yet/.test(gt)) failures.push(`${vpName}: team totals missing on the goals page`);
+    await page.getByRole('button', { name: 'Correct' }).first().click();
+    await page.waitForTimeout(500);
+    if (!(await page.getByLabel('Corrected assists').count())) failures.push(`${vpName}: correcting goals has no assists`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-goals-correct.png`) });
+    await page.keyboard.press('Escape');
     session.status = saved.status;
     delete session.finalised_at;
     fixtures.splice(0, fixtures.length, ...JSON.parse(saved.fixtures));

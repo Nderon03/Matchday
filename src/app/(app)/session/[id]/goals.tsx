@@ -13,6 +13,7 @@ import type { GoalSubmission, SubmissionStatus } from '@/types/db';
 import { plural } from '@/domain/format';
 import { ScreenHelp } from '@/features/ScreenHelp';
 import { haptics } from '@/lib/haptics';
+import { roomForPlayer, teamTotals } from '@/domain/teamGoals';
 
 const STATUS: Record<SubmissionStatus, { label: string; tone: 'warning' | 'success' | 'danger' | 'primary' | 'neutral' }> = {
   pending: { label: 'Awaiting approval', tone: 'warning' },
@@ -47,9 +48,11 @@ function GoalsBody({ id }: { id: string }) {
   const [note, setNote] = useState(mine?.note ?? '');
   const [review, setReview] = useState<{ sub: GoalSubmission; action: SubmissionStatus } | null>(null);
   const [reviewGoals, setReviewGoals] = useState(0);
+  const [reviewAssists, setReviewAssists] = useState(0);
   const [reason, setReason] = useState('');
   const [recordFor, setRecordFor] = useState<string | null>(null);
   const [recordGoals, setRecordGoals] = useState(0);
+  const [recordAssists, setRecordAssists] = useState(0);
 
   const myFixtures = useMemo(() => {
     if (!d) return [];
@@ -76,8 +79,15 @@ function GoalsBody({ id }: { id: string }) {
   // with a game-by-game split, the totals are simply the sum of the games
   const totalGoals = split ? myFixtures.reduce((a, f) => a + per(f.id).goals, 0) : goals;
   const totalAssists = split ? myFixtures.reduce((a, f) => a + per(f.id).assists, 0) : assists;
+  // what the player's team has left once teammates' approved goals are counted (single game)
+  const room = userId ? roomForPlayer(d.fixtures, d.goalsByFixture, userId) : null;
   const localError = validateGoalClaim(totalGoals, myFixtures.map((f) => f.teamScore),
-    split ? myFixtures.map((f) => ({ goals: per(f.id).goals, assists: per(f.id).assists, teamScore: f.teamScore })) : undefined, totalAssists);
+    split ? myFixtures.map((f) => ({ goals: per(f.id).goals, assists: per(f.id).assists, teamScore: f.teamScore })) : undefined, totalAssists)
+    ?? (room && totalGoals > room.goalsLeft ? `Your team scored ${room.score} and teammates already have ${room.matesGoals} approved, so you can claim ${room.goalsLeft > 0 ? `at most ${room.goalsLeft}` : 'no more goals'}. If that’s wrong, ask the host.` : null)
+    ?? (room && totalAssists > room.assistsLeft ? `Your team scored ${room.score} and teammates already have ${room.matesAssists} assists approved, so you can claim ${room.assistsLeft > 0 ? `at most ${room.assistsLeft}` : 'no more assists'}.` : null);
+  const totals = d.isManager ? teamTotals(d.fixtures, d.goalsByFixture) : [];
+  const pendingForBulk = reviewable.filter((x) => x.status === 'pending').length;
+  const openCorrect = (sub: GoalSubmission) => { setReview({ sub, action: 'corrected' }); setReviewGoals(sub.approved_goals ?? sub.goals); setReviewAssists(sub.approved_assists ?? sub.assists); setReason(''); };
   const isHostSelf = d.isManager;
 
   const submit = () => run('submit', () => rpc('submit_goals', {
@@ -141,6 +151,9 @@ function GoalsBody({ id }: { id: string }) {
                     {!!split && <Text variant="small">Total: {totalGoals} goal{totalGoals === 1 ? '' : 's'}{trackAssists ? `, ${totalAssists} assist${totalAssists === 1 ? '' : 's'}` : ''}</Text>}
                   </View>
                 )}
+                {!!room && !split && !isHostSelf && (
+                  <Text variant="caption" tone="muted">Your team scored {room.score}{room.matesGoals ? `, and teammates have ${room.matesGoals} approved` : ''}.</Text>
+                )}
                 <Input label="Note for the host (optional)" value={note} onChangeText={setNote} placeholder="e.g. Two headers and a penalty" maxLength={280} />
                 {!!localError && <Text variant="small" tone="danger">{localError}</Text>}
                 <Button title={mine ? 'Update submission' : 'Submit'} size="lg" disabled={!canSubmit || !!localError} loading={busy === 'submit'} onPress={submit} />
@@ -158,7 +171,22 @@ function GoalsBody({ id }: { id: string }) {
       {!!d.isManager && (
         <View style={{ gap: space.sm }}>
           <SectionTitle title={`To approve · ${reviewable.length}`} action={reviewable.filter((x) => x.status === 'pending').length > 1 ? 'Approve all' : undefined}
-            onAction={() => run('bulk', () => rpc<number>('bulk_approve_goals', { p_session: id }), (n) => `${plural(n, 'claim')} approved`).then((r) => { if (r !== undefined) haptics.goal(); })} />
+            onAction={() => run('bulk', () => rpc<number>('bulk_approve_goals', { p_session: id }),
+              (n) => `${plural(n, 'claim')} approved${pendingForBulk - n > 0 ? `. ${plural(pendingForBulk - n, 'claim')} left: it would go over a team’s score, so correct it` : ''}`).then((r) => { if (r !== undefined) haptics.goal(); })} />
+          {totals.length > 0 && (
+            <Card variant="alt">
+              <View style={{ gap: space.xs }}>
+                <Text variant="smallStrong">Team totals</Text>
+                {totals.map((t) => (
+                  <Text key={t.teamId} variant="small" tone={t.goalsLeft < 0 || t.assistsLeft < 0 ? 'danger' : 'muted'}>
+                    {d.fixtures.filter((f) => f.played).length > 1 ? `Game ${t.number} · ` : ''}{t.name} scored {t.score}: {t.goals} ⚽ {t.assists} 🅰️ credited
+                    {t.goalsLeft > 0 ? ` · ${plural(t.goalsLeft, 'goal')} not credited yet` : ''}
+                  </Text>
+                ))}
+                <Text variant="caption" tone="faint">A team’s players can’t have more goals, or more assists, than the team scored.</Text>
+              </View>
+            </Card>
+          )}
           {reviewable.length === 0 && <Text tone="muted" variant="small">No claims waiting. {pending.some((x) => x.user_id === userId) ? 'Your own claim needs another host or a teammate to approve it.' : ''}</Text>}
           {reviewable.map((sub) => {
             const p = nameOf(sub.user_id);
@@ -178,7 +206,7 @@ function GoalsBody({ id }: { id: string }) {
                   </Row>
                   <Row gap={space.sm} wrap>
                     <Button title="Approve" size="sm" icon="checkmark" loading={busy === `ap-${sub.id}`} onPress={() => run(`ap-${sub.id}`, () => rpc('review_goal_submission', { p_submission: sub.id, p_action: 'approved' }), 'Approved').then((r) => { if (r !== undefined) haptics.goal(); })} />
-                    <Button title="Correct" size="sm" variant="secondary" onPress={() => { setReview({ sub, action: 'corrected' }); setReviewGoals(sub.goals); setReason(''); }} />
+                    <Button title="Correct" size="sm" variant="secondary" onPress={() => openCorrect(sub)} />
                     <Button title="Ask" size="sm" variant="ghost" onPress={() => { setReview({ sub, action: 'clarification_requested' }); setReason(''); }} />
                     <Button title="Reject" size="sm" variant="danger" onPress={() => { setReview({ sub, action: 'rejected' }); setReason(''); }} />
                   </Row>
@@ -194,7 +222,7 @@ function GoalsBody({ id }: { id: string }) {
                 <Row key={a.user_id} gap={space.md}>
                   <Avatar uri={a.profile.avatar_url} name={a.profile.display_name} size={32} />
                   <Text style={{ flex: 1 }}>{a.profile.display_name}</Text>
-                  <Button title="Record" size="sm" variant="secondary" onPress={() => { setRecordFor(a.user_id); setRecordGoals(0); }} />
+                  <Button title="Record" size="sm" variant="secondary" onPress={() => { setRecordFor(a.user_id); setRecordGoals(0); setRecordAssists(0); }} />
                 </Row>
               ))}
             </>
@@ -206,27 +234,41 @@ function GoalsBody({ id }: { id: string }) {
         <View style={{ gap: space.sm }}>
           <SectionTitle title="Approved scorers" />
           <Card padded={false}>
-            {[...d.approvedGoals].sort((a, b) => b.goals - a.goals).filter((g) => g.goals > 0 || g.assists > 0).map((g, i) => (
-              <Row key={g.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
-                <Text style={{ flex: 1 }}>{nameOf(g.user_id)?.display_name ?? 'Player'}</Text>
-                <Text variant="bodyStrong">{g.goals} ⚽{g.assists ? `  ${g.assists} 🅰️` : ''}</Text>
-              </Row>
-            ))}
+            {[...d.approvedGoals].sort((a, b) => b.goals - a.goals).filter((g) => g.goals > 0 || g.assists > 0).map((g, i) => {
+              // hosts can correct an approved tally (not their own) at any time
+              const sub = d.isManager && g.user_id !== userId ? d.submissions.find((x) => x.user_id === g.user_id) : undefined;
+              return (
+                <Row key={g.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
+                  <Text style={{ flex: 1 }}>{nameOf(g.user_id)?.display_name ?? 'Player'}</Text>
+                  <Text variant="bodyStrong">{g.goals} ⚽{g.assists ? `  ${g.assists} 🅰️` : ''}</Text>
+                  {!!sub && <Button title="Correct" size="sm" variant="ghost" onPress={() => openCorrect(sub)} />}
+                </Row>
+              );
+            })}
           </Card>
         </View>
       )}
 
-      <Sheet visible={!!review} onClose={() => setReview(null)} title={review?.action === 'corrected' ? 'Correct goals' : review?.action === 'rejected' ? 'Reject claim' : 'Ask for clarification'}>
+      <Sheet visible={!!review} onClose={() => setReview(null)} title={review?.action === 'corrected' ? `Correct ${nameOf(review.sub.user_id)?.display_name ?? 'goals'}` : review?.action === 'rejected' ? 'Reject claim' : 'Ask for clarification'}>
         {review?.action === 'corrected' && (
-          <Row style={{ justifyContent: 'space-between' }}>
-            <Text variant="bodyStrong">Correct total</Text>
-            <Stepper value={reviewGoals} onChange={setReviewGoals} label="Corrected goals" />
-          </Row>
+          <View style={{ gap: space.md }}>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <Text variant="bodyStrong">Goals</Text>
+              <Stepper value={reviewGoals} onChange={setReviewGoals} label="Corrected goals" />
+            </Row>
+            {!!trackAssists && (
+              <Row style={{ justifyContent: 'space-between' }}>
+                <Text variant="bodyStrong">Assists</Text>
+                <Stepper value={reviewAssists} onChange={setReviewAssists} label="Corrected assists" />
+              </Row>
+            )}
+            <Text variant="caption" tone="faint">They claimed {plural(review.sub.goals, 'goal')}{review.sub.assists ? ` and ${plural(review.sub.assists, 'assist')}` : ''}.</Text>
+          </View>
         )}
         <Input label={review?.action === 'rejected' ? 'Reason (optional)' : 'Explanation'} value={reason} onChangeText={setReason} multiline maxLength={280} />
         <Button title="Send" loading={busy === 'review'} onPress={async () => {
           if (!review) return;
-          const ok = await run('review', () => rpc('review_goal_submission', { p_submission: review.sub.id, p_action: review.action, p_goals: review.action === 'corrected' ? reviewGoals : null, p_reason: reason || null }), 'Done');
+          const ok = await run('review', () => rpc('review_goal_submission', { p_submission: review.sub.id, p_action: review.action, p_goals: review.action === 'corrected' ? reviewGoals : null, p_assists: review.action === 'corrected' ? reviewAssists : null, p_reason: reason || null }), 'Done');
           if (ok !== undefined) setReview(null);
         }} />
       </Sheet>
@@ -236,8 +278,14 @@ function GoalsBody({ id }: { id: string }) {
           <Text variant="bodyStrong">Goals</Text>
           <Stepper value={recordGoals} onChange={setRecordGoals} label="Goals" />
         </Row>
+        {!!trackAssists && (
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Text variant="bodyStrong">Assists</Text>
+            <Stepper value={recordAssists} onChange={setRecordAssists} label="Assists" />
+          </Row>
+        )}
         <Button title="Save" loading={busy === 'record'} onPress={async () => {
-          const ok = await run('record', () => rpc('host_record_goals', { p_session: id, p_user: recordFor, p_goals: recordGoals, p_reason: 'Recorded by host' }), 'Recorded');
+          const ok = await run('record', () => rpc('host_record_goals', { p_session: id, p_user: recordFor, p_goals: recordGoals, p_assists: recordAssists, p_reason: 'Recorded by host' }), 'Recorded');
           if (ok !== undefined) setRecordFor(null);
         }} />
       </Sheet>
