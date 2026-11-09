@@ -133,4 +133,18 @@ describe('team goal limits', () => {
     expect(n).toEqual({ title: 'Full time! Vote for Player of the Night', body: 'Pick the Player of the Night' });
     expect((await db.admin(`select public.strip_edge_emoji('⚽ Sunday FC needs 2 players') t`))[0].t).toBe('Sunday FC needs 2 players');
   });
+
+  it('a game nobody else turned up to is cancelled automatically afterwards', async () => {
+    const host = await db.createUser(uniq('lonely'));
+    const sid = await db.rpc<string>(host, 'create_session', { p: { name: 'Lonely FC', starts_at: new Date(Date.now() + 3600_000).toISOString(), format_size: 5 } });
+    const busy = await playedGame(1, 0);
+    // both games are long over
+    await db.admin(`update sessions set starts_at = now() - interval '6 hours' where id = any($1)`, [[sid, busy.sid]]);
+    expect((await db.admin(`select public.auto_cancel_empty_games() n`))[0].n).toBeGreaterThanOrEqual(1);
+    expect((await db.admin(`select status from sessions where id = $1`, [sid]))[0].status).toBe('cancelled');
+    // a game that was played is left alone
+    expect((await db.admin(`select status from sessions where id = $1`, [busy.sid]))[0].status).not.toBe('cancelled');
+    const [n] = await db.admin(`select title from notifications where user_id = $1 and type = 'session_cancelled'`, [host]);
+    expect(n.title).toBe('Lonely FC was cancelled');
+  });
 });

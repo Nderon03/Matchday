@@ -131,6 +131,10 @@ export default function SessionScreen() {
       return res === 'confirmed' ? 'You’re in!' : res === 'waitlisted' ? 'Game full — you’re on the waiting list' : 'Response saved';
     });
 
+  const cancelGame = async () => {
+    const r = await confirm({ title: 'Cancel this game?', message: 'Everyone will be notified and any payments refunded or released.', confirmLabel: 'Cancel game', cancelLabel: 'Keep it', destructive: true, reasonLabel: 'Reason (optional, shown to players)' });
+    if (r) run('cancel', () => rpc('cancel_session', { p_session: id, p_reason: typeof r === 'object' && r.reason ? r.reason : null }), 'Game cancelled');
+  };
   const openFinalise = async () => {
     setFinaliseOpen(true);
     try {
@@ -494,8 +498,13 @@ export default function SessionScreen() {
       {!!d.isManager && s.status !== 'cancelled' && (() => {
         const next = d.fixtures.find((f) => !f.played) ?? d.fixtures[d.fixtures.length - 1];
         const teamsReady = !!next?.lineup_confirmed_at;
+        // after kick-off with nobody to play against, there's no score to record: offer to cancel instead
+        const kickedOff = s.status === 'in_progress' || (s.status === 'scheduled' && now >= new Date(s.starts_at).getTime());
+        const playersIn = groups.confirmed.length + guestsIn.length;
+        const neverHappened = kickedOff && playersIn < 2 && !d.fixtures.some((f) => f.played);
         const step: { title: string; detail: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void; disabled?: boolean } | null =
-          s.status === 'scheduled' && !teamsReady ? { title: 'Pick the teams', detail: 'Balance the squad and announce the line-ups.', icon: 'shirt', onPress: () => router.push(`/session/${id}/lineup`) }
+          neverHappened ? { title: 'It didn’t happen: cancel game', detail: `Only ${plural(playersIn, 'player')} signed up, so there’s no score to record.`, icon: 'close-circle', onPress: cancelGame }
+          : s.status === 'scheduled' && !teamsReady ? { title: 'Pick the teams', detail: 'Balance the squad and announce the line-ups.', icon: 'shirt', onPress: () => router.push(`/session/${id}/lineup`) }
           : ['scheduled', 'in_progress'].includes(s.status) ? { title: 'Full time: enter the scores', detail: 'Record each game’s score to open voting.', icon: 'flag', onPress: () => router.push(`/session/${id}/results`) }
           : s.status === 'completed' && pendingClaims ? { title: `Approve ${plural(pendingClaims, 'goal claim')}`, detail: 'Results can’t be finalised until every claim is decided.', icon: 'checkmark-done', onPress: () => router.push(`/session/${id}/goals`) }
           : s.status === 'completed' && votingOpen ? { title: 'Close voting now', detail: `Voting closes in ${timeUntil(s.voting_closes_at!)}; results finalise automatically then.`, icon: 'timer-outline', onPress: () => run('close', async () => { await rpc('close_voting', { p_session: id }); setClosedHere(true); return true; }, 'Voting closed: you can finalise now') }
@@ -510,6 +519,11 @@ export default function SessionScreen() {
                   <View style={{ gap: space.xs }}>
                     <Button title={step.title} icon={step.icon} size="lg" loading={busy === 'close'} onPress={step.onPress} />
                     <Text variant="caption" tone="muted" align="center">{step.detail}</Text>
+                    {kickedOff && !neverHappened && ['scheduled', 'in_progress'].includes(s.status) && !d.fixtures.some((f) => f.played) && (
+                      <Text variant="smallStrong" tone="danger" align="center" accessibilityRole="button" onPress={cancelGame} style={{ marginTop: space.xs }}>
+                        Didn’t happen? Cancel the game
+                      </Text>
+                    )}
                   </View>
                 )}
                 {s.status === 'scheduled' && s.max_attendance - (groups.confirmed.length + guestsIn.length) > 0 && (
@@ -653,11 +667,7 @@ export default function SessionScreen() {
             <ListItem key={t.title} title={t.title} left={<Ionicons name={t.icon} size={20} color={colors.textMuted} />} onPress={() => { setToolsOpen(false); router.push(t.go); }} />
           ))}
           {['scheduled', 'in_progress'].includes(s.status) && (
-            <ListItem title="Cancel game" danger left={<Ionicons name="close-circle-outline" size={20} color={colors.danger} />} onPress={async () => {
-              setToolsOpen(false);
-              const r = await confirm({ title: 'Cancel this game?', message: 'Everyone will be notified and any payments refunded or released.', confirmLabel: 'Cancel game', cancelLabel: 'Keep it', destructive: true, reasonLabel: 'Reason (optional, shown to players)' });
-              if (r) run('cancel', () => rpc('cancel_session', { p_session: id, p_reason: typeof r === 'object' && r.reason ? r.reason : null }), 'Game cancelled');
-            }} />
+            <ListItem title="Cancel game" danger left={<Ionicons name="close-circle-outline" size={20} color={colors.danger} />} onPress={() => { setToolsOpen(false); cancelGame(); }} />
           )}
         </ScrollView>
       </Sheet>

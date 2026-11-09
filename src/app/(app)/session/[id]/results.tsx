@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Badge, Button, Card, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Sheet, SwipeSelect, Text } from '@/components/ui';
+import { Badge, Button, Card, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Sheet, SwipeSelect, Text, useConfirm } from '@/components/ui';
 import { keys, useSessionDetail } from '@/hooks/queries';
 import { useAction } from '@/hooks/useAction';
 import { rpc } from '@/lib/api';
@@ -16,6 +16,7 @@ export default function ResultsScreen() {
   const { colors } = useTheme();
   const detail = useSessionDetail(id);
   const { run, busy } = useAction([keys.session(id), keys.mySessions]);
+  const confirm = useConfirm();
   const [scores, setScores] = useState<Record<string, { a: number; b: number }>>({});
   const [nextOpen, setNextOpen] = useState(false);
   // the score that was just saved, shown at the top of the "what's next?" sheet
@@ -34,6 +35,15 @@ export default function ResultsScreen() {
   const correcting = s.status === 'finalised' && correct === '1';
   const locked = (s.status === 'completed' || s.status === 'finalised') && !correcting;
   const last = d.fixtures[d.fixtures.length - 1];
+  // nobody to play against: the game didn't happen, so offer to cancel it instead of a score
+  const playersIn = d.attendance.filter((a) => a.status === 'confirmed').length + d.guests.filter((g) => g.status === 'confirmed').length;
+  const nothingPlayed = !d.fixtures.some((f) => f.played);
+  const cancelGame = async () => {
+    const r = await confirm({ title: 'Cancel this game?', message: 'Everyone will be notified and any payments refunded or released.', confirmLabel: 'Cancel game', cancelLabel: 'Keep it', destructive: true, reasonLabel: 'Reason (optional, shown to players)' });
+    if (!r) return;
+    const ok = await run('cancel', async () => { await rpc('cancel_session', { p_session: id, p_reason: typeof r === 'object' && r.reason ? r.reason : null }); return true; }, 'Game cancelled');
+    if (ok) router.replace(`/session/${id}`);
+  };
   const allPlayed = d.fixtures.every((f) => f.played);
 
   const addFixture = async (mode: 'keep' | 'balanced' | 'random' | 'manual') => {
@@ -69,10 +79,17 @@ export default function ResultsScreen() {
                 </Row>
               </Row>
               {!hasTeams ? (
-                <View style={{ gap: space.sm }}>
-                  <Text tone="muted">Pick the teams before recording a score.</Text>
-                  <Button title="Pick teams" icon="shirt-outline" variant="secondary" onPress={() => router.push({ pathname: '/session/[id]/lineup', params: { id, fixture: f.id } })} />
-                </View>
+                playersIn < 2 && nothingPlayed && !locked ? (
+                  <View style={{ gap: space.sm }}>
+                    <Text tone="muted">Only {playersIn === 1 ? '1 player' : 'nobody'} signed up, so there are no teams to pick and no score to record.</Text>
+                    <Button title="It didn’t happen: cancel game" icon="close-circle-outline" variant="danger" loading={busy === 'cancel'} onPress={cancelGame} />
+                  </View>
+                ) : (
+                  <View style={{ gap: space.sm }}>
+                    <Text tone="muted">Pick the teams before recording a score.</Text>
+                    <Button title="Pick teams" icon="shirt-outline" variant="secondary" onPress={() => router.push({ pathname: '/session/[id]/lineup', params: { id, fixture: f.id } })} />
+                  </View>
+                )
               ) : (
                 <>
                   {/* scoreboard: each team's name, the score big, and − / + underneath (fits the narrowest phones) */}
@@ -113,6 +130,9 @@ export default function ResultsScreen() {
           <SectionTitle title="Full time" />
           <Button title="Complete game" icon="flag" size="lg" disabled={!allPlayed} onPress={() => setCompleteOpen(true)} />
           {!allPlayed && <Text variant="caption" tone="muted" align="center">Every game needs a score — record it or remove the game.</Text>}
+          {nothingPlayed && playersIn >= 2 && (
+            <Text variant="smallStrong" tone="danger" align="center" accessibilityRole="button" onPress={cancelGame} style={{ marginTop: space.sm }}>Didn’t happen? Cancel the game</Text>
+          )}
         </View>
       )}
 
