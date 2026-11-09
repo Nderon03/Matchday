@@ -17,18 +17,18 @@ export interface MotmWinner { user_id: string; name: string; avatar: string | nu
  * "And the Man of the Match is…": a short drumroll, then the card flips to reveal the winner
  * with a gold burst. Shown once per game to everyone who opens it within a week of the result.
  */
-export function MotmAnnouncement({ sessionId, finalisedAt, winners, userId, onDone }: {
-  sessionId: string; finalisedAt: string | null; winners: MotmWinner[]; userId: string; onDone?: () => void;
+export function MotmAnnouncement({ sessionId, finalisedAt, winners, userId, onDone, award = 'Man of the Match' }: {
+  sessionId: string; finalisedAt: string | null; winners: MotmWinner[]; userId: string; onDone?: () => void; award?: string;
 }) {
   const [now] = useState(() => Date.now());
   const recent = !!finalisedAt && now - new Date(finalisedAt).getTime() < 7 * 86400_000;
   const eligible = recent && winners.length > 0;
   const { due, markDone } = useOnce(eligible ? `matchday.motmReveal.${sessionId}` : null, eligible);
   if (!due) return null;
-  return <Announcement winners={winners} isMe={winners.some((w) => w.user_id === userId)} onClose={() => { markDone(); onDone?.(); }} />;
+  return <Announcement winners={winners} award={award} isMe={winners.some((w) => w.user_id === userId)} onClose={() => { markDone(); onDone?.(); }} />;
 }
 
-function Announcement({ winners, isMe, onClose }: { winners: MotmWinner[]; isMe: boolean; onClose: () => void }) {
+function Announcement({ winners, isMe, onClose, award }: { winners: MotmWinner[]; isMe: boolean; onClose: () => void; award: string }) {
   const { colors, reduceMotion } = useTheme();
   const [flip] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
   const [pulse] = useState(() => new Animated.Value(0));
@@ -60,14 +60,14 @@ function Announcement({ winners, isMe, onClose }: { winners: MotmWinner[]; isMe:
       <View style={styles.centre} pointerEvents="box-none">
         <View accessibilityViewIsModal style={[styles.card, { backgroundColor: colors.surface, borderColor: `${GOLD}66` }]}>
           <Text variant="overline" style={{ color: GOLD }}>Full time</Text>
-          <Text variant="h2" align="center" accessibilityRole="header">{shared ? 'And the Men of the Match are…' : 'And the Man of the Match is…'}</Text>
+          <Text variant="h2" align="center" accessibilityRole="header">{award === 'Man of the Match' ? (shared ? 'And the Men of the Match are…' : 'And the Man of the Match is…') : `And the ${award} ${shared ? 'goes to…' : 'is…'}`}</Text>
           <View style={{ width: 220, height: 220, alignItems: 'center', justifyContent: 'center' }}>
             <Animated.View style={[styles.face, { borderColor: colors.border, backgroundColor: colors.surfaceAlt,
               transform: [{ perspective: 800 }, { rotateY: frontRot }, { scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }) }] }]}>
               <Text style={{ fontSize: 72, lineHeight: 80, fontWeight: '800', color: colors.textFaint }}>?</Text>
             </Animated.View>
             <Animated.View style={[styles.face, { borderColor: GOLD, backgroundColor: `${GOLD}14`, transform: [{ perspective: 800 }, { rotateY: backRot }] }]}
-              accessible accessibilityLabel={`Man of the Match: ${winners.map((w) => w.name).join(' and ')}`}>
+              accessible accessibilityLabel={`${award}: ${winners.map((w) => w.name).join(' and ')}`}>
               <View style={{ flexDirection: 'row' }}>
                 {winners.slice(0, 3).map((w, i) => (
                   <View key={w.user_id} style={{ marginLeft: i ? -12 : 0 }}><Avatar uri={w.avatar} name={w.name} size={shared ? 64 : 92} ring={GOLD} /></View>
@@ -78,7 +78,12 @@ function Announcement({ winners, isMe, onClose }: { winners: MotmWinner[]; isMe:
               <Text variant="caption" tone="muted">{winners[0].votes} vote{winners[0].votes === 1 ? '' : 's'}{shared ? ' each' : ''}</Text>
             </Animated.View>
           </View>
-          {revealed && isMe && <Text variant="bodyStrong" style={{ color: GOLD }}>That’s you! 🎉</Text>}
+          {revealed && isMe && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: `${GOLD}1F`, borderWidth: 1, borderColor: `${GOLD}66` }}>
+              <Ionicons name="trophy" size={18} color={GOLD} />
+              <Text variant="bodyStrong" style={{ color: GOLD }}>That’s you!</Text>
+            </View>
+          )}
           <Button title={revealed ? 'Nice' : 'Skip'} variant={revealed ? 'primary' : 'ghost'} style={{ alignSelf: 'stretch' }} onPress={onClose} />
         </View>
       </View>

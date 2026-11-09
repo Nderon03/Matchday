@@ -143,7 +143,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
                   <Row key={r.session_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
                     <View style={{ flex: 1 }}>
                       <Text variant="bodyStrong" numberOfLines={1} onPress={() => router.push(`/session/${r.session_id}`)}>{r.name}</Text>
-                      <Text variant="caption" tone="muted">{formatKickoff(r.played_at)} · {r.wins}W {r.draws}D {r.losses}L{r.goals ? ` · ${r.goals}⚽` : ''}</Text>
+                      <Text variant="caption" tone="muted">{formatKickoff(r.played_at)} · {r.wins}W {r.draws}D {r.losses}L{r.goals ? ` · ${plural(r.goals, 'goal')}` : ''}</Text>
                     </View>
                     {!!r.motm && <Ionicons name="star" size={16} color={colors.gold} />}
                     <Text variant="statSmall" tone={r.rating_eligible ? 'primary' : 'faint'}>{r.rating_eligible ? rating(r.rating_avg) : '–'}</Text>

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Button, Text } from '@/components/ui';
 import { Confetti } from '@/components/football/Confetti';
 import { highlightText, matchHighlights, type Highlight, type MatchReveal } from '@/domain/matchReveal';
+import { motmTitle } from '@/domain/motm';
 import { formatKickoff } from '@/domain/format';
 import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -102,7 +103,7 @@ export function MatchRevealCard({ r, onDone }: { r: MatchReveal; onDone: () => v
           {highlights.length > 0 && (
             <View style={{ alignSelf: 'stretch', gap: space.sm }}>
               {highlights.map((h, i) => {
-                const t = highlightText(h);
+                const t = highlightText(h, motmTitle(r.fixtures_played, r.played_at));
                 const gold = h.kind === 'motm';
                 return (
                   <Animated.View key={h.kind} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, borderRadius: radius.md,

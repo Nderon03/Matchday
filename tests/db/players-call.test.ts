@@ -41,7 +41,7 @@ describe('need players', () => {
     expect(await db.rpc(host, 'call_for_players', { p_session: sid, p_message: 'Bring a dark top' })).toBe(2);
     const notes = await db.admin(`select user_id, title, body from notifications where type = 'players_needed' and data->>'session_id' = $1`, [sid]);
     expect(notes.map((n) => n.user_id).sort()).toEqual([mateFriend, local].sort());
-    expect(notes[0].title).toBe('⚽ Short FC needs 8 players');
+    expect(notes[0].title).toBe('Short FC needs 8 players');
     expect(notes[0].body).toContain('Bring a dark top');
     // invited, so they can join a game they couldn't see before
     expect(await db.rpc(mateFriend, 'respond_to_session', { p_session: sid, p_response: 'confirmed' })).toBe('confirmed');

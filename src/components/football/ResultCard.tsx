@@ -2,6 +2,7 @@ import React, { forwardRef } from 'react';
 import { View, type HostInstance } from 'react-native';
 import Svg, { Defs, Line, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Text } from '@/components/ui';
+import { Ionicons } from '@expo/vector-icons';
 import { formatDate, plural } from '@/domain/format';
 import { radius, space } from '@/theme/tokens';
 
@@ -12,6 +13,8 @@ export interface ResultCardData {
   formatSize: number;
   fixtures: { number: number; a: string; b: string; scoreA: number | null; scoreB: number | null }[];
   motm: string[];
+  /** Man of the Match, or Player of the Night/Day with several games */
+  award?: string;
   topScorers: { name: string; goals: number }[];
   topAssists?: { name: string; assists: number }[];
   /** the sharer's own game, when they played */
@@ -66,20 +69,29 @@ export const ResultCard = forwardRef<HostInstance, { data: ResultCardData }>(fun
 
         <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)' }} />
         {data.motm.length > 0 && (
-          <Text variant="bodyStrong" color={GOLD}>★  Man of the Match: {data.motm.join(' & ')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="star" size={16} color={GOLD} />
+            <Text variant="bodyStrong" color={GOLD} style={{ flexShrink: 1 }}>{data.award ?? 'Man of the Match'}: {data.motm.join(' & ')}</Text>
+          </View>
         )}
         {data.topScorers.length > 0 && (
-          <Text variant="small" color="#D6E2DB">⚽  {data.topScorers.map((s) => `${s.name}${s.goals > 1 ? ` ×${s.goals}` : ''}`).join(', ')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="football" size={15} color="#D6E2DB" />
+            <Text variant="small" color="#D6E2DB" style={{ flexShrink: 1 }}>{data.topScorers.map((s) => `${s.name}${s.goals > 1 ? ` ×${s.goals}` : ''}`).join(', ')}</Text>
+          </View>
         )}
         {!!data.topAssists?.length && (
-          <Text variant="small" color="#D6E2DB">🅰️  {data.topAssists.map((s) => `${s.name}${s.assists > 1 ? ` ×${s.assists}` : ''}`).join(', ')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="git-merge" size={15} color="#D6E2DB" />
+            <Text variant="small" color="#D6E2DB" style={{ flexShrink: 1 }}>{data.topAssists.map((s) => `${s.name}${s.assists > 1 ? ` ×${s.assists}` : ''}`).join(', ')}</Text>
+          </View>
         )}
         {!!me && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, borderRadius: radius.md, backgroundColor: 'rgba(34,197,94,0.12)' }}>
             <Text variant="overline" color={GREEN}>My game</Text>
             <Text variant="bodyStrong" color={WHITE} style={{ flex: 1 }} numberOfLines={1}>
               {[me.rating !== null ? `${me.rating.toFixed(1)} rating` : null, me.goals ? `${me.goals} ${me.goals === 1 ? 'goal' : 'goals'}` : null,
-                me.assists ? `${me.assists} ${me.assists === 1 ? 'assist' : 'assists'}` : null, me.motm ? 'MOTM ★' : null].filter(Boolean).join(' · ') || 'Played'}
+                me.assists ? `${me.assists} ${me.assists === 1 ? 'assist' : 'assists'}` : null, me.motm ? (data.award && data.award !== 'Man of the Match' ? data.award : 'MOTM') : null].filter(Boolean).join(' · ') || 'Played'}
             </Text>
           </View>
         )}

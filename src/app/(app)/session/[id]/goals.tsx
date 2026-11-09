@@ -14,6 +14,7 @@ import { plural } from '@/domain/format';
 import { ScreenHelp } from '@/features/ScreenHelp';
 import { haptics } from '@/lib/haptics';
 import { playerGames, resultWord, roomForPlayer, teamTotals } from '@/domain/teamGoals';
+import { GoalsAssists } from '@/components/football/GoalsAssists';
 
 const STATUS: Record<SubmissionStatus, { label: string; tone: 'warning' | 'success' | 'danger' | 'primary' | 'neutral' }> = {
   pending: { label: 'Awaiting approval', tone: 'warning' },
@@ -182,8 +183,8 @@ function GoalsBody({ id }: { id: string }) {
                   return (
                     <View key={t.teamId} style={{ alignItems: 'flex-start' }}>
                       <Text variant="small" tone={t.goalsLeft < 0 || t.assistsLeft < 0 ? 'danger' : 'muted'}>
-                        {label} scored {t.score}: {t.goals} ⚽ {t.assists} 🅰️ credited{extras ? ` · ${extras}` : ''}
-                        {t.goalsLeft > 0 ? ` · ${plural(t.goalsLeft, 'goal')} not credited yet` : t.goalsLeft === 0 && t.score > 0 ? ' · all accounted for ✓' : ''}
+                        {label} scored {t.score}: {plural(t.goals, 'goal')}, {plural(t.assists, 'assist')} credited{extras ? ` · ${extras}` : ''}
+                        {t.goalsLeft > 0 ? ` · ${plural(t.goalsLeft, 'goal')} not credited yet` : t.goalsLeft === 0 && t.score > 0 ? ' · all accounted for' : ''}
                       </Text>
                       {(t.goalsLeft > 0 || t.ownGoals + t.unclaimed > 0) && (
                         <Button title={t.ownGoals + t.unclaimed > 0 ? 'Edit own goals / no scorer' : 'Own goal / no scorer'} size="sm" variant="ghost"
@@ -249,7 +250,7 @@ function GoalsBody({ id }: { id: string }) {
               return (
                 <Row key={g.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
                   <Text style={{ flex: 1 }}>{nameOf(g.user_id)?.display_name ?? 'Player'}</Text>
-                  <Text variant="bodyStrong">{g.goals} ⚽{g.assists ? `  ${g.assists} 🅰️` : ''}</Text>
+                  <GoalsAssists goals={g.goals} assists={g.assists} strong />
                   {!!sub && <Button title="Correct" size="sm" variant="ghost" onPress={() => openCorrect(sub)} />}
                 </Row>
               );

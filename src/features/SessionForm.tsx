@@ -300,7 +300,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
       </Spot>
 
       <Text variant="caption" tone="faint">
-        Players can drop out until 24 hours before kick-off; after that they tap to let you know and you take them off. Man of the Match is voted once for the whole session.
+        Players can drop out until 24 hours before kick-off; after that they tap to let you know and you take them off. There’s one award and one round of ratings however many games you play: Man of the Match for a single game, Player of the Night for several.
       </Text>
 
       <Row gap={space.sm} style={{ alignItems: 'stretch' }}>

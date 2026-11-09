@@ -171,7 +171,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
       setDirty(false);
       return true;
     }, !confirm ? 'Draft saved — only hosts can see it'
-      : nextGameTonight ? `Game ${fixture.number}: kick off! ⚽`
+      : nextGameTonight ? `Game ${fixture.number}: kick off!`
       : fixture.lineup_confirmed_at ? 'Teams updated — players notified' : 'Line-ups confirmed — players notified');
 
   const onTap = (uid: string) => {

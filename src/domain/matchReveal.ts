@@ -43,9 +43,9 @@ export function matchHighlights(r: MatchReveal): Highlight[] {
   return out;
 }
 
-export function highlightText(h: Highlight): { title: string; detail: string } {
+export function highlightText(h: Highlight, award = 'Man of the Match'): { title: string; detail: string } {
   switch (h.kind) {
-    case 'motm': return { title: h.shared ? 'Joint Man of the Match' : 'Man of the Match', detail: 'Voted by your teammates' };
+    case 'motm': return { title: h.shared ? `Joint ${award}` : award, detail: 'Voted by your teammates' };
     case 'goals_pb': return { title: `${h.value} goals`, detail: 'The most you’ve scored in a game' };
     case 'assists_pb': return { title: `${h.value} assists`, detail: 'The most you’ve set up in a game' };
     case 'rating_pb': return { title: `${h.value.toFixed(1)} rating`, detail: 'Your best rating yet' };

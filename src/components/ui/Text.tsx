@@ -26,7 +26,7 @@ export function Text({ variant = 'body', tone = 'default', align, color, style, 
   };
   return (
     <RNText
-      maxFontSizeMultiplier={1.6}
+      maxFontSizeMultiplier={1.35}
       style={[typeScale[variant] as TextStyle, { color: color ?? toneColor[tone], textAlign: align }, style]}
       {...rest}
     />

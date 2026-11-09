@@ -28,3 +28,14 @@ export function decideMotm(votes: MotmVote[], eligibleVoters: Set<string>, tiebr
   }
   return { winners: leaders, votes: max, shared: leaders.length > 1, decidedByHost: false, tally };
 }
+
+/**
+ * The award's name: Man of the Match for a single game; with several games in a session it's
+ * Player of the Night (Player of the Day for a kick-off before 5pm). Mirrors public.motm_title.
+ * It counts as a Man of the Match in stats and medals either way.
+ */
+export function motmTitle(games: number, startsAt?: string | null) {
+  if (games <= 1) return 'Man of the Match';
+  const hour = startsAt ? Number(new Date(startsAt).toLocaleString('en-GB', { hour: '2-digit', hour12: false, timeZone: 'Europe/London' })) : 19;
+  return hour < 17 ? 'Player of the Day' : 'Player of the Night';
+}

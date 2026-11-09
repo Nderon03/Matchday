@@ -13,7 +13,7 @@ import { GetStarted } from '@/features/GetStarted';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
-import { formatKickoff, rating } from '@/domain/format';
+import { formatKickoff, plural, rating } from '@/domain/format';
 import { usePriceLabel } from '@/hooks/useFees';
 import { useLayout } from '@/hooks/useLayout';
 import { NearlyThere } from '@/features/moments/NearlyThere';
@@ -71,15 +71,16 @@ export default function Home() {
         <ListItem title="Help & FAQ" subtitle="Payments, waiting lists, medals, hosting" left={<Ionicons name="help-buoy-outline" size={20} color={colors.textMuted} />}
           onPress={() => { setHelpOpen(false); router.push('/help'); }} />
       </Sheet>
-      <Row style={{ justifyContent: 'space-between', paddingTop: space.sm }}>
-        <Row gap={space.md}>
+      {/* the name gives way (one line, shortened) so Help, Friends and Notifications always fit */}
+      <Row style={{ justifyContent: 'space-between', paddingTop: space.sm }} gap={space.sm}>
+        <Row gap={space.md} style={{ flex: 1, minWidth: 0 }}>
           <Avatar uri={profile?.avatar_url} name={profile?.display_name} size={44} />
-          <View>
-            <Text variant="small" tone="muted">{greeting()}</Text>
-            <Text variant="h2">{profile?.display_name ?? ''}</Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="small" tone="muted" numberOfLines={1}>{greeting()}</Text>
+            <Text variant="h2" numberOfLines={1}>{profile?.display_name ?? ''}</Text>
           </View>
         </Row>
-        <Row>
+        <Row style={{ flexShrink: 0 }}>
           <View ref={tourRef('help')} nativeID="spot-help" collapsable={false}><HelpButton label="Help" size={40} onPress={() => setHelpOpen(true)} /></View>
           <View ref={tourRef('friends')} nativeID="spot-friends" collapsable={false}><IconButton icon="people-outline" label="Friends" onPress={() => router.push('/friends')} /></View>
           <View ref={tourRef('bell')} nativeID="spot-bell" collapsable={false}><IconButton icon="notifications-outline" label="Notifications" badge={d?.unread_notifications} onPress={() => router.push('/notifications')} /></View>
@@ -181,7 +182,7 @@ export default function Home() {
                   <Row gap={space.md}>
                     <View style={{ flex: 1 }}>
                       <Text variant="bodyStrong" numberOfLines={1}>{r.name}</Text>
-                      <Text variant="small" tone="muted">{formatKickoff(r.played_at)} · {r.wins}W {r.draws}D {r.losses}L{r.goals ? ` · ${r.goals} ⚽` : ''}</Text>
+                      <Text variant="small" tone="muted">{formatKickoff(r.played_at)} · {r.wins}W {r.draws}D {r.losses}L{r.goals ? ` · ${plural(r.goals, 'goal')}` : ''}</Text>
                     </View>
                     {!!r.motm && <Ionicons name="star" size={18} color={colors.gold} accessibilityLabel="Man of the Match" />}
                     <Text variant="statSmall" tone={r.rating_eligible ? 'primary' : 'faint'}>{r.rating_eligible ? rating(r.rating_avg) : '–'}</Text>

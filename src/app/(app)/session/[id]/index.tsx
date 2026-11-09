@@ -19,6 +19,8 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { formatKickoff, formatPence, nameList, rating, timeUntil, plural } from '@/domain/format';
 import { tonightTable } from '@/domain/tonight';
+import { motmTitle } from '@/domain/motm';
+import { GoalsAssists } from '@/components/football/GoalsAssists';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { removeSessionPlayer } from '@/features/removePlayer';
@@ -126,7 +128,7 @@ export default function SessionScreen() {
   const respond = (r: RsvpStatus) => run(`rsvp-${r}`, () => rpc<string>('respond_to_session', { p_session: id, p_response: r }),
     (res) => {
       if (res === 'confirmed') { haptics.in(); setJustIn(Date.now()); }
-      return res === 'confirmed' ? 'You’re in! ⚽' : res === 'waitlisted' ? 'Game full — you’re on the waiting list' : 'Response saved';
+      return res === 'confirmed' ? 'You’re in!' : res === 'waitlisted' ? 'Game full — you’re on the waiting list' : 'Response saved';
     });
 
   const openFinalise = async () => {
@@ -147,7 +149,7 @@ export default function SessionScreen() {
     const rows = d.goalsByFixture.filter((g) => g.fixture_id === fixtureId && (g.goals > 0 || g.assists > 0));
     if (!rows.length) return '';
     return rows.sort((a, b) => b.goals - a.goals)
-      .map((g) => `${nameOf(g.user_id)}${g.goals ? ` ⚽${g.goals > 1 ? `×${g.goals}` : ''}` : ''}${g.assists ? ` 🅰️${g.assists > 1 ? `×${g.assists}` : ''}` : ''}`)
+      .map((g) => `${nameOf(g.user_id)} ${[g.goals ? plural(g.goals, 'goal') : '', g.assists ? plural(g.assists, 'assist') : ''].filter(Boolean).join(', ')}`)
       .join('  ·  ');
   };
   const guestsIn = d.guests.filter((g) => g.status === 'confirmed');
@@ -194,6 +196,8 @@ export default function SessionScreen() {
   const roster = (f: (typeof scores)[number], side: 0 | 1) => (f.teams[side]?.players ?? []).map((p) => p.user_id ?? p.guest_id).sort().join(',');
   const teamsChanged = scores.some((f) => roster(f, 0) !== roster(scores[0], 0) || roster(f, 1) !== roster(scores[0], 1));
   const tonight = scores.length > 1 && teamsChanged ? tonightTable(scores) : [];
+  // one award per session: Man of the Match, or Player of the Night/Day with several games
+  const award = motmTitle(d.fixtures.length, s.starts_at);
 
   return (
     <Screen edges={['top', 'bottom']} onRefresh={detail.refetch} refreshing={detail.isRefetching}>
@@ -284,7 +288,7 @@ export default function SessionScreen() {
               </View>
             )}
             <Text variant="h3" align={showJustIn ? 'center' : undefined}>
-              {me?.status === 'confirmed' ? (showJustIn ? 'You’re in! ⚽' : 'You’re playing') : offerUntil ? 'A place just opened for you' : me?.status === 'waitlisted' ? `Waiting list · position ${waitPos}` : blocked ? 'Removed by the host' : reinvited ? 'The host invited you back — are you in?' : notAttending ? 'You’re not attending' : 'Are you in?'}
+              {me?.status === 'confirmed' ? (showJustIn ? 'You’re in!' : 'You’re playing') : offerUntil ? 'A place just opened for you' : me?.status === 'waitlisted' ? `Waiting list · position ${waitPos}` : blocked ? 'Removed by the host' : reinvited ? 'The host invited you back — are you in?' : notAttending ? 'You’re not attending' : 'Are you in?'}
             </Text>
             {me?.status === 'confirmed' ? (
               <Row gap={space.sm} wrap>
@@ -429,7 +433,7 @@ export default function SessionScreen() {
       )}
 
       {s.status === 'finalised' && !!userId && (
-        <MotmAnnouncement sessionId={s.id} finalisedAt={s.finalised_at ?? null} userId={userId}
+        <MotmAnnouncement sessionId={s.id} finalisedAt={s.finalised_at ?? null} userId={userId} award={award}
           winners={d.motm.filter((m) => !m.fixture_id).map((m) => ({ user_id: m.user_id, name: nameOf(m.user_id), avatar: d.attendance.find((a) => a.user_id === m.user_id)?.profile.avatar_url ?? null, votes: m.votes }))} />
       )}
       {s.status === 'finalised' && (
@@ -441,6 +445,7 @@ export default function SessionScreen() {
               fixtures: d.fixtures.map((f) => ({ number: f.number, a: f.teams[0]?.name ?? 'A', b: f.teams[1]?.name ?? 'B', scoreA: f.teams[0]?.score ?? null, scoreB: f.teams[1]?.score ?? null })),
               groupName: d.group?.name ?? null,
               motm: d.motm.filter((m) => !m.fixture_id).map((m) => nameOf(m.user_id)),
+              award,
               topScorers: [...d.approvedGoals].filter((g) => g.goals > 0).sort((a, b) => b.goals - a.goals).slice(0, 4).map((g) => ({ name: nameOf(g.user_id), goals: g.goals })),
               topAssists: [...d.approvedGoals].filter((g) => g.assists > 0).sort((a, b) => b.assists - a.assists).slice(0, 3).map((g) => ({ name: nameOf(g.user_id), assists: g.assists })),
               me: (() => {
@@ -454,7 +459,7 @@ export default function SessionScreen() {
           </ShareFrame>
           <Button title="Share match report" icon="share-social-outline" size="sm"
             onPress={() => shareViewAsImage(resultRef, `matchday-${s.id}`, `${s.name}: ${d.fixtures.map((f) => `${f.teams[0]?.score}-${f.teams[1]?.score}`).join(', ')} on MATCHDAY`).catch(() => undefined)} />
-          <SectionTitle title="Man of the Match" />
+          <SectionTitle title={award} />
           {d.motm.length ? d.motm.filter((m) => !m.fixture_id).map((m) => (
             <Card key={m.user_id} onPress={() => router.push(`/player/${m.user_id}`)} variant="highlight">
               <Row gap={space.md}>
@@ -476,7 +481,7 @@ export default function SessionScreen() {
               <Row key={st.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
                 <Avatar uri={d.attendance.find((a) => a.user_id === st.user_id)?.profile.avatar_url} name={nameOf(st.user_id)} size={32} />
                 <Text variant="bodyStrong" style={{ flex: 1 }} onPress={() => router.push(`/player/${st.user_id}`)}>{nameOf(st.user_id)}</Text>
-                {st.goals > 0 && <Text variant="small" tone="muted">{st.goals} ⚽</Text>}
+                {st.goals > 0 && <GoalsAssists goals={st.goals} />}
                 {!!st.motm && <Ionicons name="star" size={16} color={colors.gold} />}
                 <Text variant="statSmall" tone={st.rating_eligible ? 'primary' : 'faint'} style={{ width: 44, textAlign: 'right' }}>{st.rating_eligible ? rating(st.rating_avg) : '–'}</Text>
               </Row>
@@ -700,7 +705,7 @@ export default function SessionScreen() {
           </View>
         )}
         <Button title="Finalise" icon="lock-closed" loading={busy === 'finalise'} onPress={async () => {
-          const r = await run('finalise', () => rpc('finalise_session', { p_session: id, p_motm_tiebreak: tiebreak }), 'Results published! 🏆');
+          const r = await run('finalise', () => rpc('finalise_session', { p_session: id, p_motm_tiebreak: tiebreak }), 'Results published!');
           if (r !== undefined) setFinaliseOpen(false);
         }} />
       </Sheet>

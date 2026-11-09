@@ -83,11 +83,12 @@ export function Header({ title, subtitle, right, back = true }: { title: string;
           onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         />
       )}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Text variant="h2" numberOfLines={2} accessibilityRole="header">{title}</Text>
         {!!subtitle && <Text variant="small" tone="muted" numberOfLines={2}>{subtitle}</Text>}
       </View>
-      {right}
+      {/* buttons on the right never get squeezed off the screen */}
+      {!!right && <View style={{ flexShrink: 0, flexDirection: 'row', alignItems: 'center' }}>{right}</View>}
     </View>
   );
 }

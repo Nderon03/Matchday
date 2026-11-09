@@ -27,3 +27,12 @@ describe('next game teams', () => {
     expect(stayed).toBeLessThan(5);
   });
 });
+
+import { motmTitle } from '../motm';
+describe('award name', () => {
+  it('Man of the Match for one game; Player of the Night/Day for several', () => {
+    expect(motmTitle(1, '2026-11-11T19:00:00Z')).toBe('Man of the Match');
+    expect(motmTitle(3, '2026-11-11T19:00:00Z')).toBe('Player of the Night');
+    expect(motmTitle(3, '2026-11-15T10:00:00Z')).toBe('Player of the Day');
+  });
+});

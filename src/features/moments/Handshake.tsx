@@ -10,6 +10,7 @@ import { q } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { nameList } from '@/domain/format';
@@ -19,7 +20,7 @@ const first = (name?: string | null) => (name ?? '').split(' ')[0] || 'them';
 
 export interface Friend { id: string; display_name: string; avatar_url: string | null }
 
-/** Two players slide in, meet in the middle, a 🤝 pops and shakes. Used wherever a friendship starts. */
+/** Two players slide in, meet in the middle, a teammates badge pops and shakes. Used wherever a friendship starts. */
 export function HandshakeScene({ them, onClose }: { them: Friend; onClose?: () => void }) {
   const { colors, reduceMotion } = useTheme();
   const { profile, userId } = useAuth();
@@ -52,12 +53,12 @@ export function HandshakeScene({ them, onClose }: { them: Friend; onClose?: () =
     <View style={{ gap: space.xl }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.md }}>
         <Animated.View style={side(-160)}><Avatar uri={profile?.avatar_url} name={profile?.display_name} size={84} ring={colors.primary} /></Animated.View>
-        <Animated.Text accessibilityLabel="Handshake" style={{ fontSize: 50, lineHeight: 62,
+        <Animated.View accessibilityLabel="Now teammates" style={{
           opacity: shake.interpolate({ inputRange: [0, 0.3, 1.25], outputRange: [0, 1, 1] }),
           transform: [
             { scale: shake.interpolate({ inputRange: [0, 0.75, 1, 1.25], outputRange: [0.2, 1, 1, 1] }) },
             { rotate: shake.interpolate({ inputRange: [0, 0.75, 1, 1.25], outputRange: ['0deg', '-14deg', '0deg', '14deg'] }) },
-          ] }}>🤝</Animated.Text>
+          ] }}><View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryMuted, borderWidth: 1, borderColor: `${colors.primary}66`, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="people" size={32} color={colors.primary} /></View></Animated.View>
         <Animated.View style={side(160)}><Avatar uri={them.avatar_url} name={them.display_name} size={84} ring={colors.primary} /></Animated.View>
       </View>
       <Animated.View style={{ alignItems: 'center', gap: space.xs, opacity: text, transform: [{ translateY: text.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }}>
@@ -156,7 +157,7 @@ function NewFriendsModal({ friends, onClose }: { friends: Friend[]; onClose: () 
       {!reduceMotion && <Confetti colour="#22C55E" />}
       <View style={styles.centre} pointerEvents="box-none">
         <View accessibilityViewIsModal style={[styles.card, { backgroundColor: colors.surface, borderColor: `${colors.primary}55`, gap: space.lg, alignItems: 'center' }]}>
-          <Animated.Text accessibilityLabel="Handshake" style={{ fontSize: 50, lineHeight: 62, transform: [{ scale: hand.interpolate({ inputRange: [0, 1], outputRange: [0.2, 1] }) }] }}>🤝</Animated.Text>
+          <Animated.View accessibilityLabel="Now teammates" style={{ transform: [{ scale: hand.interpolate({ inputRange: [0, 1], outputRange: [0.2, 1] }) }] }}><View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: colors.primaryMuted, borderWidth: 1, borderColor: `${colors.primary}66`, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="people" size={32} color={colors.primary} /></View></Animated.View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: space.sm }}>
             {shown.map((f, i) => (
               <Animated.View key={f.id} style={{ opacity: pop[i], transform: [{ scale: pop[i].interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }] }}>

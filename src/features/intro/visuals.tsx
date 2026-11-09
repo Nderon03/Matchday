@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Platform, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { Text } from '@/components/ui';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space, fonts } from '@/theme/tokens';
 
@@ -147,7 +148,7 @@ export function StatsVisual({ active }: { active: boolean }) {
           <Text variant="bodyStrong">You</Text>
           <Text variant="caption" tone="muted" numberOfLines={1}>Midfielder</Text>
         </View>
-        <Text style={{ fontSize: 22 }}>⭐</Text>
+        <Ionicons name="star" size={24} color={colors.gold} />
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         {([['Goals', 24, '', 100], ['Assists', 17, '', 200], ['MOTM', 6, '', 300], ['Win', 58, '%', 400]] as const).map(([label, n, suf, d]) => (

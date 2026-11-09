@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Badge, Button, Card, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Sheet, Stepper, SwipeSelect, Text } from '@/components/ui';
+import { Badge, Button, Card, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Sheet, SwipeSelect, Text } from '@/components/ui';
 import { keys, useSessionDetail } from '@/hooks/queries';
 import { useAction } from '@/hooks/useAction';
 import { rpc } from '@/lib/api';
 import { useTheme } from '@/theme/ThemeProvider';
-import { space } from '@/theme/tokens';
+import { fonts, radius, space } from '@/theme/tokens';
 import { ScreenHelp } from '@/features/ScreenHelp';
 import { haptics } from '@/lib/haptics';
 
@@ -74,16 +75,11 @@ export default function ResultsScreen() {
                 </View>
               ) : (
                 <>
-                  <Row style={{ justifyContent: 'space-around' }}>
-                    <View style={{ alignItems: 'center', gap: space.sm, flex: 1 }}>
-                      <Text variant="bodyStrong" numberOfLines={1} color={colors.teamA}>{f.teams[0]?.name}</Text>
-                      <Stepper size="lg" value={sc.a} label={`${f.teams[0]?.name} score`} onChange={(v) => setScores((x) => ({ ...x, [f.id]: { ...sc, a: v } }))} />
-                    </View>
-                    <Text variant="h2" tone="faint">–</Text>
-                    <View style={{ alignItems: 'center', gap: space.sm, flex: 1 }}>
-                      <Text variant="bodyStrong" numberOfLines={1}>{f.teams[1]?.name}</Text>
-                      <Stepper size="lg" value={sc.b} label={`${f.teams[1]?.name} score`} onChange={(v) => setScores((x) => ({ ...x, [f.id]: { ...sc, b: v } }))} />
-                    </View>
+                  {/* scoreboard: each team's name, the score big, and − / + underneath (fits the narrowest phones) */}
+                  <Row style={{ alignItems: 'flex-start' }}>
+                    <ScoreBox name={f.teams[0]?.name ?? 'Team A'} color={colors.teamA} value={sc.a} onChange={(v) => setScores((x) => ({ ...x, [f.id]: { ...sc, a: v } }))} />
+                    <Text variant="h2" tone="faint" style={{ marginTop: 34 }}>–</Text>
+                    <ScoreBox name={f.teams[1]?.name ?? 'Team B'} value={sc.b} onChange={(v) => setScores((x) => ({ ...x, [f.id]: { ...sc, b: v } }))} />
                   </Row>
                   {!locked && (
                     <Button
@@ -146,5 +142,33 @@ export default function ResultsScreen() {
         }} />
       </Sheet>
     </Screen>
+  );
+}
+
+/** One team's score: name, the number in the scoreboard font, and − / + buttons below it. */
+function ScoreBox({ name, color, value, onChange }: { name: string; color?: string; value: number; onChange: (v: number) => void }) {
+  const { colors } = useTheme();
+  const change = (d: number) => {
+    const next = Math.min(99, Math.max(0, value + d));
+    if (next !== value) { haptics.tap(); onChange(next); }
+  };
+  const btn = (d: number, icon: 'remove' | 'add', disabled: boolean) => (
+    <Pressable onPress={() => change(d)} disabled={disabled} hitSlop={6} accessibilityRole="button" accessibilityLabel={`${d > 0 ? 'Add a goal for' : 'Take a goal off'} ${name}`}
+      style={({ pressed }) => ({ width: 46, height: 46, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center',
+        backgroundColor: d > 0 ? colors.primaryMuted : colors.elevated, opacity: disabled ? 0.4 : pressed ? 0.8 : 1 })}>
+      <Ionicons name={icon} size={22} color={d > 0 ? colors.primary : colors.text} />
+    </Pressable>
+  );
+  return (
+    <View style={{ flex: 1, alignItems: 'center', gap: space.xs, minWidth: 0 }}
+      accessible accessibilityRole="adjustable" accessibilityLabel={`${name} score`} accessibilityValue={{ min: 0, max: 99, now: value }}
+      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]} onAccessibilityAction={(e) => change(e.nativeEvent.actionName === 'increment' ? 1 : -1)}>
+      <Text variant="bodyStrong" numberOfLines={1} color={color} style={{ maxWidth: '100%' }}>{name}</Text>
+      <Text style={{ fontFamily: fonts.scoreHeavy, fontSize: 56, lineHeight: 60, color: colors.text, fontVariant: ['tabular-nums'] }}>{value}</Text>
+      <View style={{ flexDirection: 'row', gap: space.sm }}>
+        {btn(-1, 'remove', value <= 0)}
+        {btn(1, 'add', value >= 99)}
+      </View>
+    </View>
   );
 }

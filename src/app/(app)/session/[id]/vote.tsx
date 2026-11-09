@@ -8,6 +8,7 @@ import { rpc } from '@/lib/api';
 import { useAuth } from '@/providers/AuthProvider';
 import { useSessionDetail } from '@/hooks/queries';
 import { useTheme } from '@/theme/ThemeProvider';
+import { motmTitle } from '@/domain/motm';
 import { radius, space } from '@/theme/tokens';
 import { timeUntil } from '@/domain/format';
 import { haptics } from '@/lib/haptics';
@@ -109,7 +110,7 @@ export default function VoteScreen() {
 
       {!motmDone && (
         <View style={{ gap: space.sm }}>
-          <SectionTitle title="Man of the Match" />
+          <SectionTitle title={motmTitle(fixtures.length, detail.data?.session.starts_at)} />
           {v.motm_mode === 'fixture' && fixtures.length > 1 && (
             <Segmented scroll value={activeFixture ?? ''} onChange={setFixtureId} options={fixtures.map((f) => ({ value: f.id, label: `Game ${f.number}${v.motm_voted_fixtures.includes(f.id) ? ' ✓' : ''}` }))} />
           )}

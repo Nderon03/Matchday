@@ -28,7 +28,8 @@ export function describeActivity(item: FeedRow): { icon: keyof typeof Ionicons.g
   }
 }
 
-const EMOJI: Record<string, string> = { like: '👍', fire: '🔥', goal: '⚽', clap: '👏' };
+// reactions are stored by name; shown as our own icons
+const EMOJI: Record<string, keyof typeof Ionicons.glyphMap> = { like: 'thumbs-up', fire: 'flame', goal: 'football', clap: 'sparkles' };
 
 export function FeedItemCard({ item, showComments = true }: { item: FeedRow; showComments?: boolean }) {
   const { colors } = useTheme();
@@ -67,7 +68,7 @@ export function FeedItemCard({ item, showComments = true }: { item: FeedRow; sho
           {counts.map(({ e, n, mine }) => (
             <Pressable key={e} onPress={() => toggle(e, mine)} accessibilityRole="button" accessibilityLabel={`${e} reaction, ${n}`} accessibilityState={{ selected: mine }}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, height: 30, borderRadius: radius.pill, backgroundColor: mine ? colors.primaryMuted : colors.surfaceAlt, borderWidth: 1, borderColor: mine ? colors.primary : 'transparent' }}>
-              <Text variant="small">{EMOJI[e]}</Text>
+              <Ionicons name={EMOJI[e]} size={15} color={mine ? colors.primary : e === 'fire' ? '#F97316' : colors.textMuted} />
               {n > 0 && <Text variant="caption" tone={mine ? 'primary' : 'muted'}>{n}</Text>}
             </Pressable>
           ))}

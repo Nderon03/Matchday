@@ -121,4 +121,16 @@ describe('team goal limits', () => {
     expect(after[0].n).toBe(before[0].n);
     expect(fixture).toBeTruthy();
   });
+
+  it('several games: the award is Player of the Night; notifications have no emoji', async () => {
+    const { host, sid, fixture } = await playedGame(1, 0);
+    expect(await db.rpc<string>(host, 'motm_title', { p_session: sid })).toBe('Man of the Match');
+    await db.rpc<string>(host, 'add_fixture', { p_session: sid, p_copy_from: fixture });
+    await db.admin(`update sessions set starts_at = date_trunc('day', now()) + interval '19 hours' where id = $1`, [sid]);
+    expect(await db.rpc<string>(host, 'motm_title', { p_session: sid })).toBe('Player of the Night');
+    await db.admin(`select public.notify($1, 'voting_open', 'Full time! Vote for Man of the Match', 'Pick the Man of the Match ✅', jsonb_build_object('session_id', $2::text))`, [host, sid]);
+    const [n] = await db.admin(`select title, body from notifications where user_id = $1 and type = 'voting_open' order by created_at desc limit 1`, [host]);
+    expect(n).toEqual({ title: 'Full time! Vote for Player of the Night', body: 'Pick the Player of the Night' });
+    expect((await db.admin(`select public.strip_edge_emoji('⚽ Sunday FC needs 2 players') t`))[0].t).toBe('Sunday FC needs 2 players');
+  });
 });
