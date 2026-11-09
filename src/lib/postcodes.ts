@@ -17,24 +17,55 @@ export function normalisePostcode(input: string): string | null {
 
 export const isOutcode = (input: string) => OUTCODE.test(input.trim());
 
-async function get<T>(path: string): Promise<T | null> {
+/** GET from postcodes.io with a time limit; `failed` means we couldn't reach it (not "not found"). */
+async function fetchResult<T>(path: string, timeoutMs = 6000): Promise<{ result: T | null; failed: boolean }> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(`${API}${path}`);
-    if (!res.ok) return null;
+    const res = await fetch(`${API}${path}`, { signal: ctrl.signal });
+    if (res.status === 404) return { result: null, failed: false };
+    if (!res.ok) return { result: null, failed: true };
     const body = await res.json();
-    return (body?.result ?? null) as T | null;
+    return { result: (body?.result ?? null) as T | null, failed: false };
   } catch {
-    return null;
+    return { result: null, failed: true };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
-/** A full postcode → its coordinates and area (null if it doesn't exist). */
-export async function lookupPostcode(input: string): Promise<Place | null> {
+async function get<T>(path: string): Promise<T | null> {
+  return (await fetchResult<T>(path)).result;
+}
+
+type PostcodeRow = { postcode: string; latitude: number; longitude: number; admin_district?: string; admin_ward?: string };
+const toPlace = (r: PostcodeRow): Place => ({ label: r.postcode, postcode: r.postcode, latitude: r.latitude, longitude: r.longitude, area: [r.admin_ward, r.admin_district].filter(Boolean).join(', ') });
+const found = new Map<string, Place>();
+
+/**
+ * Look a full postcode up: `place` when it exists, `unavailable` when the lookup couldn't be
+ * reached (slow or no signal), so the form can say which. Tries twice; remembers answers.
+ */
+export async function findPostcode(input: string): Promise<{ place: Place | null; unavailable: boolean }> {
   const pc = normalisePostcode(input);
-  if (!pc) return null;
-  const r = await get<{ postcode: string; latitude: number; longitude: number; admin_district?: string; admin_ward?: string }>(`/postcodes/${encodeURIComponent(pc)}`);
-  if (!r || r.latitude == null) return null;
-  return { label: r.postcode, postcode: r.postcode, latitude: r.latitude, longitude: r.longitude, area: [r.admin_ward, r.admin_district].filter(Boolean).join(', ') };
+  if (!pc) return { place: null, unavailable: false };
+  const cached = found.get(pc);
+  if (cached) return { place: cached, unavailable: false };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { result, failed } = await fetchResult<PostcodeRow>(`/postcodes/${encodeURIComponent(pc)}`);
+    if (!failed) {
+      if (!result || result.latitude == null) return { place: null, unavailable: false };
+      const place = toPlace(result);
+      found.set(pc, place);
+      return { place, unavailable: false };
+    }
+  }
+  return { place: null, unavailable: true };
+}
+
+/** A full postcode → its coordinates and area (null if it doesn't exist or can't be reached). */
+export async function lookupPostcode(input: string): Promise<Place | null> {
+  return (await findPostcode(input)).place;
 }
 
 /** Postcode, partial postcode ("NW7") or town/area name ("Mill Hill") → a point to search around. */

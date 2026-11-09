@@ -2,7 +2,7 @@
  * Create / edit session form. Only the essentials: Optimised for speed: one control per choice (swipe through),
  * a calendar and a typed time, sensible defaults, prefill from templates, duplicates and groups.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -16,7 +16,7 @@ import { fieldErrors, sessionSchema } from '@/domain/validation';
 import { formatPence, poundsToPence } from '@/domain/format';
 import { DURATIONS, combine, dayLabel, isValidTime, nextDays, tidyTime, typeTime } from '@/features/sessionDates';
 import { DatePickerSheet } from '@/features/DatePickerSheet';
-import { lookupPostcode, normalisePostcode, type Place } from '@/lib/postcodes';
+import { findPostcode, normalisePostcode, type Place } from '@/lib/postcodes';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { toggleIn } from '@/domain/sets';
@@ -71,16 +71,24 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
   const [place, setPlace] = useState<Place | null>(
     initial?.postcode && initial.latitude != null && initial.longitude != null
       ? { label: initial.postcode, postcode: initial.postcode, latitude: initial.latitude, longitude: initial.longitude } : null);
-  const [placeState, setPlaceState] = useState<'idle' | 'checking' | 'ok' | 'unknown'>(place ? 'ok' : 'idle');
-  const checkPostcode = async (value: string) => {
-    if (!normalisePostcode(value)) { setPlace(null); setPlaceState(value.trim() ? 'unknown' : 'idle'); return; }
+  const [placeState, setPlaceState] = useState<'idle' | 'checking' | 'ok' | 'unknown' | 'unavailable'>(place ? 'ok' : 'idle');
+  // only the latest lookup counts (typing and leaving the box can both start one)
+  const latestLookup = useRef('');
+  const checkPostcode = async (value: string): Promise<Place | null> => {
+    const pc = normalisePostcode(value);
+    if (!pc) { setPlace(null); setPlaceState(value.trim() ? 'unknown' : 'idle'); return null; }
+    if (place?.postcode === pc) { setPlaceState('ok'); return place; }
+    latestLookup.current = pc;
     setPlaceState('checking');
-    const found = await lookupPostcode(value);
+    const { place: found, unavailable } = await findPostcode(pc);
+    if (latestLookup.current !== pc) return found;
     setPlace(found);
-    setPlaceState(found ? 'ok' : 'unknown');
+    setPlaceState(found ? 'ok' : unavailable ? 'unavailable' : 'unknown');
     // the area comes from the postcode (shown on the game and used by "Find a game")
     if (found?.area) setLocation(found.area);
+    return found;
   };
+  const POSTCODE_UNAVAILABLE = 'Couldn’t check the postcode: the connection is slow or offline. Try again in a moment.';
   const [visibility, setVisibility] = useState<SessionVisibility>(initial?.visibility ?? (initial?.group_id ? 'group' : 'private'));
   const [description, setDescription] = useState(initial?.description ?? '');
   const [paymentMode, setPaymentMode] = useState<PaymentMode>(initial?.payment_mode ?? 'free');
@@ -115,19 +123,27 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
   };
 
   const submit = async () => {
+    // tapped Create while the postcode was still being checked (or never checked): finish the check first
+    let where = place;
+    const pc = normalisePostcode(postcode);
+    if (pc && where?.postcode !== pc) {
+      setBusy(true);
+      where = await checkPostcode(postcode);
+      setBusy(false);
+    }
     const pricePence = paymentMode === 'free' ? 0 : poundsToPence(price) ?? -1;
     if (!isValidTime(tidyTime(time))) return setErrors({ time: 'Enter a time like 19:30' });
     if (pricePence < 0) return setErrors({ price_pence: 'Enter an amount like 6 or 6.50' });
     const startsAt = combine(date, tidyTime(time));
     const payload = {
-      name, starts_at: startsAt, duration_minutes: duration, location: location || undefined, venue: venue || undefined, postcode: place?.postcode ?? '',
+      name, starts_at: startsAt, duration_minutes: duration, location: location || undefined, venue: venue || undefined, postcode: where?.postcode ?? '',
       format_size: format, max_attendance: maxAttendance, visibility, description: description || undefined,
       payment_mode: paymentMode, price_pence: pricePence, group_id: groupId, invitee_ids: [...invitees],
     };
     const parsed = sessionSchema.safeParse(payload);
     if (!parsed.success) {
       const errs = fieldErrors(parsed.error);
-      if (errs.postcode && postcode.trim()) errs.postcode = placeState === 'checking' ? 'Still checking the postcode…' : 'We couldn’t find that postcode. Check it and try again.';
+      if (errs.postcode && postcode.trim()) errs.postcode = pc && !where && placeState !== 'unknown' ? POSTCODE_UNAVAILABLE : 'We couldn’t find that postcode. Check it and try again.';
       return setErrors(errs);
     }
     setErrors({});
@@ -136,8 +152,8 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
       const body = {
         ...payload,
         starts_at: startsAt.toISOString(),
-        latitude: place?.latitude ?? null,
-        longitude: place?.longitude ?? null,
+        latitude: where?.latitude ?? null,
+        longitude: where?.longitude ?? null,
         template_id: initial?.template_id ?? null,
       };
       if (editing) {
@@ -214,7 +230,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         <Input label="Postcode" value={postcode} autoCapitalize="characters" autoCorrect={false} maxLength={9} icon="navigate-outline" placeholder="e.g. NW7 2EU"
           onChangeText={(v) => { setPostcode(v); if (normalisePostcode(v)) checkPostcode(v); else { setPlace(null); setPlaceState('idle'); } }}
           onBlur={() => checkPostcode(postcode)}
-          error={errors.postcode ?? (placeState === 'unknown' ? 'We couldn’t find that postcode. Check it and try again.' : null)}
+          error={errors.postcode ?? (placeState === 'unknown' ? 'We couldn’t find that postcode. Check it and try again.' : placeState === 'unavailable' ? POSTCODE_UNAVAILABLE : null)}
           hint={placeState === 'checking' ? 'Checking…' : placeState === 'ok' && place ? `✓ ${place.postcode}${place.area ? ` · ${place.area}` : ''}` : 'For directions, the forecast and nearby search.'} />
       </Spot>
 
