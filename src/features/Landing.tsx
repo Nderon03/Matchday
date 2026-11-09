@@ -55,7 +55,7 @@ export function Landing() {
         </View>
         <View style={{ position: 'absolute', left: space.lg, right: space.lg, bottom: wide ? 70 : 40, alignItems: 'center', gap: space.md }}>
           <Rise delay={60}>
-            <Text style={{ color: PITCH, fontFamily: fonts.score, fontSize: 16, letterSpacing: 4, textAlign: 'center' }}>YOUR WEEKLY GAME, SORTED</Text>
+            <Text style={{ color: PITCH, fontFamily: fonts.score, fontSize: 16, letterSpacing: 4, textAlign: 'center' }}>MATCHDAY · THE FOOTBALL ORGANISER</Text>
           </Rise>
           <Rise delay={160}>
             <Text accessibilityRole="header" style={{ color: '#F4F6F8', fontFamily: fonts.scoreHeavy, fontSize: wide ? 76 : 50, lineHeight: wide ? 78 : 54, textAlign: 'center', letterSpacing: 0.5 }}>

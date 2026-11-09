@@ -24,6 +24,10 @@ production access, whichever comes first. Keep the closed test stable until then
 - [ ] **Google's native account picker** (`@react-native-google-signin/google-signin`) instead of the browser sheet.
 - [ ] **Sign in with Apple** (native sheet on iPhone; required by the App Store when Google sign-in is offered).
 
+- [ ] **Ask for a Play Store review** (`expo-store-review`, needs the new build): Google's in-app rating card,
+  shown at a happy moment (after a win, a MOTM award or a card level-up), at most once every few months.
+  Ratings and reviews are a big part of how high MATCHDAY shows in Play Store search.
+
 ## Setup on your side
 1. **Google Cloud** → APIs & Services → Credentials → create OAuth client IDs:
    - **Web** (used by Supabase), with redirect `https://<project-ref>.supabase.co/auth/v1/callback`.
