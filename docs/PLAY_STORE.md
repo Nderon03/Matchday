@@ -77,36 +77,40 @@ Data processed ephemerally? **No** for all of the above.
 **App name (30):** `MATCHDAY: Football Organiser`
 
 **Short description (80):**
-> Organise 5-a-side: invites, line-ups, results, stats, MOTM votes and payments.
+> 5s, 7s or 11s: invites, fair teams, stats, MOTM votes and payments, all sorted.
 
 **Full description (4000):**
-> MATCHDAY makes running your weekly football game effortless.
+> MATCHDAY is the organiser for your regular football game. Five-a-side on a Tuesday night, a 7-a-side league, an 11-a-side Sunday kickabout: whatever you play, MATCHDAY gets everyone there, picks fair teams, keeps the stats and settles up.
 >
 > **Get the squad together**
-> • Create a group for your regular game and invite friends by link or QR code
-> • Players tap "I'm in" or "Can't make it" – with a waiting list when it's full
+> • Create a group for your regular game and invite everyone with a ready-made WhatsApp message, link or QR code
+> • Players tap "I'm in" or "Can't make it", with a waiting list when it's full
+> • Short of players? Send a "Need players" call in one tap
 > • Bring a guest, with the host's approval
 > • Kick-off reminders with the weather forecast
 > • Last-minute drop-out? The place is offered down the waiting list automatically
 > • Reliability scores, so hosts know who turns up
 >
+> **Matchday mode**
+> • On the day, the app switches to a floodlit countdown to kick-off, then LIVE, then FULL TIME
+>
 > **Pick the teams**
-> • Drag-and-drop line-ups on a pitch
 > • Balanced teams suggested from players' ratings and form
+> • Drag-and-drop line-ups on a pitch, for any format
 > • Players are notified when the teams are confirmed
 >
 > **After the final whistle**
-> • Record scores, goals and assists – game by game
+> • Record scores, goals and assists, game by game
 > • Vote for Man of the Match and rate teammates anonymously
 > • Watch the game back when the host adds a YouTube video
 >
 > **Stats that settle arguments**
 > • Goals, assists, wins, ratings, MOTM awards and form
-> • Your player card with your flag, your club and your rating
-> • Medals that level up from Bronze to Legend and unlock new card styles
-> • Team of the Month, group leaderboards and seasons
+> • Your player card with your flag, your club and your rating, levelling up from Bronze to Hall of Fame
+> • Medals, titles and new card styles to unlock
+> • The Matchday Dream Team every month, the Golden Boot and the Record Book
 > • Best partner, nemesis and head-to-heads
-> • Share the match report straight to the group chat
+> • Share results and your card straight to the group chat
 >
 > **Payments without the chasing**
 > • Hosts set a price; players pay by card, Apple Pay or Google Pay
@@ -115,7 +119,9 @@ Data processed ephemerally? **No** for all of the above.
 > • Optional late fines for groups that want them
 > • Money goes straight to the host via Stripe
 >
-> Free to download. A small booking fee is shown before you pay for paid sessions.
+> Free to download. A small booking fee is shown before you pay for paid games.
+>
+> MATCHDAY is made by Ned's Games. It's an independent app and isn't affiliated with The Football Association or England Football.
 
 ## Graphics
 - **App icon (512×512):** `assets/store/play-icon-512.png`

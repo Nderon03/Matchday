@@ -64,7 +64,7 @@ export function Landing() {
           </Rise>
           <Rise delay={260}>
             <Text style={{ color: '#B6C7BD', fontSize: wide ? 18 : 16, lineHeight: wide ? 26 : 23, textAlign: 'center', maxWidth: 560 }}>
-              Invites, waiting lists, fair teams, stats and payments for your 5-a-side. All in one place, for free.
+              Invites, fair teams, stats and payments for your regular game. 5s, 7s or 11s, all in one place, for free.
             </Text>
           </Rise>
           <Rise delay={360}>
@@ -145,7 +145,10 @@ export function Landing() {
 
         {/* footer */}
         <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space.lg, flexDirection: wide ? 'row' : 'column', gap: space.md, justifyContent: 'space-between', alignItems: wide ? 'center' : 'flex-start' }}>
-          <Text variant="small" tone="muted">© {new Date(kickoff).getFullYear()} {TRADING_NAME} · MATCHDAY</Text>
+          <View style={{ gap: 2, flexShrink: 1 }}>
+            <Text variant="small" tone="muted">© {new Date(kickoff).getFullYear()} {TRADING_NAME} · MATCHDAY: Football Organiser</Text>
+            <Text variant="caption" tone="faint">An independent app, not affiliated with The FA or England Football.</Text>
+          </View>
           <View style={{ flexDirection: 'row', gap: space.lg, flexWrap: 'wrap' }}>
             <Text variant="small" tone="primary" accessibilityRole="link" onPress={() => router.push('/help')}>Help</Text>
             <Text variant="small" tone="primary" accessibilityRole="link" onPress={() => router.push('/legal/privacy')}>Privacy</Text>

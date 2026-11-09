@@ -7,6 +7,7 @@ export const HELP: HelpSection[] = [
     id: 'playing',
     title: 'Playing',
     items: [
+      { q: 'What can I use MATCHDAY for?', a: 'Any regular football game: 5-a-side, 7-a-side, 11-a-side or a casual kickabout. MATCHDAY is an independent app made by Ned’s Games. It isn’t affiliated with The FA or its “Matchday by England Football” app for registered clubs.' },
       { q: 'Can I see the app tour again?', a: 'Yes: tap ? at the top of Home → Replay the app tour, or Settings → Replay the app tour. Each group page has its own ? for a quick tour of that page too.' },
       { q: 'How do I join a game?', a: 'Open the invite link or scan the QR code the host shares, or use Find a game to search public games near a postcode. Then tap “I’m in”.' },
       { q: 'What happens if the game is full?', a: 'You go on the waiting list. More than 24 hours before kick-off you move up automatically when a place opens. On the day, the next player is offered the place and has 30 minutes to tap “I’m in” before it goes to the next person.' },

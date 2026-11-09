@@ -94,7 +94,7 @@ export function describe(p: Preview): { title: string; description: string } {
 }
 
 // the public pages people share; anything else gets the homepage text
-const HOME = { title: 'MATCHDAY · Your weekly game, sorted', description: 'Invites, waiting lists, fair teams, stats, MOTM votes and payments for your 5-a-side. Free on Android and in your browser.' };
+const HOME = { title: 'MATCHDAY: Football Organiser · Your weekly game, sorted', description: 'Organise your regular football game, 5s, 7s or 11s: invites, waiting lists, fair teams, stats, MOTM votes and payments. Free on Android and in your browser.' };
 const PAGES: Record<string, { title: string; description: string }> = {
   '/': HOME,
   '/welcome': HOME,
@@ -113,24 +113,24 @@ export function staticBody(page: { title: string; description: string }) {
   return `<noscript><main style="font-family:system-ui,sans-serif;max-width:640px;margin:40px auto;padding:0 16px;color:#F4F6F8">
 <h1>${esc(page.title)}</h1>
 <p>${esc(page.description)}</p>
-<p>MATCHDAY is a free app for organising your regular 5-a-side or 7-a-side game: invites and a waiting list, fair teams balanced from ratings, goals, assists and Man of the Match votes, a player card that levels up from Bronze to Hall of Fame, and payments that settle up without chasing.</p>
+<p>MATCHDAY is a free app for organising your regular football game, whether that's 5-a-side, 7-a-side or 11-a-side: invites and a waiting list, fair teams balanced from ratings, goals, assists and Man of the Match votes, a player card that levels up from Bronze to Hall of Fame, and payments that settle up without chasing.</p>
 <ul>
 <li><a href="https://play.google.com/store/apps/details?id=app.matchday.android">Get MATCHDAY on Google Play</a></li>
 <li><a href="/sign-up">Start in your browser</a></li>
 <li><a href="/help">Help &amp; FAQ</a></li>
 <li><a href="/legal/privacy">Privacy Policy</a> · <a href="/legal/terms">Terms of Use</a></li>
 </ul>
-<p>MATCHDAY by Ned's Games. Works best with JavaScript turned on.</p>
+<p>MATCHDAY is made by Ned's Games. It's an independent app and isn't affiliated with The Football Association or England Football.</p>
 </main></noscript>`;
 }
 
 // tells Google the site's name and logo (shown in search results instead of the bare domain)
 export function structuredData(origin: string) {
   return JSON.stringify([
-    { '@context': 'https://schema.org', '@type': 'WebSite', name: 'MATCHDAY', alternateName: ['MATCHDAY app', 'matchdayapp.org'], url: `${origin}/` },
+    { '@context': 'https://schema.org', '@type': 'WebSite', name: 'MATCHDAY', alternateName: ['MATCHDAY: Football Organiser', 'MATCHDAY app', 'matchdayapp.org'], url: `${origin}/` },
     { '@context': 'https://schema.org', '@type': 'Organization', name: 'MATCHDAY', url: `${origin}/`, logo: `${origin}/icon-512.png`, email: 'matchdayenquiries@hotmail.com' },
     {
-      '@context': 'https://schema.org', '@type': 'MobileApplication', name: 'MATCHDAY', operatingSystem: 'ANDROID', applicationCategory: 'SportsApplication',
+      '@context': 'https://schema.org', '@type': 'MobileApplication', name: 'MATCHDAY: Football Organiser', operatingSystem: 'ANDROID', applicationCategory: 'SportsApplication',
       description: HOME.description, url: `${origin}/`, installUrl: 'https://play.google.com/store/apps/details?id=app.matchday.android',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'GBP' }, publisher: { '@type': 'Organization', name: "Ned's Games" },
     },

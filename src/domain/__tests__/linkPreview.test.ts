@@ -28,8 +28,8 @@ describe('what Google reads on the homepage', () => {
   it('has real text instead of the JavaScript warning, plus title, icons and site name', async () => {
     const html = await run('/');
     expect(html).not.toContain('You need to enable JavaScript');
-    expect(html).toContain('<h1>MATCHDAY · Your weekly game, sorted</h1>');
-    expect(html).toContain('<title>MATCHDAY · Your weekly game, sorted</title>');
+    expect(html).toContain('<h1>MATCHDAY: Football Organiser · Your weekly game, sorted</h1>');
+    expect(html).toContain('<title>MATCHDAY: Football Organiser · Your weekly game, sorted</title>');
     expect(html).toContain('href="/icon-192.png"');
     expect(html).not.toContain('favicon.ico');
     const ld = JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)![1]);
