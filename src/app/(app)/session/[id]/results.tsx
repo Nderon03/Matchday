@@ -17,6 +17,8 @@ export default function ResultsScreen() {
   const { run, busy } = useAction([keys.session(id), keys.mySessions]);
   const [scores, setScores] = useState<Record<string, { a: number; b: number }>>({});
   const [nextOpen, setNextOpen] = useState(false);
+  // the score that was just saved, shown at the top of the "what's next?" sheet
+  const [justPlayed, setJustPlayed] = useState<string | null>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
   const [votingHours, setVotingHours] = useState(48);
   const [reason, setReason] = useState('');
@@ -35,6 +37,7 @@ export default function ResultsScreen() {
 
   const addFixture = async (mode: 'keep' | 'balanced' | 'random' | 'manual') => {
     setNextOpen(false);
+    setJustPlayed(null);
     const fid = await run('add', () => rpc<string>('add_fixture', { p_session: id, p_copy_from: mode === 'keep' ? last.id : null }),
       mode === 'keep' ? `Game ${last.number + 1} added with the same teams` : undefined);
     if (fid && mode !== 'keep') router.push({ pathname: '/session/[id]/lineup', params: { id, fixture: fid, ...(mode !== 'manual' ? { auto: mode } : {}) } });
@@ -87,9 +90,17 @@ export default function ResultsScreen() {
                       title={correcting ? 'Apply correction' : f.played ? 'Update score' : 'Save score'}
                       loading={busy === `score-${f.id}`}
                       disabled={!!correcting && reason.trim().length < 3}
-                      onPress={() => run(`score-${f.id}`, () => correcting
-                        ? rpc('correct_session', { p_session: id, p_kind: 'score', p_data: { fixture_id: f.id, score_a: sc.a, score_b: sc.b }, p_reason: reason })
-                        : rpc('record_fixture_score', { p_fixture: f.id, p_score_a: sc.a, p_score_b: sc.b }), correcting ? 'Correction applied' : 'Score saved')}
+                      onPress={async () => {
+                        const firstSave = !correcting && !f.played && f.id === last.id;
+                        const ok = await run(`score-${f.id}`, async () => {
+                          await (correcting
+                            ? rpc('correct_session', { p_session: id, p_kind: 'score', p_data: { fixture_id: f.id, score_a: sc.a, score_b: sc.b }, p_reason: reason })
+                            : rpc('record_fixture_score', { p_fixture: f.id, p_score_a: sc.a, p_score_b: sc.b }));
+                          return true;
+                        }, correcting ? 'Correction applied' : firstSave ? undefined : 'Score saved');
+                        // full time on this game: straight on to what happens next
+                        if (ok && firstSave) { haptics.whistle(); setJustPlayed(`${f.teams[0]?.name} ${sc.a}–${sc.b} ${f.teams[1]?.name}`); setNextOpen(true); }
+                      }}
                     />
                   )}
                 </>
@@ -109,11 +120,16 @@ export default function ResultsScreen() {
         </View>
       )}
 
-      <Sheet visible={nextOpen} onClose={() => setNextOpen(false)} title={`Game ${last.number + 1}: teams`}>
-        <Button title="Keep the same teams" icon="copy-outline" onPress={() => addFixture('keep')} />
-        <Button title="Suggest balanced teams" icon="analytics-outline" variant="secondary" onPress={() => addFixture('balanced')} />
-        <Button title="Randomise teams" icon="shuffle" variant="secondary" onPress={() => addFixture('random')} />
-        <Button title="Pick manually" icon="hand-left-outline" variant="ghost" onPress={() => addFixture('manual')} />
+      <Sheet visible={nextOpen} onClose={() => { setNextOpen(false); setJustPlayed(null); }}
+        title={justPlayed ? `Game ${last.number} done. What’s next?` : `Game ${last.number + 1}: teams`}>
+        {!!justPlayed && <Text variant="h3" align="center">{justPlayed}</Text>}
+        <Button title={`Game ${last.number + 1}: new fair teams`} icon="shuffle" onPress={() => addFixture('balanced')} />
+        <Text variant="caption" tone="muted" align="center">Balanced on ratings and mixed up from the last game.</Text>
+        <Button title="Same teams again" icon="copy-outline" variant="secondary" onPress={() => addFixture('keep')} />
+        <Button title="Pick the teams myself" icon="hand-left-outline" variant="secondary" onPress={() => addFixture('manual')} />
+        {!!justPlayed && (
+          <Button title="That’s it, full time" icon="flag" variant="ghost" onPress={() => { setNextOpen(false); setJustPlayed(null); setCompleteOpen(true); }} />
+        )}
       </Sheet>
 
       <Sheet visible={completeOpen} onClose={() => setCompleteOpen(false)} title="Complete game">

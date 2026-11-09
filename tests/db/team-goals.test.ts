@@ -109,4 +109,16 @@ describe('team goal limits', () => {
     // and marking more than's left is refused
     await expectAppError(db.rpc(host, 'set_team_unassigned_goals', { p_fixture_team: teamA.id, p_own_goals: 2, p_unclaimed: 1 }), 'team_goals');
   });
+
+  it("the next game's teams don't notify anyone (they're at the pitch)", async () => {
+    const { host, sid, fixture } = await playedGame(1, 0);
+    const before = await db.admin(`select count(*)::int n from notifications where type = 'lineup_announced' and data->>'session_id' = $1`, [sid]);
+    const f2 = await db.rpc<string>(host, 'add_fixture', { p_session: sid });
+    const all = await db.admin(`select user_id from session_attendance where session_id = $1 and status = 'confirmed' and user_id <> $2`, [sid, host]);
+    const ids = all.map((r) => r.user_id);
+    await db.rpc(host, 'save_lineup', { p_fixture: f2, p_teams: { A: { players: ids.slice(0, 3).map((user_id) => ({ user_id })) }, B: { players: ids.slice(3).map((user_id) => ({ user_id })) } } });
+    const after = await db.admin(`select count(*)::int n from notifications where type = 'lineup_announced' and data->>'session_id' = $1`, [sid]);
+    expect(after[0].n).toBe(before[0].n);
+    expect(fixture).toBeTruthy();
+  });
 });

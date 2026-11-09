@@ -18,6 +18,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { formatKickoff, formatPence, nameList, rating, timeUntil, plural } from '@/domain/format';
+import { tonightTable } from '@/domain/tonight';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { removeSessionPlayer } from '@/features/removePlayer';
@@ -183,6 +184,10 @@ export default function SessionScreen() {
     if (ok) run(`rmg-${gid}`, () => rpc('remove_session_guest', { p_guest: gid }), `${name} removed`);
   };
   const totals = scores.reduce((acc, f) => ({ A: acc.A + (f.teams[0]?.score ?? 0), B: acc.B + (f.teams[1]?.score ?? 0) }), { A: 0, B: 0 });
+  // teams usually change between games on the night: then there's no aggregate, but a table of everyone's results
+  const roster = (f: (typeof scores)[number], side: 0 | 1) => (f.teams[side]?.players ?? []).map((p) => p.user_id ?? p.guest_id).sort().join(',');
+  const teamsChanged = scores.some((f) => roster(f, 0) !== roster(scores[0], 0) || roster(f, 1) !== roster(scores[0], 1));
+  const tonight = scores.length > 1 && teamsChanged ? tonightTable(scores) : [];
 
   return (
     <Screen edges={['top', 'bottom']} onRefresh={detail.refetch} refreshing={detail.isRefetching}>
@@ -381,7 +386,7 @@ export default function SessionScreen() {
       {/* Results */}
       {scores.length > 0 && (
         <View style={{ gap: space.sm }}>
-          <SectionTitle title={s.mode === 'multi' ? `Results · ${totals.A}–${totals.B} on aggregate` : 'Result'} action={!!d.isManager && s.status !== 'finalised' ? 'Edit' : undefined} onAction={() => router.push(`/session/${id}/results`)} />
+          <SectionTitle title={s.mode === 'multi' ? (teamsChanged ? `Results · ${plural(d.fixtures.length, 'game')}` : `Results · ${totals.A}–${totals.B} on aggregate`) : 'Result'} action={!!d.isManager && s.status !== 'finalised' ? 'Edit' : undefined} onAction={() => router.push(`/session/${id}/results`)} />
           <Card padded={false}>
             {d.fixtures.map((f, i) => (
               <View key={f.id} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border, gap: 4 }}>
@@ -396,6 +401,24 @@ export default function SessionScreen() {
             ))}
           </Card>
           {!!(scorersFor(null)) && <Text variant="caption" tone="muted">Across the session: {scorersFor(null)}</Text>}
+          {tonight.length > 0 && (
+            <View style={{ gap: space.xs }}>
+              <SectionTitle title="Tonight’s table" />
+              <Card padded={false}>
+                <Row style={{ paddingHorizontal: space.md, paddingTop: space.sm }}>
+                  <Text variant="caption" tone="faint" style={{ flex: 1 }}>Player</Text>
+                  {['P', 'W', 'D', 'L', 'Pts'].map((h) => <Text key={h} variant="caption" tone="faint" style={{ width: h === 'Pts' ? 36 : 26, textAlign: 'center' }}>{h}</Text>)}
+                </Row>
+                {tonight.map((r, i) => (
+                  <Row key={r.user_id} style={{ paddingHorizontal: space.md, paddingVertical: space.sm, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
+                    <Text variant={r.user_id === userId ? 'bodyStrong' : 'body'} style={{ flex: 1 }} numberOfLines={1}>{i + 1}. {nameOf(r.user_id)}</Text>
+                    {[r.played, r.won, r.drawn, r.lost].map((v, j) => <Text key={j} variant="small" tone="muted" style={{ width: 26, textAlign: 'center' }}>{v}</Text>)}
+                    <Text variant="bodyStrong" style={{ width: 36, textAlign: 'center' }}>{r.points}</Text>
+                  </Row>
+                ))}
+              </Card>
+            </View>
+          )}
         </View>
       )}
 

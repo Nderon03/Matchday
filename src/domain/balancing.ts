@@ -285,3 +285,20 @@ export function suggestTeams(players: BalancePlayer[], opts: BalanceOptions = {}
 }
 
 const round2 = (x: number) => Math.round(x * 100) / 100;
+
+/**
+ * For the next game on the same night: treat last game's teammates as having played together a
+ * lot, so balanced teams come out fair but mixed up (not the same two teams again).
+ */
+export function mixAfterLastGame(
+  pairings: { user_a: string; user_b: string; times: number }[],
+  last: { A: string[]; B: string[] } | null,
+  weight = 4,
+) {
+  if (!last) return pairings;
+  const extra: { user_a: string; user_b: string; times: number }[] = [];
+  for (const side of [last.A, last.B]) {
+    for (let i = 0; i < side.length; i++) for (let j = i + 1; j < side.length; j++) extra.push({ user_a: side[i], user_b: side[j], times: weight });
+  }
+  return [...pairings, ...extra];
+}

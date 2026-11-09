@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, Switch, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { haptics } from '@/lib/haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Card, Chip, EmptyState, ErrorState, Header, Input, Loading, Row, Screen, Segmented, Sheet, Text, useConfirm, useToast } from '@/components/ui';
 import { Pitch, type LineupPlayer } from '@/components/football/Pitch';
 import { lineupOps, type LineupState, type Zone } from '@/domain/lineup';
-import { suggestTeams, randomTeams, balanceTeams, hasEnoughHistory, type BalancePlayer, type BalanceResult, type GoalkeeperMode } from '@/domain/balancing';
+import { suggestTeams, randomTeams, balanceTeams, hasEnoughHistory, mixAfterLastGame, type BalancePlayer, type BalanceResult, type GoalkeeperMode } from '@/domain/balancing';
 import { keys, useSessionDetail, type SessionDetail } from '@/hooks/queries';
 import { useAction } from '@/hooks/useAction';
 import { rpc } from '@/lib/api';
@@ -21,9 +22,11 @@ import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 
 type Strengths = { players: BalancePlayer[]; pairings: { user_a: string; user_b: string; times: number }[] };
 
-function buildSuggestion(kind: 'balanced' | 'random', pool: BalancePlayer[], pairings: Strengths['pairings'], goalkeepers: GoalkeeperMode = 'auto'): BalanceResult {
+function buildSuggestion(kind: 'balanced' | 'random', pool: BalancePlayer[], pairings: Strengths['pairings'], goalkeepers: GoalkeeperMode = 'auto',
+  lastGame: { A: string[]; B: string[] } | null = null): BalanceResult {
   if (kind === 'random') return randomTeams(pool, undefined, goalkeepers);
-  return hasEnoughHistory(pool) ? balanceTeams(pool, { recentPairings: pairings, goalkeepers }) : suggestTeams(pool, { goalkeepers });
+  // later games on the night: still fair, but mixed up from the last game's teams
+  return hasEnoughHistory(pool) ? balanceTeams(pool, { recentPairings: mixAfterLastGame(pairings, lastGame), goalkeepers }) : suggestTeams(pool, { goalkeepers });
 }
 
 /** Players see a game's teams once the host confirms them (or once the session has kicked off). */
@@ -103,11 +106,18 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
       [...(fixture.teams[side]?.players ?? [])].sort((a, b) => a.sort_order - b.sort_order).map((p) => ({ user_id: p.user_id ?? `guest:${p.guest_id}`, position: p.position, is_goalkeeper: p.is_goalkeeper, is_substitute: p.is_substitute }));
     return { A: toSlots(0), B: toSlots(1) };
   };
+  // the game before this one tonight (its teams), so the next game's teams come out mixed up
+  const prev = d.fixtures.find((f) => f.number === fixture.number - 1 && f.played);
+  const lastGame = prev ? {
+    A: (prev.teams[0]?.players ?? []).map((p) => p.user_id ?? `guest:${p.guest_id}`),
+    B: (prev.teams[1]?.players ?? []).map((p) => p.user_id ?? `guest:${p.guest_id}`),
+  } : null;
+  const nextGameTonight = !!prev && d.session.status === 'in_progress' && !fixture.played;
   const initialSuggestion = (() => {
     const saved = savedLineup();
     if (!auto || !strengths || saved.A.length || saved.B.length) return null;
     const pool = withGuests(strengths.players.filter((p) => players[p.user_id]));
-    return pool.length >= 2 ? buildSuggestion(auto, pool, strengths.pairings) : null;
+    return pool.length >= 2 ? buildSuggestion(auto, pool, strengths.pairings, 'auto', lastGame) : null;
   })();
   const [suggestion, setSuggestion] = useState<BalanceResult | null>(initialSuggestion);
   const [lineup, setLineup] = useState<LineupState>(() =>
@@ -145,7 +155,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
   const apply = (kind: 'balanced' | 'random') => {
     const pool = withGuests((strengths?.players ?? []).filter((p) => players[p.user_id]));
     if (pool.length < 2) return toast.show('You need at least two confirmed players.', 'error');
-    const result = buildSuggestion(kind, pool, strengths?.pairings ?? [], gkMode);
+    const result = buildSuggestion(kind, pool, strengths?.pairings ?? [], gkMode, lastGame);
     setSuggestion(result);
     update(lineupOps.fromAssignment(result.A, result.B, positions, result.goalkeepers, d.session.format_size));
   };
@@ -159,7 +169,10 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
       });
       await rpc('save_lineup', { p_fixture: fixture.id, p_teams: { A: toJson('A'), B: toJson('B') }, p_confirm: confirm });
       setDirty(false);
-    }, !confirm ? 'Draft saved — only hosts can see it' : fixture.lineup_confirmed_at ? 'Teams updated — players notified' : 'Line-ups confirmed — players notified');
+      return true;
+    }, !confirm ? 'Draft saved — only hosts can see it'
+      : nextGameTonight ? `Game ${fixture.number}: kick off! ⚽`
+      : fixture.lineup_confirmed_at ? 'Teams updated — players notified' : 'Line-ups confirmed — players notified');
 
   const onTap = (uid: string) => {
     if (!editable) return;
@@ -177,7 +190,11 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
   return (
     <Screen edges={['top', 'bottom']} scrollEnabled={scrollEnabled} maxWidth={640}
       footer={editable ? (
-        confirmed ? (
+        nextGameTonight ? (
+          // later games on the night: everyone's at the pitch, so no notifications, just kick off
+          <Button title={`Kick off game ${fixture.number}`} icon="football" size="lg" loading={busy === 'save'}
+            onPress={async () => { if (await save(true) !== undefined) { haptics.whistle(); router.back(); } }} />
+        ) : confirmed ? (
           // once announced, every save is visible to players, so there is no draft step
           <Button title={dirty ? 'Update teams' : 'Confirmed ✓'} disabled={!dirty} loading={busy === 'save'} onPress={() => save(true)} />
         ) : (

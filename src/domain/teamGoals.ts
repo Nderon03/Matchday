@@ -69,6 +69,10 @@ export function roomForPlayer(fixtures: TGFixture[], credits: TGCredit[], userId
 export function playerGames(fixtures: TGFixture[], userId: string) {
   return fixtures.filter((f) => f.played).flatMap((f) => {
     const t = f.teams.find((x) => x.players.some((p) => p.user_id === userId));
-    return t ? [{ id: f.id, number: f.number, teamName: t.name || `Team ${t.side}`, teamScore: t.score ?? 0 }] : [];
+    const other = f.teams.find((x) => x !== t);
+    return t ? [{ id: f.id, number: f.number, teamName: t.name || `Team ${t.side}`, teamScore: t.score ?? 0, oppScore: other?.score ?? 0 }] : [];
   });
 }
+
+/** "won 3–2" / "drew 1–1" / "lost 0–2", from the player's side. */
+export const resultWord = (mine: number, theirs: number) => `${mine > theirs ? 'won' : mine === theirs ? 'drew' : 'lost'} ${mine}–${theirs}`;

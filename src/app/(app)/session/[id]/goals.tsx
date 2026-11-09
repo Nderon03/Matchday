@@ -13,7 +13,7 @@ import type { GoalSubmission, SubmissionStatus } from '@/types/db';
 import { plural } from '@/domain/format';
 import { ScreenHelp } from '@/features/ScreenHelp';
 import { haptics } from '@/lib/haptics';
-import { playerGames, roomForPlayer, teamTotals } from '@/domain/teamGoals';
+import { playerGames, resultWord, roomForPlayer, teamTotals } from '@/domain/teamGoals';
 
 const STATUS: Record<SubmissionStatus, { label: string; tone: 'warning' | 'success' | 'danger' | 'primary' | 'neutral' }> = {
   pending: { label: 'Awaiting approval', tone: 'warning' },
@@ -56,13 +56,7 @@ function GoalsBody({ id }: { id: string }) {
   const [recordSplit, setRecordSplit] = useState<Split>({});
   const [unassigned, setUnassigned] = useState<{ teamId: string; label: string; own: number; none: number } | null>(null);
 
-  const myFixtures = useMemo(() => {
-    if (!d) return [];
-    return d.fixtures.filter((f) => f.played).flatMap((f) => {
-      const team = f.teams.find((t) => t.players.some((p) => p.user_id === userId));
-      return team ? [{ id: f.id, number: f.number, teamScore: team.score ?? 0, teamName: team.name }] : [];
-    });
-  }, [d, userId]);
+  const myFixtures = useMemo(() => (d && userId ? playerGames(d.fixtures, userId) : []), [d, userId]);
 
   if (detail.isLoading) return <Screen><Header title="Goals" /><Loading /></Screen>;
   if (!d) return <Screen><Header title="Goals" /><ErrorState error={detail.error} onRetry={detail.refetch} /></Screen>;
@@ -139,7 +133,7 @@ function GoalsBody({ id }: { id: string }) {
                     {!!split && myFixtures.map((f) => (
                       <Card key={f.id} variant="alt">
                         <View style={{ gap: space.sm }}>
-                          <Text variant="smallStrong">Game {f.number} · {f.teamName} scored {f.teamScore}</Text>
+                          <Text variant="smallStrong">Game {f.number} · you were {f.teamName} · {resultWord(f.teamScore, f.oppScore)}</Text>
                           <Row style={{ justifyContent: 'space-between' }}>
                             <Text variant="small" tone="muted">Goals</Text>
                             <Stepper value={per(f.id).goals} max={f.teamScore} onChange={(v) => setBreakdown((b) => ({ ...b, [f.id]: { ...per(f.id), goals: v } }))} label={`Goals in game ${f.number}`} />
@@ -353,7 +347,7 @@ const splitPayload = (games: { id: string }[], v: Split) => games.map((g) => ({ 
 
 /** Goals and assists for each game a player was in (the host's correct / record sheets). */
 function SplitSteppers({ games, value, onChange, trackAssists, labelPrefix = '' }: {
-  games: { id: string; number: number; teamName: string; teamScore: number }[];
+  games: { id: string; number: number; teamName: string; teamScore: number; oppScore: number }[];
   value: Split;
   onChange: (v: Split) => void;
   trackAssists: boolean;
@@ -368,7 +362,7 @@ function SplitSteppers({ games, value, onChange, trackAssists, labelPrefix = '' 
       {games.map((x) => (
         <Card key={x.id} variant="alt">
           <View style={{ gap: space.xs }}>
-            <Text variant="smallStrong">Game {x.number} · {x.teamName} scored {x.teamScore}</Text>
+            <Text variant="smallStrong">Game {x.number} · {x.teamName} · {resultWord(x.teamScore, x.oppScore)}</Text>
             <Row style={{ justifyContent: 'space-between' }}>
               <Text variant="small" tone="muted">Goals</Text>
               <Stepper value={at(x.id).goals} max={x.teamScore} onChange={(v) => onChange({ ...value, [x.id]: { ...at(x.id), goals: v } })} label={`${labelPrefix} goals in game ${x.number}`.trim()} />

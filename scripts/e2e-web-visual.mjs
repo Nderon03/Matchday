@@ -598,6 +598,19 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     Object.assign(table, saved.t);
   }
 
+  // the host saves a game's score: straight to "what's next?" (new fair teams, same teams, or full time)
+  {
+    await page.goto(base + `/session/${SID}/results`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(500);
+    await page.getByRole('button', { name: 'Save score' }).first().click();
+    await page.waitForTimeout(700);
+    const wt = await page.locator('body').innerText();
+    if (!/Game 1 done\. What’s next\?/.test(wt) || !wt.includes('Game 2: new fair teams') || !wt.includes('That’s it, full time')) failures.push(`${vpName}: what's next sheet missing after saving a score`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-whats-next.png`) });
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+  }
+
   // after a finalised game: the match reveal comes first, then medal level-ups
   rpcs.get_match_reveals = [reveal];
   await page.evaluate((uid) => localStorage.setItem(`matchday.achievementsSeen.${uid}`, new Date(Date.now() - 3 * 86400_000).toISOString()), ME);
