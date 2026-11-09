@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Switch, View } from 'react-native';
+import { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Avatar, Badge, Button, Card, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Sheet, Stepper, Text } from '@/components/ui';
 import { keys, useSessionDetail } from '@/hooks/queries';
@@ -13,7 +13,7 @@ import type { GoalSubmission, SubmissionStatus } from '@/types/db';
 import { plural } from '@/domain/format';
 import { ScreenHelp } from '@/features/ScreenHelp';
 import { haptics } from '@/lib/haptics';
-import { roomForPlayer, teamTotals } from '@/domain/teamGoals';
+import { playerGames, roomForPlayer, teamTotals } from '@/domain/teamGoals';
 
 const STATUS: Record<SubmissionStatus, { label: string; tone: 'warning' | 'success' | 'danger' | 'primary' | 'neutral' }> = {
   pending: { label: 'Awaiting approval', tone: 'warning' },
@@ -43,8 +43,7 @@ function GoalsBody({ id }: { id: string }) {
   const mine = d?.submissions.find((x) => x.user_id === userId);
   const [goals, setGoals] = useState(mine?.goals ?? 0);
   const [assists, setAssists] = useState(mine?.assists ?? 0);
-  const [breakdownOn, setBreakdownOn] = useState(false);
-  const [breakdown, setBreakdown] = useState<Record<string, { goals: number; assists: number }>>({});
+  const [breakdown, setBreakdown] = useState<Split>(() => toSplit(mine?.fixture_breakdown));
   const [note, setNote] = useState(mine?.note ?? '');
   const [review, setReview] = useState<{ sub: GoalSubmission; action: SubmissionStatus } | null>(null);
   const [reviewGoals, setReviewGoals] = useState(0);
@@ -53,6 +52,9 @@ function GoalsBody({ id }: { id: string }) {
   const [recordFor, setRecordFor] = useState<string | null>(null);
   const [recordGoals, setRecordGoals] = useState(0);
   const [recordAssists, setRecordAssists] = useState(0);
+  const [reviewSplit, setReviewSplit] = useState<Split>({});
+  const [recordSplit, setRecordSplit] = useState<Split>({});
+  const [unassigned, setUnassigned] = useState<{ teamId: string; label: string; own: number; none: number } | null>(null);
 
   const myFixtures = useMemo(() => {
     if (!d) return [];
@@ -74,7 +76,8 @@ function GoalsBody({ id }: { id: string }) {
   const reviewable = pending.filter((x) => x.user_id !== userId);
   const submittedIds = new Set(d.submissions.map((x) => x.user_id));
   const missing = d.attendance.filter((a) => a.verification === 'verified' && !submittedIds.has(a.user_id) && a.user_id !== userId);
-  const split = breakdownOn && myFixtures.length > 1;
+  // played more than one game: goals and assists are entered game by game (teams can change)
+  const split = myFixtures.length > 1;
   const per = (fid: string) => breakdown[fid] ?? { goals: 0, assists: 0 };
   // with a game-by-game split, the totals are simply the sum of the games
   const totalGoals = split ? myFixtures.reduce((a, f) => a + per(f.id).goals, 0) : goals;
@@ -87,7 +90,12 @@ function GoalsBody({ id }: { id: string }) {
     ?? (room && totalAssists > room.assistsLeft ? `Your team scored ${room.score} and teammates already have ${room.matesAssists} assists approved, so you can claim ${room.assistsLeft > 0 ? `at most ${room.assistsLeft}` : 'no more assists'}.` : null);
   const totals = d.isManager ? teamTotals(d.fixtures, d.goalsByFixture) : [];
   const pendingForBulk = reviewable.filter((x) => x.status === 'pending').length;
-  const openCorrect = (sub: GoalSubmission) => { setReview({ sub, action: 'corrected' }); setReviewGoals(sub.approved_goals ?? sub.goals); setReviewAssists(sub.approved_assists ?? sub.assists); setReason(''); };
+  const openCorrect = (sub: GoalSubmission) => {
+    setReview({ sub, action: 'corrected' }); setReviewGoals(sub.approved_goals ?? sub.goals); setReviewAssists(sub.approved_assists ?? sub.assists); setReason('');
+    setReviewSplit(toSplit(sub.approved_breakdown ?? sub.fixture_breakdown));
+  };
+  const reviewGames = review ? playerGames(d.fixtures, review.sub.user_id) : [];
+  const recordGames = recordFor ? playerGames(d.fixtures, recordFor) : [];
   const isHostSelf = d.isManager;
 
   const submit = () => run('submit', () => rpc('submit_goals', {
@@ -127,10 +135,7 @@ function GoalsBody({ id }: { id: string }) {
                 )}
                 {myFixtures.length > 1 && (
                   <View style={{ gap: space.sm }}>
-                    <Row style={{ justifyContent: 'space-between' }}>
-                      <Text variant="small" tone="muted">Split by game (optional)</Text>
-                      <Switch value={breakdownOn} onValueChange={setBreakdownOn} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Split goals by game" />
-                    </Row>
+                    <Text variant="small" tone="muted">You played {myFixtures.length} games, so add your goals and assists for each one.</Text>
                     {!!split && myFixtures.map((f) => (
                       <Card key={f.id} variant="alt">
                         <View style={{ gap: space.sm }}>
@@ -177,13 +182,23 @@ function GoalsBody({ id }: { id: string }) {
             <Card variant="alt">
               <View style={{ gap: space.xs }}>
                 <Text variant="smallStrong">Team totals</Text>
-                {totals.map((t) => (
-                  <Text key={t.teamId} variant="small" tone={t.goalsLeft < 0 || t.assistsLeft < 0 ? 'danger' : 'muted'}>
-                    {d.fixtures.filter((f) => f.played).length > 1 ? `Game ${t.number} · ` : ''}{t.name} scored {t.score}: {t.goals} ⚽ {t.assists} 🅰️ credited
-                    {t.goalsLeft > 0 ? ` · ${plural(t.goalsLeft, 'goal')} not credited yet` : ''}
-                  </Text>
-                ))}
-                <Text variant="caption" tone="faint">A team’s players can’t have more goals, or more assists, than the team scored.</Text>
+                {totals.map((t) => {
+                  const label = `${d.fixtures.filter((f) => f.played).length > 1 ? `Game ${t.number} · ` : ''}${t.name}`;
+                  const extras = [t.ownGoals ? `${plural(t.ownGoals, 'own goal')}` : '', t.unclaimed ? `${t.unclaimed} no scorer` : ''].filter(Boolean).join(', ');
+                  return (
+                    <View key={t.teamId} style={{ alignItems: 'flex-start' }}>
+                      <Text variant="small" tone={t.goalsLeft < 0 || t.assistsLeft < 0 ? 'danger' : 'muted'}>
+                        {label} scored {t.score}: {t.goals} ⚽ {t.assists} 🅰️ credited{extras ? ` · ${extras}` : ''}
+                        {t.goalsLeft > 0 ? ` · ${plural(t.goalsLeft, 'goal')} not credited yet` : t.goalsLeft === 0 && t.score > 0 ? ' · all accounted for ✓' : ''}
+                      </Text>
+                      {(t.goalsLeft > 0 || t.ownGoals + t.unclaimed > 0) && (
+                        <Button title={t.ownGoals + t.unclaimed > 0 ? 'Edit own goals / no scorer' : 'Own goal / no scorer'} size="sm" variant="ghost"
+                          onPress={() => setUnassigned({ teamId: t.teamId, label, own: t.ownGoals, none: t.unclaimed })} />
+                      )}
+                    </View>
+                  );
+                })}
+                <Text variant="caption" tone="faint">A team’s players can’t have more goals, or more assists, than the team scored. Mark own goals and goals nobody claimed so it adds up.</Text>
               </View>
             </Card>
           )}
@@ -222,7 +237,7 @@ function GoalsBody({ id }: { id: string }) {
                 <Row key={a.user_id} gap={space.md}>
                   <Avatar uri={a.profile.avatar_url} name={a.profile.display_name} size={32} />
                   <Text style={{ flex: 1 }}>{a.profile.display_name}</Text>
-                  <Button title="Record" size="sm" variant="secondary" onPress={() => { setRecordFor(a.user_id); setRecordGoals(0); setRecordAssists(0); }} />
+                  <Button title="Record" size="sm" variant="secondary" onPress={() => { setRecordFor(a.user_id); setRecordGoals(0); setRecordAssists(0); setRecordSplit({}); }} />
                 </Row>
               ))}
             </>
@@ -252,15 +267,21 @@ function GoalsBody({ id }: { id: string }) {
       <Sheet visible={!!review} onClose={() => setReview(null)} title={review?.action === 'corrected' ? `Correct ${nameOf(review.sub.user_id)?.display_name ?? 'goals'}` : review?.action === 'rejected' ? 'Reject claim' : 'Ask for clarification'}>
         {review?.action === 'corrected' && (
           <View style={{ gap: space.md }}>
-            <Row style={{ justifyContent: 'space-between' }}>
-              <Text variant="bodyStrong">Goals</Text>
-              <Stepper value={reviewGoals} onChange={setReviewGoals} label="Corrected goals" />
-            </Row>
-            {!!trackAssists && (
-              <Row style={{ justifyContent: 'space-between' }}>
-                <Text variant="bodyStrong">Assists</Text>
-                <Stepper value={reviewAssists} onChange={setReviewAssists} label="Corrected assists" />
-              </Row>
+            {reviewGames.length > 1 ? (
+              <SplitSteppers games={reviewGames} value={reviewSplit} onChange={setReviewSplit} trackAssists={trackAssists} labelPrefix="Corrected" />
+            ) : (
+              <>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <Text variant="bodyStrong">Goals</Text>
+                  <Stepper value={reviewGoals} onChange={setReviewGoals} label="Corrected goals" />
+                </Row>
+                {!!trackAssists && (
+                  <Row style={{ justifyContent: 'space-between' }}>
+                    <Text variant="bodyStrong">Assists</Text>
+                    <Stepper value={reviewAssists} onChange={setReviewAssists} label="Corrected assists" />
+                  </Row>
+                )}
+              </>
             )}
             <Text variant="caption" tone="faint">They claimed {plural(review.sub.goals, 'goal')}{review.sub.assists ? ` and ${plural(review.sub.assists, 'assist')}` : ''}.</Text>
           </View>
@@ -268,27 +289,100 @@ function GoalsBody({ id }: { id: string }) {
         <Input label={review?.action === 'rejected' ? 'Reason (optional)' : 'Explanation'} value={reason} onChangeText={setReason} multiline maxLength={280} />
         <Button title="Send" loading={busy === 'review'} onPress={async () => {
           if (!review) return;
-          const ok = await run('review', () => rpc('review_goal_submission', { p_submission: review.sub.id, p_action: review.action, p_goals: review.action === 'corrected' ? reviewGoals : null, p_assists: review.action === 'corrected' ? reviewAssists : null, p_reason: reason || null }), 'Done');
+          const ok = await run('review', () => rpc('review_goal_submission', { p_submission: review.sub.id, p_action: review.action, p_goals: review.action === 'corrected' ? reviewGoals : null, p_assists: review.action === 'corrected' ? reviewAssists : null,
+            p_breakdown: review.action === 'corrected' && reviewGames.length > 1 ? splitPayload(reviewGames, reviewSplit) : null, p_reason: reason || null }), 'Done');
           if (ok !== undefined) setReview(null);
         }} />
       </Sheet>
 
       <Sheet visible={!!recordFor} onClose={() => setRecordFor(null)} title={`Record for ${recordFor ? nameOf(recordFor)?.display_name : ''}`}>
-        <Row style={{ justifyContent: 'space-between' }}>
-          <Text variant="bodyStrong">Goals</Text>
-          <Stepper value={recordGoals} onChange={setRecordGoals} label="Goals" />
-        </Row>
-        {!!trackAssists && (
-          <Row style={{ justifyContent: 'space-between' }}>
-            <Text variant="bodyStrong">Assists</Text>
-            <Stepper value={recordAssists} onChange={setRecordAssists} label="Assists" />
-          </Row>
+        {recordGames.length > 1 ? (
+          <SplitSteppers games={recordGames} value={recordSplit} onChange={setRecordSplit} trackAssists={trackAssists} />
+        ) : (
+          <>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <Text variant="bodyStrong">Goals</Text>
+              <Stepper value={recordGoals} onChange={setRecordGoals} label="Goals" />
+            </Row>
+            {!!trackAssists && (
+              <Row style={{ justifyContent: 'space-between' }}>
+                <Text variant="bodyStrong">Assists</Text>
+                <Stepper value={recordAssists} onChange={setRecordAssists} label="Assists" />
+              </Row>
+            )}
+          </>
         )}
         <Button title="Save" loading={busy === 'record'} onPress={async () => {
-          const ok = await run('record', () => rpc('host_record_goals', { p_session: id, p_user: recordFor, p_goals: recordGoals, p_assists: recordAssists, p_reason: 'Recorded by host' }), 'Recorded');
+          const ok = await run('record', () => rpc('host_record_goals', { p_session: id, p_user: recordFor, p_goals: recordGoals, p_assists: recordAssists,
+            p_breakdown: recordGames.length > 1 ? splitPayload(recordGames, recordSplit) : null, p_reason: 'Recorded by host' }), 'Recorded');
           if (ok !== undefined) setRecordFor(null);
         }} />
       </Sheet>
+      <Sheet visible={!!unassigned} onClose={() => setUnassigned(null)} title={`Unclaimed goals · ${unassigned?.label ?? ''}`}>
+        {!!unassigned && (
+          <View style={{ gap: space.md }}>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong">Own goals</Text>
+                <Text variant="caption" tone="muted">Scored for them by the other team</Text>
+              </View>
+              <Stepper value={unassigned.own} onChange={(v) => setUnassigned({ ...unassigned, own: v })} label="Own goals" />
+            </Row>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyStrong">No scorer</Text>
+                <Text variant="caption" tone="muted">Nobody remembers or nobody claimed it</Text>
+              </View>
+              <Stepper value={unassigned.none} onChange={(v) => setUnassigned({ ...unassigned, none: v })} label="Goals with no scorer" />
+            </Row>
+            <Button title="Save" loading={busy === 'unassigned'} onPress={async () => {
+              const ok = await run('unassigned', () => rpc('set_team_unassigned_goals', { p_fixture_team: unassigned.teamId, p_own_goals: unassigned.own, p_unclaimed: unassigned.none }), 'Saved');
+              if (ok !== undefined) setUnassigned(null);
+            }} />
+          </View>
+        )}
+      </Sheet>
     </Screen>
+  );
+}
+
+type Split = Record<string, { goals: number; assists: number }>;
+const toSplit = (b?: { fixture_id: string; goals: number; assists?: number }[] | null): Split =>
+  Object.fromEntries((b ?? []).map((x) => [x.fixture_id, { goals: x.goals ?? 0, assists: x.assists ?? 0 }]));
+const splitPayload = (games: { id: string }[], v: Split) => games.map((g) => ({ fixture_id: g.id, goals: v[g.id]?.goals ?? 0, assists: v[g.id]?.assists ?? 0 }));
+
+/** Goals and assists for each game a player was in (the host's correct / record sheets). */
+function SplitSteppers({ games, value, onChange, trackAssists, labelPrefix = '' }: {
+  games: { id: string; number: number; teamName: string; teamScore: number }[];
+  value: Split;
+  onChange: (v: Split) => void;
+  trackAssists: boolean;
+  labelPrefix?: string;
+}) {
+  const at = (id: string) => value[id] ?? { goals: 0, assists: 0 };
+  const g = games.reduce((a, x) => a + at(x.id).goals, 0);
+  const a = games.reduce((n, x) => n + at(x.id).assists, 0);
+  return (
+    <View style={{ gap: space.sm }}>
+      <Text variant="caption" tone="muted">They played {games.length} games, so it’s game by game.</Text>
+      {games.map((x) => (
+        <Card key={x.id} variant="alt">
+          <View style={{ gap: space.xs }}>
+            <Text variant="smallStrong">Game {x.number} · {x.teamName} scored {x.teamScore}</Text>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <Text variant="small" tone="muted">Goals</Text>
+              <Stepper value={at(x.id).goals} max={x.teamScore} onChange={(v) => onChange({ ...value, [x.id]: { ...at(x.id), goals: v } })} label={`${labelPrefix} goals in game ${x.number}`.trim()} />
+            </Row>
+            {trackAssists && (
+              <Row style={{ justifyContent: 'space-between' }}>
+                <Text variant="small" tone="muted">Assists</Text>
+                <Stepper value={at(x.id).assists} max={x.teamScore} onChange={(v) => onChange({ ...value, [x.id]: { ...at(x.id), assists: v } })} label={`${labelPrefix} assists in game ${x.number}`.trim()} />
+              </Row>
+            )}
+          </View>
+        </Card>
+      ))}
+      <Text variant="small">Total: {plural(g, 'goal')}{trackAssists ? `, ${plural(a, 'assist')}` : ''}</Text>
+    </View>
   );
 }

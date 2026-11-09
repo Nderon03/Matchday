@@ -580,6 +580,12 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     await page.waitForTimeout(600);
     const gt = await page.locator('body').innerText();
     if (!/Team totals/.test(gt) || !/scored 7: 5 ⚽ 1 🅰️ credited · 2 goals not credited yet/.test(gt)) failures.push(`${vpName}: team totals missing on the goals page`);
+    await page.getByRole('button', { name: 'Own goal / no scorer' }).first().click();
+    await page.waitForTimeout(400);
+    if (!(await page.getByLabel('Goals with no scorer').count())) failures.push(`${vpName}: own goal / no scorer sheet missing`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-goals-unassigned.png`) });
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
     await page.getByRole('button', { name: 'Correct' }).first().click();
     await page.waitForTimeout(500);
     if (!(await page.getByLabel('Corrected assists').count())) failures.push(`${vpName}: correcting goals has no assists`);

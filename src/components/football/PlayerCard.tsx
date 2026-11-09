@@ -68,7 +68,7 @@ function ReliabilityMark({ r, accent, muted, compact }: { r: PlayerCardData['rel
 }
 
 /** The medals a player chose to show, small along the bottom of the card. */
-export function CardMedals({ codes, size = 30 }: { codes: string[]; size?: number }) {
+export function CardMedals({ codes, size = 40 }: { codes: string[]; size?: number }) {
   const items = codes.slice(0, 3).map((c) => {
     const { track, level } = parseCode(c);
     const def = c === SEASON_CHAMPION.code ? { name: SEASON_CHAMPION.name, icon: SEASON_CHAMPION.icon } : TRACKS.find((t) => t.track === track);
@@ -163,7 +163,7 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm, minHeight: 24, paddingRight: st.base ? 0 : 6 }}>
           <Text variant="overline" color={st.accent}>MATCHDAY</Text>
-          {data.medals?.length ? <CardMedals codes={data.medals} size={compact ? 26 : 30} />
+          {data.medals?.length ? <CardMedals codes={data.medals} size={compact ? 32 : 40} />
             : (
               <Text variant="caption" color={st.muted} numberOfLines={1} style={{ opacity: 0.75, flexShrink: 1, textAlign: 'right' }}>
                 {roomy ? 'Your football. Your squad. Your statistics.' : 'Your football. Your squad.'}

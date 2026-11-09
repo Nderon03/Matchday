@@ -141,6 +141,9 @@ export interface FixtureTeam {
   name: string;
   colour: string;
   score: number | null;
+  /** goals for this team that were the other side's own goals, and goals nobody claimed */
+  own_goals?: number;
+  unclaimed_goals?: number;
 }
 
 export interface TeamPlayer {
@@ -166,6 +169,8 @@ export interface GoalSubmission {
   status: SubmissionStatus;
   approved_goals: number | null;
   approved_assists: number | null;
+  /** the host's corrected game-by-game split */
+  approved_breakdown?: { fixture_id: string; goals: number; assists?: number }[] | null;
   is_late: boolean;
   submitted_at: string;
 }

@@ -20,4 +20,10 @@ describe('team totals', () => {
     expect(t.find((x) => x.teamId === 'a')?.goals).toBe(0);
     expect(roomForPlayer(two, [], 'john')).toBeNull();
   });
+  it('own goals and no-scorer goals are accounted for; own goals have no assist', () => {
+    const og: TGFixture[] = [{ ...one[0], teams: [{ ...one[0].teams[0], own_goals: 1, unclaimed_goals: 1 }, one[0].teams[1]] }];
+    const t = teamTotals(og, [{ fixture_id: null, user_id: 'john', goals: 1, assists: 1 }]).find((x) => x.teamId === 'a');
+    expect(t).toMatchObject({ goalsLeft: 1, assistsLeft: 2, ownGoals: 1, unclaimed: 1 });
+    expect(roomForPlayer(og, [{ fixture_id: null, user_id: 'john', goals: 1, assists: 0 }], 'sam')).toMatchObject({ goalsLeft: 1, assistsLeft: 3 });
+  });
 });

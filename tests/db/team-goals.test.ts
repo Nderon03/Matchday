@@ -71,4 +71,42 @@ describe('team goal limits', () => {
     await expectAppError(db.rpc(host, 'record_fixture_score', { p_fixture: fixture, p_score_a: 2, p_score_b: 2 }), 'team_goals');
     await db.rpc(host, 'record_fixture_score', { p_fixture: fixture, p_score_a: 4, p_score_b: 2 });
   });
+
+  it('several games: goals are split by game, for the player and the host', async () => {
+    const { host, sid, fixture, john, smith } = await playedGame(2, 1);
+    // game 2: John switches sides
+    const f2 = await db.rpc<string>(host, 'add_fixture', { p_session: sid, p_copy_from: fixture });
+    const lineup = await db.admin(`select tp.user_id, ft.side from team_players tp join fixture_teams ft on ft.id = tp.fixture_team_id where tp.fixture_id = $1`, [f2]);
+    const a = lineup.filter((r) => r.side === 'A' && r.user_id !== john).map((r) => r.user_id);
+    const b = [...lineup.filter((r) => r.side === 'B').map((r) => r.user_id), john];
+    await db.rpc(host, 'save_lineup', { p_fixture: f2, p_teams: { A: { players: a.map((user_id) => ({ user_id })) }, B: { players: b.map((user_id) => ({ user_id })) } } });
+    await db.rpc(host, 'record_fixture_score', { p_fixture: f2, p_score_a: 0, p_score_b: 3 });
+
+    await expectAppError(db.rpc(john, 'submit_goals', { p_session: sid, p_goals: 2 }), 'split_required');
+    const j = await db.rpc<string>(john, 'submit_goals', { p_session: sid, p_goals: 3, p_assists: 1, p_breakdown: [{ fixture_id: fixture, goals: 1, assists: 1 }, { fixture_id: f2, goals: 2 }] });
+    // the host corrects by game too
+    await expectAppError(db.rpc(host, 'review_goal_submission', { p_submission: j, p_action: 'corrected', p_goals: 2, p_reason: 'x' }), 'split_required');
+    await db.rpc(host, 'review_goal_submission', {
+      p_submission: j, p_action: 'corrected', p_reason: 'Only one in game 2', p_breakdown: [{ fixture_id: fixture, goals: 1, assists: 1 }, { fixture_id: f2, goals: 1, assists: 0 }],
+    });
+    const rows = await db.admin(`select fixture_id, goals, assists from player_goals where submission_id = $1 order by goals desc, assists desc`, [j]);
+    expect(rows).toEqual([{ fixture_id: fixture, goals: 1, assists: 1 }, { fixture_id: f2, goals: 1, assists: 0 }]);
+    // Smith only played game 1 for A (2 goals): John has 1 there, so 1 left
+    await expectAppError(db.rpc(smith, 'submit_goals', { p_session: sid, p_goals: 2, p_breakdown: [{ fixture_id: fixture, goals: 2 }, { fixture_id: f2, goals: 0 }] }), 'team_goals');
+  });
+
+  it('own goals and goals nobody claimed count towards the team total', async () => {
+    const { host, sid, fixture, john, smith } = await playedGame(4, 0);
+    const [teamA] = await db.admin(`select id from fixture_teams where fixture_id = $1 and side = 'A'`, [fixture]);
+    await expectAppError(db.rpc(john, 'set_team_unassigned_goals', { p_fixture_team: teamA.id, p_own_goals: 1, p_unclaimed: 0 }), 'forbidden');
+    await db.rpc(host, 'set_team_unassigned_goals', { p_fixture_team: teamA.id, p_own_goals: 1, p_unclaimed: 1 });
+    // 4 scored, 1 own goal, 1 nobody claimed: 2 left for the players
+    await expectAppError(db.rpc(john, 'submit_goals', { p_session: sid, p_goals: 3 }), 'team_goals');
+    const j = await db.rpc<string>(john, 'submit_goals', { p_session: sid, p_goals: 2, p_assists: 1 });
+    await db.rpc(host, 'review_goal_submission', { p_submission: j, p_action: 'approved' });
+    // own goals can't be assisted: 4 - 1 = 3 assists at most
+    await expectAppError(db.rpc(host, 'host_record_goals', { p_session: sid, p_user: smith, p_goals: 0, p_assists: 3 }), 'team_assists');
+    // and marking more than's left is refused
+    await expectAppError(db.rpc(host, 'set_team_unassigned_goals', { p_fixture_team: teamA.id, p_own_goals: 2, p_unclaimed: 1 }), 'team_goals');
+  });
 });

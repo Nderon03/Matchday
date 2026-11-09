@@ -5,7 +5,7 @@ export interface TGFixture {
   id: string;
   number: number;
   played: boolean;
-  teams: { id: string; name: string; side: string; score: number | null; players: { user_id: string | null }[] }[];
+  teams: { id: string; name: string; side: string; score: number | null; own_goals?: number; unclaimed_goals?: number; players: { user_id: string | null }[] }[];
 }
 export interface TGCredit { fixture_id: string | null; user_id: string; goals: number; assists: number }
 export interface TeamTotal {
@@ -16,7 +16,9 @@ export interface TeamTotal {
   score: number;
   goals: number;
   assists: number;
-  /** goals scored that nobody has been credited with yet */
+  ownGoals: number;
+  unclaimed: number;
+  /** goals scored that nobody has been credited with yet (own goals and no-scorer goals count as accounted for) */
   goalsLeft: number;
   assistsLeft: number;
 }
@@ -35,7 +37,7 @@ export function teamTotals(fixtures: TGFixture[], credits: TGCredit[]): TeamTota
     if (!f.played) continue;
     for (const t of f.teams) {
       if (t.score == null) continue;
-      out.set(t.id, { fixtureId: f.id, number: f.number, teamId: t.id, name: t.name || `Team ${t.side}`, score: t.score, goals: 0, assists: 0, goalsLeft: t.score, assistsLeft: t.score });
+      out.set(t.id, { fixtureId: f.id, number: f.number, teamId: t.id, name: t.name || `Team ${t.side}`, score: t.score, goals: 0, assists: 0, ownGoals: t.own_goals ?? 0, unclaimed: t.unclaimed_goals ?? 0, goalsLeft: t.score, assistsLeft: t.score });
     }
   }
   for (const c of credits) {
@@ -46,8 +48,9 @@ export function teamTotals(fixtures: TGFixture[], credits: TGCredit[]): TeamTota
     t.assists += c.assists;
   }
   for (const t of out.values()) {
-    t.goalsLeft = t.score - t.goals;
-    t.assistsLeft = t.score - t.assists;
+    t.goalsLeft = t.score - t.goals - t.ownGoals - t.unclaimed;
+    // an own goal has no assist
+    t.assistsLeft = t.score - t.ownGoals - t.assists;
   }
   return [...out.values()];
 }
@@ -59,5 +62,13 @@ export function roomForPlayer(fixtures: TGFixture[], credits: TGCredit[], userId
   const team = mine[0].teams.find((t) => t.players.some((p) => p.user_id === userId));
   if (!team || team.score == null) return null;
   const others = teamTotals(fixtures, credits.filter((c) => c.user_id !== userId)).find((t) => t.teamId === team.id);
-  return { score: team.score, matesGoals: others?.goals ?? 0, matesAssists: others?.assists ?? 0, goalsLeft: team.score - (others?.goals ?? 0), assistsLeft: team.score - (others?.assists ?? 0) };
+  return { score: team.score, matesGoals: others?.goals ?? 0, matesAssists: others?.assists ?? 0, goalsLeft: others?.goalsLeft ?? team.score, assistsLeft: others?.assistsLeft ?? team.score };
+}
+
+/** The played games a player was in, with their team's score (for game-by-game entry). */
+export function playerGames(fixtures: TGFixture[], userId: string) {
+  return fixtures.filter((f) => f.played).flatMap((f) => {
+    const t = f.teams.find((x) => x.players.some((p) => p.user_id === userId));
+    return t ? [{ id: f.id, number: f.number, teamName: t.name || `Team ${t.side}`, teamScore: t.score ?? 0 }] : [];
+  });
 }

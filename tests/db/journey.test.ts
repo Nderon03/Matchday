@@ -294,7 +294,9 @@ describe('multi-fixture journey with changing teams', () => {
     expect(audits).toHaveLength(1);
 
     // late goal claim after finalisation goes through approval and recompute
-    const late = await db.rpc<string>(players[6], 'submit_goals', { p_session: sessionId, p_goals: 1 });
+    // (several games: they say which game it was in)
+    await expectAppError(db.rpc(players[6], 'submit_goals', { p_session: sessionId, p_goals: 1 }), 'split_required');
+    const late = await db.rpc<string>(players[6], 'submit_goals', { p_session: sessionId, p_goals: 1, p_breakdown: [{ fixture_id: f2, goals: 1 }] });
     const [lateRow] = await db.admin(`select is_late from goal_submissions where id = $1`, [late]);
     expect(lateRow.is_late).toBe(true);
     await db.rpc(host, 'review_goal_submission', { p_submission: late, p_action: 'approved' });
