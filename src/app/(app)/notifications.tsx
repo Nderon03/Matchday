@@ -50,7 +50,7 @@ export default function Notifications() {
             <Pressable key={item.id} onPress={() => route && router.push(route as any)} accessibilityRole="button"
               style={({ pressed }) => ({ flexDirection: 'row', gap: space.md, padding: space.md, borderRadius: radius.md, backgroundColor: !item.read_at ? colors.primaryMuted : pressed ? colors.surfaceAlt : 'transparent' })}>
               <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name={ICON[item.type] ?? 'notifications'} size={18} color={colors.primary} />
+                <Ionicons name={(item.data?.weather_icon as keyof typeof Ionicons.glyphMap | undefined) ?? ICON[item.type] ?? 'notifications'} size={18} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text variant="bodyStrong">{item.title}</Text>

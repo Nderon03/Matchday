@@ -15,16 +15,18 @@ Deno.serve(handler(async (req) => {
   if (queued?.length) {
     // kick-off reminders get the forecast added (one lookup per session, cached for an hour)
     const forecasts = new Map<string, string | null>();
+    const icons = new Map<string, string>();
     for (const n of queued.filter((x) => x.type === 'session_reminder' && x.data?.session_id && !x.data?.weather)) {
       const sid = n.data.session_id as string;
       if (!forecasts.has(sid)) {
         const w = await getSessionWeather(admin, sid).catch(() => null);
         forecasts.set(sid, w ? reminderLine(w) : null);
+        if (w) icons.set(sid, w.icon);
       }
       const line = forecasts.get(sid);
       if (line) {
         n.body = `${n.body} ${line}`;
-        n.data = { ...n.data, weather: true };
+        n.data = { ...n.data, weather: true, weather_icon: icons.get(sid) };
         await admin.from('notifications').update({ body: n.body, data: n.data }).eq('id', n.id);
       }
     }

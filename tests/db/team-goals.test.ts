@@ -147,4 +147,30 @@ describe('team goal limits', () => {
     const [n] = await db.admin(`select title from notifications where user_id = $1 and type = 'session_cancelled'`, [host]);
     expect(n.title).toBe('Lonely FC was cancelled');
   });
+
+  it('hosts can change their own tally until the game is finalised', async () => {
+    const { host, sid, fixture, john, smith } = await playedGame(3, 0);
+    // the host plays too: put them on team A
+    await db.admin(`insert into session_attendance (session_id, user_id, status, verification) values ($1, $2, 'confirmed', 'verified') on conflict (session_id, user_id) do update set status = 'confirmed', verification = 'verified'`, [sid, host]);
+    const [teamA] = await db.admin(`select id from fixture_teams where fixture_id = $1 and side = 'A'`, [fixture]);
+    await db.admin(`insert into team_players (fixture_team_id, fixture_id, user_id, position, is_goalkeeper, is_substitute, sort_order) values ($1, $2, $3, 'ANY', false, false, 9)`, [teamA.id, fixture, host]);
+    await db.rpc(host, 'submit_goals', { p_session: sid, p_goals: 2 });
+    await db.rpc(host, 'submit_goals', { p_session: sid, p_goals: 1, p_assists: 1 });
+    const [mine] = await db.admin(`select status, approved_goals, approved_assists from goal_submissions where session_id = $1 and user_id = $2`, [sid, host]);
+    expect(mine).toEqual({ status: 'approved', approved_goals: 1, approved_assists: 1 });
+    // players still can't change an approved claim themselves
+    const j = await db.rpc<string>(john, 'submit_goals', { p_session: sid, p_goals: 1 });
+    await db.rpc(host, 'review_goal_submission', { p_submission: j, p_action: 'approved' });
+    await expectAppError(db.rpc(john, 'submit_goals', { p_session: sid, p_goals: 0 }), 'already_submitted');
+    expect(smith).toBeTruthy();
+  });
+
+  it('the feed names the award Player of the Night when several games were played', async () => {
+    const { host, sid, fixture, john } = await playedGame(1, 0);
+    await db.rpc<string>(host, 'add_fixture', { p_session: sid, p_copy_from: fixture });
+    await db.admin(`update sessions set starts_at = date_trunc('day', now()) + interval '20 hours' where id = $1`, [sid]);
+    await db.admin(`select public.post_activity($1, 'motm', '{"session_name":"Team Limits FC","votes":3,"shared":false}'::jsonb, null, $2)`, [john, sid]);
+    const [row] = await db.admin(`select payload->>'award' award from activity_feed where session_id = $1 and type = 'motm'`, [sid]);
+    expect(row.award).toBe('Player of the Night');
+  });
 });

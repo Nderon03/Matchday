@@ -64,7 +64,9 @@ function GoalsBody({ id }: { id: string }) {
 
   const s = d.session;
   const verified = d.me?.verification === 'verified' || (s.status === 'in_progress' && myFixtures.length > 0);
-  const canSubmit = verified && (!mine || ['pending', 'clarification_requested'].includes(mine.status)) && ['in_progress', 'completed', 'finalised'].includes(s.status);
+  // hosts' own claims are approved straight away, so they can change them until the game is finalised
+  const hostCanEdit = d.isManager && s.status !== 'finalised';
+  const canSubmit = verified && (!mine || ['pending', 'clarification_requested'].includes(mine.status) || hostCanEdit) && ['in_progress', 'completed', 'finalised'].includes(s.status);
   const trackAssists = true;
   const nameOf = (uid: string) => d.attendance.find((a) => a.user_id === uid)?.profile;
   const pending = d.submissions.filter((x) => x.status === 'pending' || x.status === 'clarification_requested');
@@ -109,7 +111,7 @@ function GoalsBody({ id }: { id: string }) {
               <Text variant="h3">Your tally</Text>
               {!!mine && <Badge label={STATUS[mine.status].label} tone={STATUS[mine.status].tone} />}
             </Row>
-            {!!mine && mine.status !== 'pending' && mine.status !== 'clarification_requested' ? (
+            {!!mine && mine.status !== 'pending' && mine.status !== 'clarification_requested' && !canSubmit ? (
               <Text>
                 {plural(mine.approved_goals ?? mine.goals, 'goal')}{mine.approved_assists ? `, ${plural(mine.approved_assists, 'assist')}` : ''}
                 {mine.status === 'corrected' ? ` (you claimed ${mine.goals})` : ''}
@@ -156,10 +158,10 @@ function GoalsBody({ id }: { id: string }) {
                 )}
                 <Input label="Note for the host (optional)" value={note} onChangeText={setNote} placeholder="e.g. Two headers and a penalty" maxLength={280} />
                 {!!localError && <Text variant="small" tone="danger">{localError}</Text>}
-                <Button title={mine ? 'Update submission' : 'Submit'} size="lg" disabled={!canSubmit || !!localError} loading={busy === 'submit'} onPress={submit} />
+                <Button title={mine ? (hostCanEdit && mine.status === 'approved' ? 'Update my tally' : 'Update submission') : 'Submit'} size="lg" disabled={!canSubmit || !!localError} loading={busy === 'submit'} onPress={submit} />
                 <Text variant="caption" tone="faint">
                   {isHostSelf
-                    ? 'As host, your own goals are approved automatically. They’re still capped by the score and recorded in the session history.'
+                    ? 'As host, your own goals are approved automatically, and you can change them until the game is finalised. They’re still capped by the score and recorded in the game’s history.'
                     : 'Goals count once the host approves them. You can also do this later from your To-do list.'}
                 </Text>
               </>
