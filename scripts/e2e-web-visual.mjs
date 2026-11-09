@@ -448,7 +448,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     Object.assign(mine, { status: 'confirmed', offer_expires_at: null });
     await page.getByRole('button', { name: 'I’m in' }).first().click();
     await page.waitForTimeout(900);
-    if (!(await page.locator('body').innerText()).includes('You’re in! ⚽')) failures.push(`${vpName}: I'm in celebration missing`);
+    if (!(await page.locator('body').innerText()).includes('You’re in!')) failures.push(`${vpName}: I'm in celebration missing`);
     await page.screenshot({ path: join(OUT, `auth-${vpName}-im-in.png`) });
     delete rpcs.respond_to_session;
     Object.keys(mine).forEach((k) => delete mine[k]);
@@ -579,7 +579,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     await page.goto(base + `/session/${SID}/goals`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
     const gt = await page.locator('body').innerText();
-    if (!/Team totals/.test(gt) || !/scored 7: 5 ⚽ 1 🅰️ credited · 2 goals not credited yet/.test(gt)) failures.push(`${vpName}: team totals missing on the goals page`);
+    if (!/Team totals/.test(gt) || !/scored 7: 5 goals, 1 assist credited · 2 goals not credited yet/.test(gt)) failures.push(`${vpName}: team totals missing on the goals page`);
     await page.getByRole('button', { name: 'Own goal / no scorer' }).first().click();
     await page.waitForTimeout(400);
     if (!(await page.getByLabel('Goals with no scorer').count())) failures.push(`${vpName}: own goal / no scorer sheet missing`);
