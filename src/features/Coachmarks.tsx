@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, useWindowDimensions, type HostInstance } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { Button, Text } from '@/components/ui';
+import { tourIcon } from './tourIcons';
+import { TIPS_KEY } from './tipsKey';
 import { haptics } from '@/lib/haptics';
 import { useScreenScroll } from '@/components/ui/ScreenScroll';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -54,6 +58,28 @@ const measure = (ref: RefObject<HostInstance | null>) => new Promise<Rect | null
  * A short guided tour: dims the screen, lights up one button at a time and explains it in a
  * speech bubble with an arrow. Tap anywhere (or Next) to go on; Skip ends it.
  */
+/** A step's icon in a MATCHDAY badge (tips are written with emojis, shown as our own icons). */
+function TipIcon({ emoji, size }: { emoji: string; size: number }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.primaryMuted, borderWidth: 1, borderColor: `${colors.primary}55`, alignItems: 'center', justifyContent: 'center' }}>
+      <Ionicons name={tourIcon(emoji)} size={Math.round(size * 0.52)} color={colors.primary} />
+    </View>
+  );
+}
+
+/** "Don't show tips again": the setting's in Settings, so say where to turn it back on. */
+function TipsOffNote({ onOk }: { onOk: () => void }) {
+  return (
+    <View style={{ gap: space.md, alignItems: 'center' }}>
+      <TipIcon emoji="⚙️" size={56} />
+      <Text variant="h3" align="center">Tips are off</Text>
+      <Text tone="muted" align="center">You can turn them back on any time in Settings → Tips on new screens. The ? button on each screen still works.</Text>
+      <Button title="OK" style={{ alignSelf: 'stretch' }} onPress={onOk} />
+    </View>
+  );
+}
+
 export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
   steps: CoachStep[];
   visible: boolean;
@@ -67,6 +93,7 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
   const [rect, setRect] = useState<Rect | null>(null);
   const [appear] = useState(() => new Animated.Value(0));
   const [pulse] = useState(() => new Animated.Value(0));
+  const [tipsOff, setTipsOff] = useState(false);
 
   // the latest steps / callback, without restarting the tour when the screen behind re-renders
   const latest = useRef({ steps, onDone });
@@ -140,6 +167,25 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
     if (last || !(await go(index + 1))) { setRect(null); onDone(true); }
   };
   const skip = () => { setRect(null); onDone(false); };
+  // "Don't show tips again": switch the setting off, then say where to turn it back on
+  const turnTipsOff = () => { AsyncStorage.setItem(TIPS_KEY, 'off').catch(() => undefined); setTipsOff(true); };
+  const closeTipsOff = () => { setTipsOff(false); setRect(null); onDone(false); };
+  const dontShow = (
+    <Pressable onPress={turnTipsOff} hitSlop={8} accessibilityRole="button" style={{ alignSelf: 'center', marginTop: 2 }}>
+      <Text variant="caption" tone="faint" style={{ textDecorationLine: 'underline' }}>Don’t show tips again</Text>
+    </Pressable>
+  );
+  if (tipsOff) {
+    return (
+      <Modal visible transparent statusBarTranslucent animationType="fade" onRequestClose={closeTipsOff}>
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.72)', alignItems: 'center', justifyContent: 'center', padding: space.lg }]}>
+          <View style={{ width: '100%', maxWidth: 360, backgroundColor: colors.surface, borderRadius: radius.xl, padding: space.xl }}>
+            <TipsOffNote onOk={closeTipsOff} />
+          </View>
+        </View>
+      </Modal>
+    );
+  }
 
   const dots = (
     <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -152,7 +198,7 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
         <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.72)', alignItems: 'center', justifyContent: 'center', padding: space.lg }]}>
           <Animated.View style={{ width: '100%', maxWidth: 360, backgroundColor: colors.surface, borderRadius: radius.xl, padding: space.xl, gap: space.md, alignItems: 'center',
             opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }] }}>
-            <Animated.Text style={{ fontSize: 46, transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }}>{step.emoji}</Animated.Text>
+            <Animated.View style={{ transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }}><TipIcon emoji={step.emoji} size={64} /></Animated.View>
             <Text variant="h2" align="center">{step.title}</Text>
             <Text tone="muted" align="center">{step.body}</Text>
             {dots}
@@ -160,6 +206,7 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
               {!last && <Button title="Skip" variant="secondary" style={{ flex: 1 }} onPress={skip} />}
               <Button title={last ? finishLabel : index === 0 ? 'Show me' : 'Next'} style={{ flex: 1 }} onPress={next} />
             </View>
+            {dontShow}
           </Animated.View>
         </View>
       </Modal>
@@ -203,7 +250,7 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
           )}
           <Pressable onPress={(e) => e.stopPropagation()} onLayout={(e) => setBubbleH(Math.round(e.nativeEvent.layout.height))} style={{ backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.lg, gap: space.sm }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-              <Text style={{ fontSize: 22 }}>{step.emoji}</Text>
+              <TipIcon emoji={step.emoji} size={34} />
               <Text variant="bodyStrong" style={{ flex: 1 }}>{step.title}</Text>
             </View>
             <Text variant="small" tone="muted">{step.body}</Text>
@@ -216,6 +263,7 @@ export function Coachmarks({ steps, visible, onDone, finishLabel = 'Got it' }: {
               )}
               <Button title={last ? finishLabel : 'Next'} size="sm" onPress={next} icon={last ? undefined : 'arrow-forward'} />
             </View>
+            {dontShow}
           </Pressable>
         </Animated.View>
       </Pressable>

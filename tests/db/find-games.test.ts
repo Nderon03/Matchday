@@ -60,7 +60,12 @@ describe('postcodes and distance', () => {
     const base = { name: 'Postcode FC', starts_at: new Date(Date.now() + 86400_000).toISOString(), format_size: 5 };
     await expect(db.rpc(host, 'create_session', { p: { ...base, postcode: '' } })).rejects.toThrow(/postcode/i);
     await expect(db.rpc(host, 'create_session', { p: { ...base, postcode: 'NOT A CODE', latitude: 51.6, longitude: -0.2 } })).rejects.toThrow(/postcode/i);
-    await expect(db.rpc(host, 'create_session', { p: { ...base, postcode: 'NW7 2EU' } })).rejects.toThrow(/couldn.t find/i);
+    // a location outside the UK is refused
+    await expect(db.rpc(host, 'create_session', { p: { ...base, postcode: 'NW7 2EU', latitude: 48.85, longitude: 2.35 } })).rejects.toThrow(/couldn.t find/i);
+    // a valid postcode is enough to create the game; the app adds the location when the lookup answers
+    const quick = await db.rpc<string>(host, 'create_session', { p: { ...base, postcode: 'NW7 2EU' } });
+    await db.rpc(host, 'set_session_location', { p_session: quick, p_postcode: 'nw7 2eu', p_lat: 51.6142, p_lng: -0.2447 });
+    expect((await db.admin(`select latitude from sessions where id = $1`, [quick]))[0].latitude).toBeCloseTo(51.6142);
     const id = await db.rpc<string>(host, 'create_session', { p: { ...base, postcode: 'nw72eu', latitude: 51.6142, longitude: -0.2447 } });
     expect((await db.admin(`select postcode from sessions where id = $1`, [id]))[0].postcode).toBe('NW7 2EU');
     // editing can't remove it; repeating copies it

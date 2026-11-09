@@ -704,7 +704,15 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   await page.getByRole('button', { name: 'How Matches works' }).click();
   await page.waitForTimeout(1000);
   if (!/Your matches/.test(await page.locator('body').innerText())) failures.push('screen tips: help button did not replay');
-  await page.getByRole('button', { name: 'Skip' }).click();
+  // "Don't show tips again": switches tips off and says where to turn them back on
+  await page.getByRole('button', { name: 'Don’t show tips again' }).click();
+  await page.waitForTimeout(400);
+  const off = await page.locator('body').innerText();
+  if (!off.includes('Tips are off') || !off.includes('Settings → Tips on new screens')) failures.push('screen tips: turning tips off did not explain where to turn them back on');
+  if ((await page.evaluate(() => localStorage.getItem('matchday.tips'))) !== 'off') failures.push('screen tips: "Don’t show tips again" did not switch tips off');
+  await page.screenshot({ path: join(OUT, 'tips-off.png') });
+  await page.getByRole('button', { name: 'OK' }).click();
+  await page.evaluate(() => localStorage.setItem('matchday.tips', 'on'));
   await page.waitForTimeout(400);
   // the new-session form points at its controls
   await page.goto(base + '/session/new', { waitUntil: 'networkidle' });

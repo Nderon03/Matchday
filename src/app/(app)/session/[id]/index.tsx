@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Platform, ScrollView, View, type HostInstance } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -40,6 +40,7 @@ import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 import { NeedPlayers } from '@/features/NeedPlayers';
 import { MatchdayHero, isMatchday } from '@/features/MatchdayHero';
 import { checkInOrQueue } from '@/lib/offline';
+import { locateSessionLater } from '@/lib/sessionLocation';
 
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -51,6 +52,11 @@ export default function SessionScreen() {
   const now = useNow();
   const { run, busy } = useAction([keys.session(id), keys.mySessions]);
   const qc = useQueryClient();
+  // a game saved before its postcode lookup answered: the host's app adds the map location now
+  const missingLocation = detail.data?.isManager && detail.data.session.postcode && detail.data.session.latitude == null ? detail.data.session.postcode : null;
+  useEffect(() => {
+    if (missingLocation) locateSessionLater(id, missingLocation).then((r) => { if (r === 'ok') qc.invalidateQueries({ queryKey: keys.session(id) }); }).catch(() => undefined);
+  }, [id, missingLocation, qc]);
   // when I tapped "I'm in" this visit, so the card can celebrate it
   const [justIn, setJustIn] = useState(0);
   const [syncOpen, setSyncOpen] = useState(false);

@@ -10,7 +10,8 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const native = Platform.OS !== 'web';
-export const TIPS_KEY = 'matchday.tips';
+export { TIPS_KEY } from './tipsKey';
+import { TIPS_KEY } from './tipsKey';
 export const tourKey = (id: string, uid: string) => `matchday.tour.${id}.${uid}`;
 
 /** Marks something on screen that a tour can point at: <Spot id="matches.find">…</Spot> */
