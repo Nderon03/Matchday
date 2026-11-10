@@ -56,6 +56,8 @@ export default function Settings() {
   useEffect(() => haptics.subscribe(setVibration), []);
   const [soundOn, setSoundOn] = useState(sounds.isEnabled());
   useEffect(() => sounds.subscribe(setSoundOn), []);
+  const [tapSoundOn, setTapSoundOn] = useState(sounds.isTapEnabled());
+  useEffect(() => sounds.subscribeTap(setTapSoundOn), []);
 
   const setVisibility = async (v: ProfileVisibility) => {
     const { error } = await supabase.from('user_preferences').update({ profile_visibility: v, show_stats: v !== 'private' }).eq('user_id', userId!);
@@ -106,9 +108,16 @@ export default function Settings() {
           <Divider />
           <ListItem
             title="Sounds"
-            subtitle="The full-time whistle, goals and medal unlocks (never in silent mode)"
+            subtitle="The full-time whistle, goals, medal unlocks and a chime when a place opens up (never in silent mode)"
             left={icon('volume-medium-outline')}
             right={<Switch value={soundOn} onValueChange={(v) => sounds.setEnabled(v)} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Sounds" />}
+          />
+          <Divider />
+          <ListItem
+            title="Tap sounds"
+            subtitle="A soft tick when you tap buttons"
+            left={icon('hand-left-outline')}
+            right={<Switch value={tapSoundOn} onValueChange={(v) => sounds.setTapEnabled(v)} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Tap sounds" />}
           />
         </Card>
       )}

@@ -13,7 +13,7 @@ const ok = () => enabled && Platform.OS !== 'web';
 
 export const haptics = {
   /** a button or selection tap */
-  tap: () => { if (ok()) Haptics.selectionAsync().catch(() => undefined); },
+  tap: () => { sounds.tick(); if (ok()) Haptics.selectionAsync().catch(() => undefined); },
   /** something good happened: paid, voted, achievement unlocked */
   success: () => { if (ok()) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined); },
   /** full-time whistle: two short sharp taps (a game completed, results in) */
@@ -39,6 +39,12 @@ export const haptics = {
     if (!ok()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
     setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined), 110);
+  },
+  /** a place opened up for you (waiting list): a chime and a gentle double pulse */
+  placeOpened: () => {
+    sounds.play('chime');
+    if (!ok()) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
   },
   isEnabled: () => enabled,
   setEnabled: (v: boolean) => {

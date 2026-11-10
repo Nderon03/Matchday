@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking, Platform, ScrollView, View, type HostInstance } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -57,6 +58,17 @@ export default function SessionScreen() {
   const qc = useQueryClient();
   // a game saved before its postcode lookup answered: the host's app adds the map location now
   const missingLocation = detail.data?.isManager && detail.data.session.postcode && detail.data.session.latitude == null ? detail.data.session.postcode : null;
+  // a place just opened up for you: a chime, once per offer
+  const meNow = detail.data?.attendance.find((a) => a.user_id === userId);
+  const offerKey = meNow?.status === 'waitlisted' && meNow.offer_expires_at && new Date(meNow.offer_expires_at).getTime() > now ? `matchday.offerChimed.${id}.${meNow.offer_expires_at}` : null;
+  useEffect(() => {
+    if (!offerKey) return;
+    AsyncStorage.getItem(offerKey).then((v) => {
+      if (v) return;
+      haptics.placeOpened();
+      AsyncStorage.setItem(offerKey, '1').catch(() => undefined);
+    }).catch(() => undefined);
+  }, [offerKey]);
   useEffect(() => {
     if (missingLocation) locateSessionLater(id, missingLocation).then((r) => { if (r === 'ok') qc.invalidateQueries({ queryKey: keys.session(id) }); }).catch(() => undefined);
   }, [id, missingLocation, qc]);
