@@ -70,6 +70,8 @@ export default function Home() {
           onPress={() => { setHelpOpen(false); setTimeout(() => setTourOpen(true), 300); }} />
         <ListItem title="Help & FAQ" subtitle="Payments, waiting lists, medals, hosting" left={<Ionicons name="help-buoy-outline" size={20} color={colors.textMuted} />}
           onPress={() => { setHelpOpen(false); router.push('/help'); }} />
+        <ListItem title="Send feedback" subtitle="Something broken, or an idea? Tell us" left={<Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.textMuted} />}
+          onPress={() => { setHelpOpen(false); router.push('/settings/feedback'); }} />
       </Sheet>
       {/* the name gives way (one line, shortened) so Help, Friends and Notifications always fit */}
       <Row style={{ justifyContent: 'space-between', paddingTop: space.sm }} gap={space.sm}>

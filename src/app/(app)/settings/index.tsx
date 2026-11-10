@@ -124,6 +124,8 @@ export default function Settings() {
         <Divider />
         <ListItem title="Privacy Policy" left={icon('shield-checkmark-outline')} onPress={() => router.push('/legal/privacy')} />
         <Divider />
+        <Spot id="settings.feedback"><ListItem title="Send feedback" subtitle="Something broken, or an idea? Tell us" left={icon('chatbubble-ellipses-outline')} onPress={() => router.push('/settings/feedback')} /></Spot>
+        <Divider />
         <Spot id="settings.contact"><ListItem title="Contact us" subtitle={CONTACT_EMAIL} left={icon('mail-outline')} onPress={() => Linking.openURL(`mailto:${CONTACT_EMAIL}`)} /></Spot>
       </Card>
 

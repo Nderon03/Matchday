@@ -598,6 +598,19 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     Object.assign(table, saved.t);
   }
 
+  // Send feedback: type a message, send, thank-you
+  {
+    rpcs.submit_feedback = 'f1111111-1111-4111-8111-111111111111';
+    await page.goto(base + '/settings/feedback', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(500);
+    await page.getByLabel('What went wrong?').fill('Save did nothing on the Scores screen');
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-feedback.png`) });
+    await page.getByRole('button', { name: 'Send feedback' }).click();
+    await page.waitForTimeout(600);
+    if (!(await page.locator('body').innerText()).includes('Thanks, got it')) failures.push(`${vpName}: feedback not sent`);
+    if (!calls.includes('submit_feedback')) failures.push(`${vpName}: feedback not saved`);
+  }
+
   // a long sheet on a short phone: its last item can always be scrolled to (no Save stuck off-screen)
   if (vpName === 'phone') {
     await page.setViewportSize({ width: 320, height: 480 });
@@ -831,7 +844,7 @@ const FIT_ROUTES = [
   `/player/${people[1].id}`, `/group/${GID}`, `/group/${GID}/settings`, '/group/discover', '/group/new',
   `/session/${SID}`, `/session/${SID}/lineup`, `/session/${SID}/attendance`, `/session/${SID}/results`, `/session/${SID}/goals`,
   `/session/${SID}/vote`, `/session/${SID}/invite`, `/session/${SID}/payments`, `/session/${SID}/edit`, '/session/new', '/session/find',
-  '/settings', '/settings/profile', '/settings/notifications', '/settings/payouts', '/settings/blocked', '/help', '/legal/terms',
+  '/settings', '/settings/profile', '/settings/feedback', '/settings/notifications', '/settings/payouts', '/settings/blocked', '/help', '/legal/terms',
   '/invite/abc123def456', '/invite/grp123def456', '/invite/ses123def456',
 ];
 const FIT_SIZES = (process.env.FIT_SIZES ?? '320x640,360x740,414x896,768x1024,1366x900').split(',').map((x) => x.split('x').map(Number));

@@ -34,6 +34,20 @@ export function trackScreen(path: string) {
   Sentry.setTag('screen', screen);
 }
 
+/** The last few screens visited (for feedback, so we can see where someone was). */
+export const recentScreens: string[] = [];
+export function rememberScreen(path: string) {
+  const screen = path.replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, ':id').replace(/\/[A-Za-z0-9]{10,}(?=\/|$)/g, '/:code');
+  if (recentScreens[recentScreens.length - 1] !== screen) recentScreens.push(screen);
+  if (recentScreens.length > 8) recentScreens.shift();
+}
+
+/** Feedback also lands in Sentry's User Feedback inbox (which emails the team). */
+export function sendFeedbackToSentry(message: string, kind: string, context: Record<string, unknown>) {
+  if (!sentryEnabled) return;
+  Sentry.captureFeedback({ message, tags: { feedback_kind: kind, screen: String(context.screen ?? '') } }, { captureContext: { extra: context } });
+}
+
 export function setCrashUser(userId: string | null) {
   if (!sentryEnabled) return;
   Sentry.setUser(userId ? { id: userId } : null);

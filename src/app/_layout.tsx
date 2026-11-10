@@ -15,7 +15,7 @@ import { restoreOfflineCache, startOfflineCache } from '@/lib/offline';
 import { LaunchCurtain } from '@/features/LaunchCurtain';
 import { routeForNotification } from '@/lib/notifications';
 import { useOtaUpdates } from '@/hooks/useOtaUpdates';
-import { Sentry, reportError, sentryEnabled, trackScreen } from '@/lib/sentry';
+import { Sentry, rememberScreen, reportError, sentryEnabled, trackScreen } from '@/lib/sentry';
 import { Button, ConfirmProvider, Text, ToastProvider } from '@/components/ui';
 import { space } from '@/theme/tokens';
 
@@ -26,7 +26,7 @@ function ThemedStack() {
   useOtaUpdates();
   // crash reports show the last screens visited
   const pathname = usePathname();
-  useEffect(() => { trackScreen(pathname); }, [pathname]);
+  useEffect(() => { trackScreen(pathname); rememberScreen(pathname); }, [pathname]);
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = Notifications.addNotificationResponseReceivedListener((res) => {
