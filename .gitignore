@@ -21,3 +21,7 @@ coverage/
 .DS_Store
 npm-debug.*
 e2e-screenshots/
+
+# Firebase config for push notifications: kept on your PC / in EAS, never in the repo
+google-services.json
+GoogleService-Info.plist
