@@ -2,6 +2,7 @@
   "expo": {
     "name": "MATCHDAY",
     "slug": "matchday",
+    "owner": "nd3ron",
     "scheme": "matchday",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -93,7 +94,10 @@
       "typedRoutes": false
     },
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "b1278c51-5faf-468f-9e05-bffb852b857b"
+      }
     }
   }
 }
