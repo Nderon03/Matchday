@@ -11,6 +11,10 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radius, space } from '@/theme/tokens';
 
 const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.matchdayonline.app';
+// testers (on the closed test list) join and install from here
+const PLAY_TEST_URL = 'https://play.google.com/apps/testing/com.matchdayonline.app';
+/** Flip to true once MATCHDAY is public on Google Play (production access). Until then the store page says "not found". */
+const PLAY_LIVE = false;
 const PITCH = '#22C55E';
 
 const FEATURES: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }[] = [
@@ -69,11 +73,12 @@ export function Landing() {
           </Rise>
           <Rise delay={360}>
             <View style={{ flexDirection: wide ? 'row' : 'column', gap: space.sm, alignItems: 'center', marginTop: space.sm }}>
-              <Pressable onPress={() => Linking.openURL(PLAY_URL)} accessibilityRole="link" accessibilityLabel="Get it on Google Play"
-                style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, height: 54, paddingHorizontal: 22, borderRadius: radius.md, backgroundColor: '#000', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', opacity: pressed ? 0.85 : 1 })}>
+              <Pressable onPress={PLAY_LIVE ? () => Linking.openURL(PLAY_URL) : undefined} disabled={!PLAY_LIVE}
+                accessibilityRole={PLAY_LIVE ? 'link' : 'text'} accessibilityLabel={PLAY_LIVE ? 'Get it on Google Play' : 'Coming soon to Google Play'}
+                style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, height: 54, paddingHorizontal: 22, borderRadius: radius.md, backgroundColor: '#000', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', opacity: pressed ? 0.85 : PLAY_LIVE ? 1 : 0.9 })}>
                 <Ionicons name="logo-google-playstore" size={24} color="#F4F6F8" />
                 <View>
-                  <Text style={{ color: '#C9D1D9', fontSize: 10, letterSpacing: 0.5 }}>GET IT ON</Text>
+                  <Text style={{ color: '#C9D1D9', fontSize: 10, letterSpacing: 0.5 }}>{PLAY_LIVE ? 'GET IT ON' : 'COMING SOON TO'}</Text>
                   <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700', marginTop: -2 }}>Google Play</Text>
                 </View>
               </Pressable>
@@ -83,6 +88,12 @@ export function Landing() {
                 <Ionicons name="arrow-forward" size={18} color="#04130A" />
               </Pressable>
             </View>
+            {!PLAY_LIVE && (
+              <Text style={{ color: '#9FB3A8', fontSize: 13, textAlign: 'center', marginTop: space.sm }}>
+                Testing MATCHDAY?{' '}
+                <Text style={{ color: PITCH, fontWeight: '700', fontSize: 13 }} accessibilityRole="link" onPress={() => Linking.openURL(PLAY_TEST_URL)}>Get the test version</Text>
+              </Text>
+            )}
           </Rise>
         </View>
       </View>

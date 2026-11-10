@@ -115,7 +115,7 @@ export function staticBody(page: { title: string; description: string }) {
 <p>${esc(page.description)}</p>
 <p>MATCHDAY is a free app for organising your regular football game, whether that's 5-a-side, 7-a-side or 11-a-side: invites and a waiting list, fair teams balanced from ratings, goals, assists and Man of the Match votes, a player card that levels up from Bronze to Hall of Fame, and payments that settle up without chasing.</p>
 <ul>
-<li><a href="https://play.google.com/store/apps/details?id=com.matchdayonline.app">Get MATCHDAY on Google Play</a></li>
+<li>Coming soon to Google Play</li>
 <li><a href="/sign-up">Start in your browser</a></li>
 <li><a href="/help">Help &amp; FAQ</a></li>
 <li><a href="/legal/privacy">Privacy Policy</a> · <a href="/legal/terms">Terms of Use</a></li>
