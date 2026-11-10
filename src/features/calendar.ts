@@ -1,4 +1,4 @@
-/** "Add to calendar" for a session: a Google Calendar link (all platforms) and an .ics file (web). */
+/** "Add to calendar" for a session: a Google Calendar link (all platforms) and an .ics file (web). Phones: see phoneCalendar.ts. */
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -52,3 +52,4 @@ export function downloadIcs(e: CalendarEvent) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
+

@@ -10,7 +10,7 @@ import { CONTACT_EMAIL, TRADING_NAME } from '@/legal/content';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radius, space } from '@/theme/tokens';
 
-const PLAY_URL = 'https://play.google.com/store/apps/details?id=app.matchday.android';
+const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.matchdayonline.app';
 const PITCH = '#22C55E';
 
 const FEATURES: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }[] = [

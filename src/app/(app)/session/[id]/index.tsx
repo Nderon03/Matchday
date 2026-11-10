@@ -3,7 +3,7 @@ import { Linking, Platform, ScrollView, View, type HostInstance } from 'react-na
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  Avatar, Badge, Button, Card, Chip, ErrorState, Header, IconButton, Input, ListItem, Loading, Row, Screen, SectionTitle, Sheet, Text, useConfirm,
+  Avatar, Badge, Button, Card, Chip, ErrorState, Header, IconButton, Input, ListItem, Loading, Row, Screen, SectionTitle, Sheet, Text, useConfirm, useToast,
 } from '@/components/ui';
 import { PaymentBadge } from '@/components/football/PaymentBadge';
 import { ResultCard } from '@/components/football/ResultCard';
@@ -29,6 +29,7 @@ import { usePriceLabel } from '@/hooks/useFees';
 import { SettleUpCard, useGroupBalances, useMyOutstanding } from '@/features/SettleUp';
 import { MatchVideos } from '@/features/MatchVideos';
 import { downloadIcs, googleCalendarUrl, type CalendarEvent } from '@/features/calendar';
+import { addToPhoneCalendar } from '@/features/phoneCalendar';
 import { appLink } from '@/lib/links';
 import type { RsvpStatus } from '@/types/db';
 import { haptics } from '@/lib/haptics';
@@ -71,6 +72,7 @@ export default function SessionScreen() {
   const [tiebreak, setTiebreak] = useState<string | null>(null);
   const resultRef = useRef<HostInstance>(null);
   const confirm = useConfirm();
+  const toast = useToast();
   const price = usePriceLabel();
   const lateStatus = useLateStatus(detail.data?.session.group_id, detail.data?.session.payment_mode !== 'free');
   const outstanding = useMyOutstanding(detail.data?.session.group_id, detail.data?.session.status === 'scheduled');
@@ -119,10 +121,13 @@ export default function SessionScreen() {
     location: [s.venue, s.location, s.postcode].filter(Boolean).join(', ') || null,
     details: `MATCHDAY · ${s.format_size}-a-side\n${appLink(`/session/${s.id}`)}`,
   };
-  // web: choose Google Calendar or a calendar file (Apple/Outlook); phones: Google Calendar
-  const addToCalendar = () => {
-    if (Platform.OS !== 'web') Linking.openURL(googleCalendarUrl(calendarEvent)).catch(() => undefined);
-    else setCalendarOpen(true);
+  // phones: one tap into the phone's own calendar (Google Calendar link if that's not possible);
+  // web: choose Google Calendar or a calendar file (Apple/Outlook)
+  const addToCalendar = async () => {
+    if (Platform.OS === 'web') return setCalendarOpen(true);
+    const r = await addToPhoneCalendar(calendarEvent);
+    if (r === 'added') { haptics.success(); toast.success('Added to your calendar, with a reminder 2 hours before'); }
+    else Linking.openURL(googleCalendarUrl(calendarEvent)).catch(() => undefined);
   };
 
   const respond = (r: RsvpStatus) => run(`rsvp-${r}`, () => rpc<string>('respond_to_session', { p_session: id, p_response: r }),

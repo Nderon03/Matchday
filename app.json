@@ -73,7 +73,21 @@
           "cameraPermission": "MATCHDAY uses the camera to scan invite QR codes."
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "MATCHDAY adds the games you're playing to your calendar, with a reminder before kick-off."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false

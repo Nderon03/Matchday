@@ -6,6 +6,7 @@ import { Button, Text } from '@/components/ui';
 import { Confetti } from '@/components/football/Confetti';
 import { highlightText, matchHighlights, type Highlight, type MatchReveal } from '@/domain/matchReveal';
 import { motmTitle } from '@/domain/motm';
+import { happyMoment } from '@/lib/review';
 import { formatKickoff } from '@/domain/format';
 import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -122,7 +123,7 @@ export function MatchRevealCard({ r, onDone }: { r: MatchReveal; onDone: () => v
 
           <View style={{ flexDirection: 'row', gap: space.sm, alignSelf: 'stretch' }}>
             <Button title="Match report" variant="secondary" style={{ flex: 1 }} onPress={() => { onDone(); router.push(`/session/${r.session_id}`); }} />
-            <Button title="Done" style={{ flex: 1 }} onPress={onDone} />
+            <Button title="Done" style={{ flex: 1 }} onPress={() => { onDone(); if (r.wins > 0) happyMoment(); }} />
           </View>
         </Animated.View>
       </ScrollView>

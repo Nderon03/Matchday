@@ -16,6 +16,7 @@ import * as Updates from 'expo-updates';
 import { CONTACT_EMAIL, TRADING_NAME } from '@/legal/content';
 import { reportError, sentryEnabled } from '@/lib/sentry';
 import { haptics } from '@/lib/haptics';
+import { sounds } from '@/lib/sounds';
 import { CalendarSyncSheet } from '@/features/CalendarSync';
 import { ScreenHelp, Spot, TIPS_KEY, tourKey } from '@/features/ScreenHelp';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -53,6 +54,8 @@ export default function Settings() {
   const [vibration, setVibration] = useState(haptics.isEnabled());
   const [calendarOpen, setCalendarOpen] = useState(false);
   useEffect(() => haptics.subscribe(setVibration), []);
+  const [soundOn, setSoundOn] = useState(sounds.isEnabled());
+  useEffect(() => sounds.subscribe(setSoundOn), []);
 
   const setVisibility = async (v: ProfileVisibility) => {
     const { error } = await supabase.from('user_preferences').update({ profile_visibility: v, show_stats: v !== 'private' }).eq('user_id', userId!);
@@ -99,6 +102,13 @@ export default function Settings() {
             subtitle="A light buzz on taps, votes and achievements"
             left={icon('phone-portrait-outline')}
             right={<Switch value={vibration} onValueChange={(v) => { haptics.setEnabled(v); if (v) haptics.tap(); }} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Vibration" />}
+          />
+          <Divider />
+          <ListItem
+            title="Sounds"
+            subtitle="The full-time whistle, goals and medal unlocks (never in silent mode)"
+            left={icon('volume-medium-outline')}
+            right={<Switch value={soundOn} onValueChange={(v) => sounds.setEnabled(v)} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Sounds" />}
           />
         </Card>
       )}

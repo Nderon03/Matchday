@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button, Text } from '@/components/ui';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
+import { happyMoment } from '@/lib/review';
 import { Confetti } from '@/components/football/Confetti';
 import { CARD_STYLES, SEASON_CHAMPION, levelInfo, medalPoints, rarityLabel, type CardStyle } from '@/domain/achievements';
 import { useMyAchievements, type MyAchievement } from '@/hooks/queries';
@@ -70,6 +71,7 @@ export function AchievementCelebration() {
       setSeen(latest);
       setDismissed(new Set());
       AsyncStorage.setItem(seenKey(userId), latest).catch(() => undefined);
+      happyMoment();
     }
   };
   const last = queue.length === 1;

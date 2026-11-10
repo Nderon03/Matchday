@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { happyMoment } from '@/lib/review';
 import { Avatar, Button, Text } from '@/components/ui';
 import { Confetti } from '@/components/football/Confetti';
 import { haptics } from '@/lib/haptics';
@@ -25,7 +26,8 @@ export function MotmAnnouncement({ sessionId, finalisedAt, winners, userId, onDo
   const eligible = recent && winners.length > 0;
   const { due, markDone } = useOnce(eligible ? `matchday.motmReveal.${sessionId}` : null, eligible);
   if (!due) return null;
-  return <Announcement winners={winners} award={award} isMe={winners.some((w) => w.user_id === userId)} onClose={() => { markDone(); onDone?.(); }} />;
+  const isMe = winners.some((w) => w.user_id === userId);
+  return <Announcement winners={winners} award={award} isMe={isMe} onClose={() => { markDone(); onDone?.(); if (isMe) happyMoment(); }} />;
 }
 
 function Announcement({ winners, isMe, onClose, award }: { winners: MotmWinner[]; isMe: boolean; onClose: () => void; award: string }) {

@@ -3,11 +3,45 @@ import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { authRedirectUrl } from '@/lib/links';
 import { toAppError } from '@/lib/errors';
+import { env } from '@/lib/env';
+import { reportError } from '@/lib/sentry';
 
 WebBrowser.maybeCompleteAuthSession();
 
+/**
+ * Google on Android: Google's own account picker (no browser tab), when the app is set up for it
+ * (EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID and an Android OAuth client in Google Cloud). Returns
+ * 'done', 'cancelled', or 'fallback' (not set up / Play services missing / any error) so the
+ * browser sign-in takes over and sign-in never breaks.
+ */
+async function nativeGoogle(): Promise<'done' | 'cancelled' | 'fallback'> {
+  if (Platform.OS !== 'android' || !env.googleWebClientId) return 'fallback';
+  try {
+    // loaded only here, so web and older builds never touch it
+    const { GoogleSignin } = require('@react-native-google-signin/google-signin') as typeof import('@react-native-google-signin/google-signin');
+    GoogleSignin.configure({ webClientId: env.googleWebClientId });
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    // always offer the account choice, not silently the last one
+    await GoogleSignin.signOut().catch(() => undefined);
+    const res = await GoogleSignin.signIn();
+    if (res.type !== 'success') return 'cancelled';
+    const token = res.data.idToken;
+    if (!token) return 'fallback';
+    const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token });
+    if (error) throw toAppError(error);
+    return 'done';
+  } catch (e) {
+    reportError(e);
+    return 'fallback';
+  }
+}
+
 /** Optional OAuth sign-in. Works once the provider is enabled in Supabase Auth settings. */
 export async function signInWithProvider(provider: 'google' | 'apple') {
+  if (provider === 'google') {
+    const native = await nativeGoogle();
+    if (native !== 'fallback') return;
+  }
   const redirectTo = authRedirectUrl();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,

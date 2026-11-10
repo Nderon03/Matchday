@@ -2,6 +2,7 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import { sounds } from './sounds';
 
 const KEY = 'matchday.haptics';
 let enabled = true;
@@ -17,14 +18,16 @@ export const haptics = {
   success: () => { if (ok()) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined); },
   /** full-time whistle: two short sharp taps (a game completed, results in) */
   whistle: () => {
+    sounds.play('whistle');
     if (!ok()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => undefined);
     setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => undefined), 140);
   },
   /** goal: one heavy thump (a goal or result approved) */
-  goal: () => { if (ok()) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => undefined); },
+  goal: () => { sounds.play('goal'); if (ok()) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => undefined); },
   /** an unlock (medal, card style, title): a rising light → medium → heavy run, then success */
   unlock: () => {
+    sounds.play('unlock');
     if (!ok()) return;
     const steps = [Haptics.ImpactFeedbackStyle.Light, Haptics.ImpactFeedbackStyle.Medium, Haptics.ImpactFeedbackStyle.Heavy];
     steps.forEach((st, i) => setTimeout(() => Haptics.impactAsync(st).catch(() => undefined), i * 90));
@@ -32,6 +35,7 @@ export const haptics = {
   },
   /** you're in: a soft double pulse, like a heartbeat */
   in: () => {
+    sounds.play('in');
     if (!ok()) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
     setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined), 110);
