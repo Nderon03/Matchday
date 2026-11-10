@@ -1,0 +1,29 @@
+# What EAS leaves out of a build upload. Same as .gitignore, except google-services.json:
+# Git must never commit it (it stays on your PC), but builds need it for push notifications
+# and so the app's fingerprint matches between your PC and the build servers.
+
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+ios/
+android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+.env
+.env.local
+.env.*.local
+supabase/.branches
+supabase/.temp
+supabase/functions/.env
+coverage/
+.DS_Store
+npm-debug.*
+e2e-screenshots/
+
+# Firebase config for push notifications: kept on your PC / in EAS, never in the repo
