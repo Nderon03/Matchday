@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Platform, type HostInstance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { captureRef } from 'react-native-view-shot';
+import { LITE_MODE } from '@/lib/device';
 import type { PlayerCardData } from '@/components/football/PlayerCard';
 import { usePreferences } from '@/hooks/queries';
 import { rpc } from '@/lib/api';
@@ -28,7 +29,8 @@ export function useCardSnapshot(ref: RefObject<HostInstance | null>, userId: str
   ]) : null;
 
   useEffect(() => {
-    if (!enabled || !userId || !signature || isPublic === null || busy.current) return;
+    // older / low-memory phones skip the background card photo (link previews show the MATCHDAY image)
+    if (!enabled || LITE_MODE || !userId || !signature || isPublic === null || busy.current) return;
     let cancelled = false;
     const t = setTimeout(async () => {
       busy.current = true;

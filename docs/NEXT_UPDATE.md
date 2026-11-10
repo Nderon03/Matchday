@@ -28,7 +28,14 @@ production access, whichever comes first. Keep the closed test stable until then
   shown at a happy moment (after a win, a MOTM award or a card level-up), at most once every few months.
   Ratings and reviews are a big part of how high MATCHDAY shows in Play Store search.
 
+- [ ] **Readable native crash reports in Sentry**: builds upload debug symbols when the EAS
+  environment has `SENTRY_AUTH_TOKEN` (see "Setup on your side"). Without it, native crashes (like
+  the SIGSEGV on a Galaxy A5 / Android 7) show only "?" frames.
+
 ## Setup on your side
+0. **Sentry token (once):** sentry.io → Settings → Auth Tokens (or Organization Tokens) → create a
+   token with project:releases and project:write. Then, on your PC (never paste it in chat):
+   `npx eas-cli@27.3.0 env:create --name SENTRY_AUTH_TOKEN --value <token> --environment production --visibility secret`
 1. **Google Cloud** → APIs & Services → Credentials → create OAuth client IDs:
    - **Web** (used by Supabase), with redirect `https://<project-ref>.supabase.co/auth/v1/callback`.
    - **Android**, package `com.matchdayonline.app`, SHA-1 from Play Console → Test and release →

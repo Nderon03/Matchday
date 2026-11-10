@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { AccessibilityInfo, Platform, useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dark, light, type ThemeColors } from './tokens';
+import { LITE_MODE } from '@/lib/device';
 
 type Preference = 'dark' | 'light' | 'system';
 interface ThemeCtx {
@@ -33,7 +34,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       colors: scheme === 'light' ? light : dark,
       scheme,
       preference,
-      reduceMotion,
+      // older / low-memory phones get the calm version too (see LITE_MODE)
+      reduceMotion: reduceMotion || LITE_MODE,
       setPreference: (p) => {
         setPref(p);
         AsyncStorage.setItem(KEY, p).catch(() => undefined);

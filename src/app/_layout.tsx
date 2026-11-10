@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Platform, View } from 'react-native';
-import { Stack, router, type ErrorBoundaryProps } from 'expo-router';
+import { Stack, router, usePathname, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
@@ -15,7 +15,7 @@ import { restoreOfflineCache, startOfflineCache } from '@/lib/offline';
 import { LaunchCurtain } from '@/features/LaunchCurtain';
 import { routeForNotification } from '@/lib/notifications';
 import { useOtaUpdates } from '@/hooks/useOtaUpdates';
-import { Sentry, reportError, sentryEnabled } from '@/lib/sentry';
+import { Sentry, reportError, sentryEnabled, trackScreen } from '@/lib/sentry';
 import { Button, ConfirmProvider, Text, ToastProvider } from '@/components/ui';
 import { space } from '@/theme/tokens';
 
@@ -24,6 +24,9 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 function ThemedStack() {
   const { colors, scheme } = useTheme();
   useOtaUpdates();
+  // crash reports show the last screens visited
+  const pathname = usePathname();
+  useEffect(() => { trackScreen(pathname); }, [pathname]);
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = Notifications.addNotificationResponseReceivedListener((res) => {
