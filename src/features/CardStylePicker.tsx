@@ -7,7 +7,7 @@ import { Chip, Row, SwipeSelect, Text, useToast } from '@/components/ui';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
 import { CARD_TITLES, cardTitle, titleUnlocked } from '@/domain/titles';
 import { CardFX } from '@/components/football/CardFX';
-import { CardMedals, PERFECT_RELIABILITY_GAMES, PlayerCard, type PlayerCardData } from '@/components/football/PlayerCard';
+import { CardMedals, MAX_CARD_MEDALS, PERFECT_RELIABILITY_GAMES, PlayerCard, type PlayerCardData } from '@/components/football/PlayerCard';
 import { CARD_STYLES, SEASON_CHAMPION, TRACKS, cardStyle, levelInfo, medalPoints, parseCode, type CardStyle } from '@/domain/achievements';
 import { plural } from '@/domain/format';
 import { useMyAchievements, usePlayerProfile, type MyAchievement } from '@/hooks/queries';
@@ -206,7 +206,7 @@ function TitleChooser({ value, have, onChoose }: {
 }
 
 /**
- * Pick up to three earned medals to show along the bottom of your card, and which level of each
+ * Pick up to five earned medals to show along the bottom of your card, and which level of each
  * (your best, or a lower one if you prefer the colour).
  */
 function MedalChooser({ items, value, onChange, st }: { items: MyAchievement[]; value: string[]; onChange: (v: string[]) => void; st: CardStyle }) {
@@ -221,7 +221,7 @@ function MedalChooser({ items, value, onChange, st }: { items: MyAchievement[]; 
   const save = (next: string[]) => { haptics.tap(); onChange(next); };
   const pick = (track: { codes: string[] }, code: string | null) => {
     const others = value.filter((c) => !track.codes.includes(c));
-    if (code && others.length >= 3) return toast.show('Up to 3 medals on your card. Turn one off first.');
+    if (code && others.length >= MAX_CARD_MEDALS) return toast.show(`Up to ${MAX_CARD_MEDALS} medals on your card. Turn one off first.`);
     // keep the order they were added in; a new medal goes on the end
     const at = value.findIndex((c) => track.codes.includes(c));
     const next = code ? (at >= 0 ? value.map((c, i) => (i === at ? code : c)) : [...value, code]) : others;
@@ -230,7 +230,7 @@ function MedalChooser({ items, value, onChange, st }: { items: MyAchievement[]; 
 
   return (
     <View style={{ gap: space.sm }}>
-      <Text variant="caption" tone="muted">Medals on your card · {value.length}/3</Text>
+      <Text variant="caption" tone="muted">Medals on your card · {value.length}/{MAX_CARD_MEDALS}</Text>
       {/* the bottom of your card, so you can see the medals while you pick them */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 56, paddingHorizontal: space.lg,
         borderRadius: radius.md, borderWidth: 1, borderColor: st.border ?? colors.border, backgroundColor: st.to }}>

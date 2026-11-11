@@ -1,5 +1,6 @@
 /** Achievements v2: weekly streaks, progress and rarity for the achievements screen, quiet awarding. */
 import { CARD_TITLES } from '../../src/domain/titles';
+import { CARD_STYLES } from '../../src/domain/achievements';
 import { Db, uniq, expectAppError } from './helpers';
 
 const db = new Db();
@@ -97,12 +98,17 @@ describe('achievements', () => {
     expect(await db.rpc(u, 'set_card_style', { p_style: 'silver' })).toBe('silver');
     await expectAppError(db.rpc(u, 'set_card_style', { p_style: 'hall_of_fame' }), 'style_locked');
     await expectAppError(db.rpc(u, 'set_card_style', { p_style: 'rainbow' }), 'invalid_style');
-    // up to three earned medals on the card, one level per medal
+    // Diamond sits between Platinum and Hall of Fame, and the app agrees with the server on every style's points
+    await expectAppError(db.rpc(u, 'set_card_style', { p_style: 'diamond' }), 'style_locked');
+    for (const st of CARD_STYLES) expect((await db.admin(`select card_style_points($1) p`, [st.id]))[0].p).toBe(st.points);
+    // earned medals on the card, one level per medal
     const earned = (await db.admin(`select achievement_code c from player_achievements where user_id = $1 order by c`, [u])).map((r) => r.c);
     const goals = earned.filter((c: string) => c.startsWith('goals_'));
     expect(await db.rpc(u, 'set_card_medals', { p_codes: [goals[0]] })).toEqual([goals[0]]);
     await expectAppError(db.rpc(u, 'set_card_medals', { p_codes: goals.slice(0, 2) }), 'invalid');
     await expectAppError(db.rpc(u, 'set_card_medals', { p_codes: ['motm_l5'] }), 'medal_locked');
+    // up to five medals now (six is too many)
+    await expectAppError(db.rpc(u, 'set_card_medals', { p_codes: ['a_l1', 'b_l1', 'c_l1', 'd_l1', 'e_l1', 'f_l1'] }), 'invalid');
     await expect(db.as(u, `update profiles set card_medals = '{motm_l5}' where id = $1`, [u])).rejects.toThrow(/permission denied/);
 
     // titles: free ones for all, the rest unlock with medals / points / reliability, checked here too

@@ -23,7 +23,7 @@ type Preview = {
 } | null;
 
 // mirrors src/domain/achievements.ts and src/domain/titles.ts (names only)
-const STYLE_NAMES: Record<string, string> = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum', hall_of_fame: 'Hall of Fame' };
+const STYLE_NAMES: Record<string, string> = { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum', diamond: 'Diamond', hall_of_fame: 'Hall of Fame' };
 const TITLES: Record<string, string> = {
   weekend_warrior: 'Weekend Warrior',
   sunday_leaguer: 'Sunday Leaguer',

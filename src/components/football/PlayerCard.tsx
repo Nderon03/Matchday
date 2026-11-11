@@ -9,7 +9,7 @@ import { AchievementBadge } from './AchievementBadge';
 import { cardTitle } from '@/domain/titles';
 import { Ionicons } from '@expo/vector-icons';
 import { ClubShield, Flag } from './Identity';
-import { CardFX } from './CardFX';
+import { CardFX, PhotoHalo } from './CardFX';
 
 export interface PlayerCardData {
   display_name: string;
@@ -25,7 +25,7 @@ export interface PlayerCardData {
   supported_club?: string | null;
   /** the title the player picked (id from CARD_TITLES) */
   title?: string | null;
-  /** up to three medal codes the player chose to show (e.g. goals_l4) */
+  /** up to five medal codes the player chose to show (e.g. goals_l4) */
   medals?: string[] | null;
   /** turned-up rate, once known (5+ commitments) */
   reliability?: { pct: number | null; attended: number } | null;
@@ -67,9 +67,10 @@ function ReliabilityMark({ r, accent, muted, compact }: { r: PlayerCardData['rel
   );
 }
 
-/** The medals a player chose to show, small along the bottom of the card. */
-export function CardMedals({ codes, size = 40 }: { codes: string[]; size?: number }) {
-  const items = codes.slice(0, 3).map((c) => {
+/** Up to five medals a player chose to show along the bottom of the card. */
+export const MAX_CARD_MEDALS = 5;
+export function CardMedals({ codes, size = 40, labels = true }: { codes: string[]; size?: number; labels?: boolean }) {
+  const items = codes.slice(0, MAX_CARD_MEDALS).map((c) => {
     const { track, level } = parseCode(c);
     const def = c === SEASON_CHAMPION.code ? { name: SEASON_CHAMPION.name, icon: SEASON_CHAMPION.icon } : TRACKS.find((t) => t.track === track);
     return def ? { code: c, level, name: def.name, icon: def.icon } : null;
@@ -77,13 +78,15 @@ export function CardMedals({ codes, size = 40 }: { codes: string[]; size?: numbe
   if (!items.length) return null;
   return (
     <View accessible accessibilityLabel={`Medals: ${items.map((m) => `${m.name} ${levelInfo(m.level).label}`).join(', ')}`}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      style={{ flexDirection: 'row', alignItems: 'center', gap: items.length > 3 ? 5 : 8 }}>
       {items.map((m) => (
         <View key={m.code} style={{ alignItems: 'center', gap: 2 }}>
           <AchievementBadge icon={m.icon} level={m.level} size={size} />
-          <Text color={levelInfo(m.level).colour} style={{ fontSize: 8, lineHeight: 10, fontWeight: '800', letterSpacing: 0.6 }}>
-            {levelInfo(m.level).label.toUpperCase()}
-          </Text>
+          {labels && (
+            <Text color={levelInfo(m.level).colour} style={{ fontSize: 8, lineHeight: 10, fontWeight: '800', letterSpacing: 0.6 }}>
+              {levelInfo(m.level).label.toUpperCase()}
+            </Text>
+          )}
         </View>
       ))}
     </View>
@@ -106,7 +109,7 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
     ['Goals', s ? s.goals : '–'], ['Assists', s ? s.assists : '–'], ['G/A', s ? s.goals + s.assists : '–'], ['Medals', data.achievements ?? 0],
   ];
   return (
-    <View ref={ref} collapsable={false} onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ width: '100%', maxWidth: 520, alignSelf: 'center', borderRadius: radius.xl, overflow: 'hidden', backgroundColor: st.to, borderWidth: st.border ? (st.id === 'hall_of_fame' ? 2 : 1) : 0, borderColor: st.border ?? undefined }}>
+    <View ref={ref} collapsable={false} onLayout={(e) => setW(e.nativeEvent.layout.width)} style={{ width: '100%', maxWidth: 520, alignSelf: 'center', borderRadius: radius.xl, overflow: 'hidden', backgroundColor: st.to, borderWidth: st.border ? (st.fx >= 3 ? 2 : st.fx === 2 ? 1.5 : 1) : 0, borderColor: st.border ?? undefined }}>
       <Svg style={{ position: 'absolute', width: '100%', height: '100%' }}>
         <Defs>
           <LinearGradient id={`card-${st.id}`} x1="0" y1="0" x2="1" y2="1">
@@ -117,15 +120,13 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
         <Rect width="100%" height="100%" fill={`url(#card-${st.id})`} />
       </Svg>
       <CardFX st={st} radius={radius.xl} still={still} />
-      {st.id === 'hall_of_fame' && (
-        <View pointerEvents="none" style={{ position: 'absolute', top: 5, left: 5, right: 5, bottom: 5, borderRadius: radius.xl - 4, borderWidth: 1, borderColor: `${st.accent}55` }} />
-      )}
+
       <View style={{ padding: compact ? space.lg : space.xl, gap: compact ? space.md : space.lg }}>
         {!!label && (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: -space.sm }}>
-            <Ionicons name={st.fx >= 4 ? 'trophy' : 'star'} size={st.fx >= 4 ? 14 : 12} color={st.accent} />
-            <Text variant="overline" color={st.accent} style={{ letterSpacing: st.fx >= 4 ? 4 : 3 }}>{label}</Text>
-            <Ionicons name={st.fx >= 4 ? 'trophy' : 'star'} size={st.fx >= 4 ? 14 : 12} color={st.accent} />
+            <Ionicons name={st.icon ?? 'star'} size={st.fx >= 5 ? 14 : 12} color={st.accent} />
+            <Text variant="overline" color={st.accent} style={{ letterSpacing: st.fx >= 5 ? 4 : 3 }}>{label}</Text>
+            <Ionicons name={st.icon ?? 'star'} size={st.fx >= 5 ? 14 : 12} color={st.accent} />
           </View>
         )}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: compact ? space.md : space.lg }}>
@@ -139,7 +140,10 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
               </View>
             )}
           </View>
-          <Avatar uri={data.avatar_url} name={data.display_name} size={compact ? 62 : roomy ? 96 : 84} ring={st.accent} />
+          <View>
+            {st.id === 'diamond' && <PhotoHalo size={compact ? 62 : roomy ? 96 : 84} still={still} />}
+            <Avatar uri={data.avatar_url} name={data.display_name} size={compact ? 62 : roomy ? 96 : 84} ring={st.accent} />
+          </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text variant={compact ? 'h3' : 'h2'} color="#F4F6F8" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{data.display_name}</Text>
             <Text variant="small" color={st.muted} numberOfLines={1}>@{data.username}</Text>
@@ -163,7 +167,12 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm, minHeight: 24, paddingRight: st.base ? 0 : 6 }}>
           <Text variant="overline" color={st.accent}>MATCHDAY</Text>
-          {data.medals?.length ? <CardMedals codes={data.medals} size={compact ? 32 : 40} />
+          {data.medals?.length ? (() => {
+            // five fit side by side: a little smaller, and level names only when there's room
+            const n = Math.min(MAX_CARD_MEDALS, data.medals.length);
+            const sz = n <= 3 ? (compact ? 32 : 40) : compact ? (n === 5 ? 28 : 30) : roomy ? 40 : (n === 5 ? 34 : 36);
+            return <CardMedals codes={data.medals} size={sz} labels={n <= 3 || roomy} />;
+          })()
             : (
               <Text variant="caption" color={st.muted} numberOfLines={1} style={{ opacity: 0.75, flexShrink: 1, textAlign: 'right' }}>
                 {roomy ? 'Your football. Your squad. Your statistics.' : 'Your football. Your squad.'}

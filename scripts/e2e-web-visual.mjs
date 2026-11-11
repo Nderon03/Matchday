@@ -287,7 +287,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.getByRole('button', { name: 'Keep editing' }).click();
       await page.waitForTimeout(300);
       if (!/Edit profile/.test(await page.locator('body').innerText())) failures.push(`${vpName}: 'Keep editing' left the page`);
-      if (!/Medals on your card · 3\/3/.test(await page.locator('body').innerText())) failures.push(`${vpName}: medal chooser missing`);
+      if (!/Medals on your card · 3\/5/.test(await page.locator('body').innerText())) failures.push(`${vpName}: medal chooser missing`);
       // titles: a locked one previews on the card with what unlocks it
       await page.getByText('Main Character', { exact: true }).last().click();
       await page.waitForTimeout(300);
