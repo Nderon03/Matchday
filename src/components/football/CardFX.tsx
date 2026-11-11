@@ -16,6 +16,7 @@ const EMBERS: [number, number, number, number][] = [
   [58, 2, 4.0, 2800], [67, 4, 4.8, 700], [76, 2, 3.6, 1900], [86, 3, 5.0, 300], [95, 2, 4.4, 2500],
 ];
 const RAINBOW = ['#FF6EC7', '#FDE68A', '#86EFAC', '#67E8F9', '#A78BFA', '#FF6EC7'];
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 /**
  * Each earned style has its own design, and each tier is a clear step up from the one below:
@@ -24,7 +25,8 @@ const RAINBOW = ['#FF6EC7', '#FDE68A', '#86EFAC', '#67E8F9', '#A78BFA', '#FF6EC7
  *  Gold          a sunburst behind your photo, laurel corners, a double gold frame. Still.
  *  Platinum      a hexagon lattice, a rainbow holographic sweep, a breathing frosted edge. Animated.
  *  Diamond       diamond-cut facets, a prism halo turning behind your photo, glints, a rainbow edge. Animated.
- *  Hall of Fame  a golden spotlight turning, embers rising, a crown and trophy, a double gold frame. Animated, the most.
+ *  Hall of Fame  royal purple and gold (the Legend medal's colours): a living aurora, light running round the frame,
+ *                gold sparks rising, a crown, and a laurel wreath with a ring of stars round the photo. The peak.
  */
 export function CardFX({ st, radius, still: frozen }: { st: CardStyle; radius: number; still?: boolean }) {
   const { reduceMotion } = useTheme();
@@ -37,6 +39,8 @@ export function CardFX({ st, radius, still: frozen }: { st: CardStyle; radius: n
   const [spin] = useState(() => new Animated.Value(0));
   const [twinkle] = useState(() => GLINTS.map(() => new Animated.Value(0)));
   const [rise] = useState(() => EMBERS.map(() => new Animated.Value(0)));
+  // Hall of Fame: light running round the frame (an SVG dash offset, so not on the native driver)
+  const [run] = useState(() => new Animated.Value(0));
   const still = reduceMotion || !animated || !!frozen;
 
   useEffect(() => {
@@ -59,7 +63,8 @@ export function CardFX({ st, radius, still: frozen }: { st: CardStyle; radius: n
         Animated.delay(1500 - i * 110),
       ]))),
       ...(tier === 'diamond' || tier === 'hall_of_fame'
-        ? [Animated.loop(Animated.timing(spin, { toValue: 1, duration: tier === 'diamond' ? 12000 : 9000, easing: Easing.linear, useNativeDriver: native }))] : []),
+        ? [Animated.loop(Animated.timing(spin, { toValue: 1, duration: tier === 'diamond' ? 12000 : 14000, easing: Easing.linear, useNativeDriver: native }))] : []),
+      ...(tier === 'hall_of_fame' ? [Animated.loop(Animated.timing(run, { toValue: 1, duration: 3600, easing: Easing.linear, useNativeDriver: false }))] : []),
       ...(tier === 'hall_of_fame' ? rise.map((r, i) => Animated.loop(Animated.sequence([
         Animated.delay(EMBERS[i][3]),
         Animated.timing(r, { toValue: 1, duration: EMBERS[i][2] * 1000, easing: Easing.out(Easing.quad), useNativeDriver: native }),
@@ -68,7 +73,7 @@ export function CardFX({ st, radius, still: frozen }: { st: CardStyle; radius: n
     ];
     loops.forEach((l) => l.start());
     return () => loops.forEach((l) => l.stop());
-  }, [still, tier, sweep, glow, spin, twinkle, rise]);
+  }, [still, tier, sweep, glow, spin, twinkle, rise, run]);
 
   if (st.base || !['bronze', 'silver', 'gold', 'platinum', 'diamond', 'hall_of_fame'].includes(tier)) return null;
   const { w, h } = size;
@@ -266,47 +271,85 @@ export function CardFX({ st, radius, still: frozen }: { st: CardStyle; radius: n
             </>
           )}
 
-          {/* ---------- HALL OF FAME: golden spotlight, embers, crown, trophy, double frame ---------- */}
+          {/* ---------- HALL OF FAME: the peak. Royal purple and gold: a living aurora, light running round the
+               frame, gold sparks rising, a crown, and a laurel wreath round the photo (see PhotoLaurel) ---------- */}
           {tier === 'hall_of_fame' && (
             <>
-              <Animated.View style={{ position: 'absolute', width: big, height: big, left: (w - big) / 2, top: (h - big) / 2, opacity: 0.24, transform: [{ rotate: rotate() }] }}>
-                <Svg width={big} height={big}>
+              {/* aurora: soft gold and magenta light drifting across the purple */}
+              {([[st.accent, 0.34, -0.25, -0.35, 1], ['#D946EF', 0.3, 0.35, 0.25, -1], ['#FDE68A', 0.16, 0.6, -0.2, 1]] as const).map(([c, o, bx, by, dir], i) => {
+                const A = Math.max(w, h) * (i === 2 ? 0.8 : 1.15);
+                return (
+                  <Animated.View key={`a${i}`} style={{ position: 'absolute', width: A, height: A, left: w * bx, top: h * by, opacity: o,
+                    transform: still ? [] : [
+                      { translateX: spin.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, dir * w * 0.3, 0] }) },
+                      { translateY: spin.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -dir * h * 0.22, 0] }) },
+                    ] }}>
+                    <Svg width={A} height={A}>
+                      <Defs>
+                        <RadialGradient id={id(`au${i}`)} cx="50%" cy="50%" r="50%">
+                          <Stop offset="0" stopColor={c} stopOpacity="0.9" />
+                          <Stop offset="0.55" stopColor={c} stopOpacity="0.25" />
+                          <Stop offset="1" stopColor={c} stopOpacity="0" />
+                        </RadialGradient>
+                      </Defs>
+                      <Circle cx={A / 2} cy={A / 2} r={A / 2} fill={`url(#${id(`au${i}`)})`} />
+                    </Svg>
+                  </Animated.View>
+                );
+              })}
+              {/* gold sparks rising */}
+              {EMBERS.map(([x, s2], i) => (
+                <Animated.View key={`e${i}`} style={{ position: 'absolute', left: `${x}%`, top: h - 6,
+                  opacity: still ? 0 : rise[i].interpolate({ inputRange: [0, 0.15, 0.7, 1], outputRange: [0, 1, 0.6, 0] }),
+                  transform: [{ translateY: rise[i].interpolate({ inputRange: [0, 1], outputRange: [0, -h * 0.9] }) },
+                    { translateX: rise[i].interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, i % 2 ? 8 : -8, 0] }) },
+                    { rotate: rise[i].interpolate({ inputRange: [0, 1], outputRange: ['0deg', i % 2 ? '180deg' : '-180deg'] }) }] }}>
+                  <Svg width={s2 * 3} height={s2 * 3} viewBox="0 0 20 20"><Path d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8 Z" fill={i % 3 ? st.accent : '#FFF7D6'} /></Svg>
+                </Animated.View>
+              ))}
+              {sweepBand('white', 0.1)}
+              {/* the frame: a clean double gold line, with light running round it */}
+              {frame(0, `${st.accent}AA`, 2)}
+              {frame(6, `${st.accent}55`)}
+              {!still && (
+                <Svg width={w} height={h} style={StyleSheet.absoluteFill}>
                   <Defs>
-                    <LinearGradient id={id('beam')} x1="0" y1="0" x2="1" y2="0">
-                      <Stop offset="0.3" stopColor={st.accent} stopOpacity="0" />
-                      <Stop offset="0.5" stopColor={st.accent} stopOpacity="1" />
-                      <Stop offset="0.7" stopColor={st.accent} stopOpacity="0" />
+                    <LinearGradient id={id('run')} x1="0" y1="0" x2="1" y2="1">
+                      <Stop offset="0" stopColor="#FFF7D6" />
+                      <Stop offset="0.5" stopColor={st.accent} />
+                      <Stop offset="1" stopColor="#FFF7D6" />
                     </LinearGradient>
                   </Defs>
-                  <Rect width={big} height={big} fill={`url(#${id('beam')})`} />
+                  {[0, 0.5].map((phase) => {
+                    const P = 2 * (w + h - 6);
+                    return (
+                      <AnimatedRect key={phase} x={1.5} y={1.5} width={w - 3} height={h - 3} rx={radius - 1} fill="none" stroke={`url(#${id('run')})`} strokeWidth={3}
+                        strokeLinecap="round" strokeDasharray={`${P * 0.12} ${P * 0.88}`}
+                        strokeDashoffset={run.interpolate({ inputRange: [0, 1], outputRange: [-P * phase, -P * (phase + 1)] })} />
+                    );
+                  })}
                 </Svg>
-              </Animated.View>
-              <View style={{ position: 'absolute', right: -18, bottom: -10, opacity: 0.08, transform: [{ rotate: '-12deg' }] }}>
-                <Ionicons name="trophy" size={Math.min(170, h * 0.75)} color={st.accent} />
-              </View>
-              {EMBERS.map(([x, s], i) => (
-                <Animated.View key={`e${i}`} style={{ position: 'absolute', left: `${x}%`, top: h - 4, width: s, height: s, borderRadius: s, backgroundColor: st.accent,
-                  opacity: still ? 0 : rise[i].interpolate({ inputRange: [0, 0.15, 0.7, 1], outputRange: [0, 0.9, 0.5, 0] }),
-                  transform: [{ translateY: rise[i].interpolate({ inputRange: [0, 1], outputRange: [0, -h * 0.85] }) },
-                    { translateX: rise[i].interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, i % 2 ? 6 : -6, 0] }) }] }} />
-              ))}
-              {sweepBand('white', 0.12)}
-              <Animated.View style={[StyleSheet.absoluteFill, { borderRadius: radius, borderWidth: 3, borderColor: st.border!, opacity: pulse(0.45) }]} />
-              {frame(5, `${st.accent}88`)}
-              {frame(9, `${st.accent}33`)}
+              )}
               {/* a crown at the top of the card */}
-              <View style={{ position: 'absolute', top: 1, left: w / 2 - 13 }}>
-                <Svg width={26} height={14} viewBox="0 0 26 14">
-                  <Path d="M2 13 L1 3 L7 8 L13 1 L19 8 L25 3 L24 13 Z" fill={st.accent} />
-                  <Circle cx={13} cy={1.5} r={1.5} fill="#FFF7D6" />
+              <View style={{ position: 'absolute', top: 2, left: w / 2 - 15 }}>
+                <Svg width={30} height={16} viewBox="0 0 30 16">
+                  <Defs>
+                    <LinearGradient id={id('crown')} x1="0" y1="0" x2="0" y2="1">
+                      <Stop offset="0" stopColor="#FFF1B0" />
+                      <Stop offset="1" stopColor={st.accent} />
+                    </LinearGradient>
+                  </Defs>
+                  <Path d="M2 15 L1 4 L8 9 L15 1 L22 9 L29 4 L28 15 Z" fill={`url(#${id('crown')})`} />
+                  <Circle cx={15} cy={1.8} r={1.8} fill="#FFFFFF" />
+                  <Circle cx={8} cy={12} r={1.2} fill="#D946EF" /><Circle cx={15} cy={12} r={1.4} fill="#D946EF" /><Circle cx={22} cy={12} r={1.2} fill="#D946EF" />
                 </Svg>
               </View>
               {corners(() => (
-                <Svg width={22} height={22} viewBox="0 0 22 22">
-                  <Path d="M1 21 V6 Q1 1 6 1 H21" stroke={st.accent} strokeWidth={1.6} fill="none" />
-                  <Path d="M6 10 L10 6 L14 10 L10 14 Z" fill={st.accent} />
+                <Svg width={18} height={18} viewBox="0 0 18 18">
+                  <Path d="M1 17 V6 Q1 1 6 1 H17" stroke={st.accent} strokeWidth={1.4} fill="none" />
+                  <Path d="M5 9 L8 6 L11 9 L8 12 Z" fill={st.accent} />
                 </Svg>
-              ), 4)}
+              ), 8)}
               {[0, 1, 2, 3, 4, 5].map((i) => glint(i, '#FDE68A'))}
             </>
           )}
@@ -342,5 +385,98 @@ export function PhotoHalo({ size, still: frozen }: { size: number; still?: boole
         <Circle cx={50} cy={50} r={43} stroke={`url(#prism${uid})`} strokeWidth={0.8} fill="none" opacity={0.7} />
       </Svg>
     </Animated.View>
+  );
+}
+
+/**
+ * Hall of Fame: a golden laurel wreath round the player's photo, with a ring of tiny stars turning
+ * inside it (drawn round the photo itself, so it always fits).
+ */
+export function PhotoLaurel({ size, still: frozen }: { size: number; still?: boolean }) {
+  const { reduceMotion } = useTheme();
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const [spin] = useState(() => new Animated.Value(0));
+  const [shine] = useState(() => new Animated.Value(0));
+  const still = reduceMotion || !!frozen;
+  useEffect(() => {
+    if (still) return;
+    const loops = [
+      Animated.loop(Animated.timing(spin, { toValue: 1, duration: 20000, easing: Easing.linear, useNativeDriver: native })),
+      Animated.loop(Animated.sequence([
+        Animated.timing(shine, { toValue: 1, duration: 1300, easing: Easing.inOut(Easing.sin), useNativeDriver: native }),
+        Animated.timing(shine, { toValue: 0, duration: 1300, easing: Easing.inOut(Easing.sin), useNativeDriver: native }),
+      ])),
+    ];
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
+  }, [still, spin, shine]);
+  const pad = 16;
+  const d = size + pad * 2;
+  const c = d / 2;
+  const R = size / 2 + 10;
+  // a stem up each side from the bottom, with leaves in pairs pointing up along it (a victory laurel)
+  const toXY = (deg: number, r: number) => [c + Math.cos((deg * Math.PI) / 180) * r, c + Math.sin((deg * Math.PI) / 180) * r] as const;
+  const START = 104;
+  const END = 236; // left side: from just left of the bottom, up to the top-left
+  const stem = (side: 1 | -1) => {
+    const [x1, y1] = toXY(side === -1 ? START : 180 - START, R);
+    const [x2, y2] = toXY(side === -1 ? END : 180 - END, R);
+    return <Path key={`s${side}`} d={`M${x1} ${y1} A${R} ${R} 0 0 ${side === -1 ? 1 : 0} ${x2} ${y2}`} stroke="#E0A500" strokeWidth={1.3} fill="none" />;
+  };
+  const leaves = (side: 1 | -1) => Array.from({ length: 9 }, (_, i) => {
+    const deg = START + 6 + i * 15;
+    const a = side === -1 ? deg : 180 - deg;
+    const sz = 1 - i * 0.045;
+    return ([-1, 1] as const).map((k) => {
+      // one leaf just outside the stem, one just inside, both leaning up the curve
+      const [x, y] = toXY(a, R + k * 3.2);
+      const tangent = a + (side === -1 ? 90 : -90);
+      const rot = tangent + k * side * 32;
+      return <Ellipse key={`${side}${i}${k}`} cx={x} cy={y} rx={4.6 * sz} ry={2 * sz} fill={`url(#leaf${uid})`} transform={`rotate(${rot} ${x} ${y})`} />;
+    });
+  });
+  return (
+    <View pointerEvents="none" style={{ position: 'absolute', left: -pad, top: -pad, width: d, height: d }}>
+      {/* a soft gold glow behind the photo */}
+      <Animated.View style={{ position: 'absolute', left: 0, top: 0, width: d, height: d, opacity: still ? 0.6 : shine.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0.85] }) }}>
+        <Svg width={d} height={d}>
+          <Defs>
+            <RadialGradient id={`glow${uid}`} cx="50%" cy="50%" r="50%">
+              <Stop offset="0.55" stopColor="#F5C542" stopOpacity="0.45" />
+              <Stop offset="1" stopColor="#F5C542" stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Circle cx={c} cy={c} r={c} fill={`url(#glow${uid})`} />
+        </Svg>
+      </Animated.View>
+      {/* the wreath */}
+      <Svg width={d} height={d} style={{ position: 'absolute' }}>
+        <Defs>
+          <LinearGradient id={`leaf${uid}`} x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor="#FFF1B0" />
+            <Stop offset="1" stopColor="#E0A500" />
+          </LinearGradient>
+        </Defs>
+        {stem(-1)}
+        {stem(1)}
+        {leaves(-1)}
+        {leaves(1)}
+        {/* the tie at the bottom */}
+        <Path d={`M${c - 4} ${c + R + 1} Q${c} ${c + R - 2} ${c + 4} ${c + R + 1}`} stroke="#F5C542" strokeWidth={1.6} fill="none" />
+        <Circle cx={c} cy={c + R} r={2} fill="#FFF1B0" />
+      </Svg>
+      {/* a ring of tiny stars turning inside the wreath */}
+      <Animated.View style={{ position: 'absolute', left: 0, top: 0, width: d, height: d,
+        transform: [{ rotate: still ? '0deg' : spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
+        <Svg width={d} height={d}>
+          {Array.from({ length: 12 }, (_, i) => {
+            const a = (i / 12) * Math.PI * 2;
+            const x = c + Math.cos(a) * (size / 2 + 3);
+            const y = c + Math.sin(a) * (size / 2 + 3);
+            return <Circle key={i} cx={x} cy={y} r={i % 3 === 0 ? 1.4 : 0.8} fill={i % 3 === 0 ? '#FFF7D6' : '#F5C542'} />;
+          })}
+        </Svg>
+      </Animated.View>
+    </View>
   );
 }

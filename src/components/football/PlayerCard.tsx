@@ -9,7 +9,7 @@ import { AchievementBadge } from './AchievementBadge';
 import { cardTitle } from '@/domain/titles';
 import { Ionicons } from '@expo/vector-icons';
 import { ClubShield, Flag } from './Identity';
-import { CardFX, PhotoHalo } from './CardFX';
+import { CardFX, PhotoHalo, PhotoLaurel } from './CardFX';
 
 export interface PlayerCardData {
   display_name: string;
@@ -142,6 +142,7 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
           </View>
           <View>
             {st.id === 'diamond' && <PhotoHalo size={compact ? 62 : roomy ? 96 : 84} still={still} />}
+            {st.id === 'hall_of_fame' && <PhotoLaurel size={compact ? 62 : roomy ? 96 : 84} still={still} />}
             <Avatar uri={data.avatar_url} name={data.display_name} size={compact ? 62 : roomy ? 96 : 84} ring={st.accent} />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
