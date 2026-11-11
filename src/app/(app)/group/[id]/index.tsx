@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Avatar, Badge, Button, Card, EmptyState, ErrorState, Header, IconButton, Input, Loading, Row, Screen, SectionTitle, Segmented, Sheet, StatTile, Text, useConfirm,
+  Avatar, Badge, Button, Card, EmptyState, ErrorState, Header, IconButton, Loading, Row, Screen, SectionTitle, Segmented, Sheet, StatTile, Text, useConfirm,
 } from '@/components/ui';
 import { SessionCard } from '@/components/football/SessionCard';
 import { Leaderboard } from '@/components/football/Leaderboard';
@@ -32,6 +32,7 @@ import { TeamOfMonth } from '@/features/TeamOfMonth';
 import { ReliabilityChip, useReliability } from '@/features/Reliability';
 import { GroupWelcome } from '@/features/GroupWelcome';
 import { HelpButton } from '@/features/ScreenHelp';
+import { SeasonRace } from '@/features/Seasons';
 
 type Tab = 'overview' | 'games' | 'tables' | 'history' | 'members';
 const AWARD_LABEL: Record<string, string> = {
@@ -177,6 +178,7 @@ export default function GroupScreen() {
             </Pressable>
           </Row>
           {!!myRole && <View ref={createRef} collapsable={false}><Button title="Create a game for this group" icon="add" onPress={() => router.push({ pathname: '/session/new', params: { groupId: id } })} /></View>}
+          {!!myRole && <SeasonRace groupId={id} userId={userId} top={3} onSeeAll={() => setTab('tables')} />}
           {finesHint.due && (
             <Card variant="alt">
               <Row gap={space.sm}>
@@ -250,6 +252,7 @@ export default function GroupScreen() {
         </View>
       )}
 
+      {tab === 'tables' && !!myRole && <SeasonRace groupId={id} userId={userId} />}
       {tab === 'tables' && <Leaderboard scope="group" groupId={id} seasons={seasons} minAppearances={settings?.leaderboard_min_appearances} />}
 
       {tab === 'members' && (

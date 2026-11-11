@@ -61,6 +61,101 @@ export function SeasonCard({ data }: { data: MySeasons }) {
   );
 }
 
+interface RaceRow { user_id: string; name: string; avatar_url: string | null; apps: number; rating: number | null; motm: number; score: number | null; eligible: boolean; rank: number | null }
+export interface SeasonRaceData { season_name: string; ends_on: string; games: number; needed: number; min_apps: number; rows: RaceRow[] }
+export const useSeasonRace = (groupId: string, enabled = true) =>
+  useQuery({ queryKey: ['season-race', groupId], enabled, queryFn: () => rpc<SeasonRaceData>('get_season_race', { p_group: groupId }) });
+
+const PODIUM = ['#F5C542', '#CDD5DF', '#E39A5B'];
+
+/**
+ * The race for Player of the Season: this season's live table, like a ranked ladder.
+ * `top` shows only the leaders (plus you, if you're further down) with a link to the full race.
+ */
+export function SeasonRace({ groupId, userId, top, onSeeAll }: { groupId: string; userId?: string | null; top?: number; onSeeAll?: () => void }) {
+  const { colors } = useTheme();
+  const now = useNow(60_000);
+  const race = useSeasonRace(groupId);
+  const d = race.data;
+  if (!d) return null;
+  const daysLeft = Math.max(0, Math.ceil((new Date(`${d.ends_on}T23:59:59`).getTime() - now) / 86400_000));
+  const ranked = d.rows.filter((r) => r.rank !== null);
+  const chasing = d.rows.filter((r) => r.rank === null);
+  const me = d.rows.find((r) => r.user_id === userId);
+  let shown = top ? ranked.slice(0, top) : ranked;
+  if (top && me?.rank && !shown.includes(me)) shown = [...shown, me];
+  const awardsOn = d.games >= d.needed;
+  const row = (r: RaceRow) => {
+    const mine = r.user_id === userId;
+    const medal = r.rank && r.rank <= 3 ? PODIUM[r.rank - 1] : null;
+    return (
+      <View key={r.user_id} accessible accessibilityLabel={`${r.rank ? `${r.rank}. ` : ''}${r.name}${mine ? ' (you)' : ''}, ${plural(r.apps, 'game')}${r.score !== null ? `, score ${Number(r.score).toFixed(2)}` : ''}`}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: 6, paddingHorizontal: space.sm, borderRadius: radius.md,
+          backgroundColor: mine ? colors.primaryMuted : 'transparent' }}>
+        <View style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center',
+          backgroundColor: medal ? `${medal}26` : 'transparent', borderWidth: medal ? 1 : 0, borderColor: medal ?? undefined }}>
+          <Text variant="smallStrong" color={medal ?? colors.textMuted}>{r.rank ?? '–'}</Text>
+        </View>
+        <Avatar uri={r.avatar_url} name={r.name} size={32} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text variant="bodyStrong" numberOfLines={1}>{r.name}{mine ? ' (you)' : ''}</Text>
+          <Text variant="caption" tone="muted" numberOfLines={2}>
+            {plural(r.apps, 'game')}{r.rating !== null ? ` · ${Number(r.rating).toFixed(1)} avg` : ''}{r.motm ? ` · ${r.motm} MOTM` : ''}
+            {!r.eligible ? ` · play ${d.min_apps - r.apps} more` : ''}
+          </Text>
+        </View>
+        {r.score !== null && r.eligible && (
+          <Text style={{ fontFamily: fonts.score, fontSize: 18, color: medal ?? colors.text }}>{Number(r.score).toFixed(2)}</Text>
+        )}
+      </View>
+    );
+  };
+  return (
+    <Card>
+      <View style={{ gap: space.sm }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+          <Ionicons name="trophy" size={18} color={GOLD} />
+          <View style={{ flex: 1 }}>
+            <Text variant="bodyStrong">Race for Player of the Season</Text>
+            <Text variant="caption" tone="muted">{d.season_name} · {daysLeft === 0 ? 'ends today' : `${plural(daysLeft, 'day')} left`}</Text>
+          </View>
+        </View>
+        {!awardsOn && (
+          <View style={{ gap: 4 }}>
+            <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.surfaceAlt, overflow: 'hidden' }}>
+              <View style={{ width: `${(100 * d.games) / d.needed}%`, height: 6, borderRadius: 3, backgroundColor: GOLD }} />
+            </View>
+            <Text variant="caption" tone="muted">{d.games} of {d.needed} games played. Awards are on once the group plays {d.needed}.</Text>
+          </View>
+        )}
+        {d.rows.length === 0 ? (
+          <Text variant="small" tone="muted">The race starts with this season’s first game. Play at least {d.min_apps} games to be in the running.</Text>
+        ) : (
+          <>
+            {shown.map(row)}
+            {!ranked.length && <Text variant="small" tone="muted">No one has played {d.min_apps} games yet. You need half the group’s games to be in the running.</Text>}
+            {!top && chasing.length > 0 && (
+              <>
+                <Text variant="overline" tone="muted" style={{ marginTop: space.sm }}>Not in the running yet · need {d.min_apps} games</Text>
+                {chasing.map(row)}
+              </>
+            )}
+            {!!top && me && !me.eligible && (
+              <Text variant="caption" tone="muted">You’ve played {plural(me.apps, 'game')}. Play {d.min_apps - me.apps} more to join the race.</Text>
+            )}
+          </>
+        )}
+        <Text variant="caption" tone="faint">Score = average rating + a bonus for MOTM awards and for turning up.</Text>
+        {!!onSeeAll && d.rows.length > shown.length && (
+          <Pressable onPress={onSeeAll} accessibilityRole="button" style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
+            <Text variant="smallStrong" tone="primary">See the full race ›</Text>
+          </Pressable>
+        )}
+      </View>
+    </Card>
+  );
+}
+
 /** The big moment when a season ends: "Autumn 2026 is over…" then the Player of the Season, in the Hall of Fame colours. */
 export function SeasonReveal({ data, userId }: { data: MySeasons; userId: string }) {
   const [seen, setSeen] = useState<Record<string, true> | null>(null);

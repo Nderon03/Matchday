@@ -99,6 +99,13 @@ const reveal = {
 };
 const rpcs = {
   create_invite_link: 'Ab12Cd34',
+  get_season_race: { season_name: 'Autumn 2026', ends_on: '2026-12-31', games: 5, needed: 7, min_apps: 4, rows: [
+    { user_id: 'r1', name: 'Jordan Pike', avatar_url: null, apps: 5, rating: 7.9, motm: 2, score: 8.99, eligible: true, rank: 1 },
+    { user_id: ME, name: 'Sam Carter', avatar_url: null, apps: 4, rating: 7.4, motm: 1, score: 8.18, eligible: true, rank: 2 },
+    { user_id: 'r3', name: 'Chris Obi', avatar_url: null, apps: 4, rating: 7.0, motm: 0, score: 7.4, eligible: true, rank: 3 },
+    { user_id: 'r4', name: 'Leo Hart', avatar_url: null, apps: 5, rating: 6.8, motm: 0, score: 7.3, eligible: true, rank: 4 },
+    { user_id: 'r5', name: 'Ali Khan', avatar_url: null, apps: 2, rating: 8.1, motm: 1, score: 9.05, eligible: false, rank: null },
+  ] },
   get_my_seasons: { current: { name: 'Autumn 2026', starts_on: '2026-10-01', ends_on: '2026-12-31' },
     groups: [{ group_id: GID, group_name: 'Wednesday Football', games: 5, my_games: 4, needed: 7, my_needed: 4 }], results: [] },
   get_match_reveals: [],
@@ -188,7 +195,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['terms', '/legal/terms', 'Terms of Use'], ['delete', '/legal/delete-account', 'Delete your account'],
     ['find', '/session/find', 'Find a game'],
     ['group-new', '/group/new', 'Who can join'],
-    ['group', `/group/${GID}`, 'Player of the Month'],
+    ['group', `/group/${GID}`, 'Race for Player of the Season'],
     ['session-new', '/session/new', 'Postcode'],
     ['done-redirect', `/done?kind=paid&session=${SID}`, 'Host dashboard'],
     ['achievements', '/achievements', 'Customise your card'],
@@ -340,6 +347,16 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.getByText('Player of the Month').first().scrollIntoViewIfNeeded();
       await page.waitForTimeout(800);
       await page.getByText('C = Player of the Month').first().locator('xpath=../..').screenshot({ path: join(OUT, `auth-${vpName}-team-of-month.png`) }).catch(() => undefined);
+      // the race for Player of the Season: the top 3 on the overview, everyone in Tables
+      const ov = await page.locator('body').innerText();
+      if (!/Jordan Pike[\s\S]*8\.99/.test(ov) || !/Sam Carter \(you\)/.test(ov) || /Ali Khan/.test(ov)) failures.push(`${vpName}: season race overview wrong`);
+      await page.getByText('Race for Player of the Season').first().scrollIntoViewIfNeeded();
+      await page.getByText('Race for Player of the Season').first().locator('xpath=../../../..').screenshot({ path: join(OUT, `auth-${vpName}-season-race.png`) }).catch(() => undefined);
+      await page.getByRole('button', { name: 'See the full race ›' }).click();
+      await page.waitForTimeout(500);
+      const full = await page.locator('body').innerText();
+      if (!/Leo Hart/.test(full) || !/NOT IN THE RUNNING YET/i.test(full) || !/Ali Khan[\s\S]*play 2 more/.test(full)) failures.push(`${vpName}: full season race wrong`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-season-race-full.png`) });
     }
     if (name === 'settings') {
       await page.getByText('Sync with my calendar').first().click();

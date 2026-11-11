@@ -69,3 +69,47 @@ describe('ranked seasons', () => {
     await expectAppError(db.rpc(users[0], 'finalise_season', { p_season: seasonId }), 'forbidden');
   });
 });
+
+describe('season race and nudges', () => {
+  it('get_season_race: live table with the same formula, eligible players ranked', async () => {
+    const { users, groupId } = await season(8, [
+      { apps: 8, rating: 7.6, motm: 3 },
+      { apps: 4, rating: 7.9 },
+      { apps: 3, rating: 9.5, motm: 3 },
+    ]);
+    const race = await db.rpc<any>(users[1], 'get_season_race', { p_group: groupId });
+    expect(race).toMatchObject({ games: 8, needed: 7, min_apps: 4 });
+    expect(race.rows.map((r: any) => [r.user_id, r.rank, Number(r.score), r.eligible])).toEqual([
+      [users[0], 1, 8.66, true], [users[1], 2, 8.15, true], [users[2], null, 11.19, false],
+    ]);
+    const outsider = await db.createUser(uniq('so'));
+    await expectAppError(db.rpc(outsider, 'get_season_race', { p_group: groupId }), 'forbidden');
+  });
+
+  it('run_season_nudges: once, two weeks out, the right message for each member', async () => {
+    const { users, groupId, seasonId } = await season(8, [
+      { apps: 8, rating: 7.6 }, { apps: 2, rating: 7 }, { apps: 6, rating: 6 }, { apps: 5, rating: 5 }, { apps: 7, rating: 4 },
+    ]);
+    // the season ends in 10 days
+    await db.admin(`update seasons set ends_on = current_date + 10 where id = $1`, [seasonId]);
+    await db.admin(`select public.run_season_nudges()`);
+    const notes = await db.admin(`select user_id, title from notifications where type = 'season_nudge' and data->>'group_id' = $1`, [groupId]);
+    const t = (u: string) => notes.filter((n) => n.user_id === u).map((n) => n.title);
+    expect(t(users[0])).toEqual(['You’re top of the race']);
+    expect(t(users[2])).toEqual(['You’re 2nd in the race']);
+    expect(t(users[3])).toEqual(['You’re 3rd in the race']);
+    expect(t(users[1])).toEqual(['Play 2 more to be in the running']);
+    expect(t(users[4])).toEqual([]); // 4th: nothing to say
+    await db.admin(`select public.run_season_nudges()`);
+    const again = await db.admin(`select count(*)::int n from notifications where type = 'season_nudge' and data->>'group_id' = $1`, [groupId]);
+    expect(again[0].n).toBe(notes.length);
+  });
+
+  it('run_season_nudges: a group short of 7 games hears how many it needs', async () => {
+    const { users, groupId, seasonId } = await season(4, [{ apps: 4, rating: 7 }]);
+    await db.admin(`update seasons set ends_on = current_date + 14 where id = $1`, [seasonId]);
+    await db.admin(`select public.run_season_nudges()`);
+    const notes = await db.admin(`select title, body from notifications where type = 'season_nudge' and user_id = $1`, [users[0]]);
+    expect(notes).toEqual([{ title: 'Ranked FC needs 3 more games', body: expect.stringMatching(/^two weeks left of .+\. Awards need 7 games in a season\.$/) }]);
+  });
+});
