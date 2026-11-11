@@ -95,6 +95,8 @@ export interface Session {
   format_size: number;
   max_attendance: number;
   visibility: SessionVisibility;
+  /** closed games: the host lets players share the game link ("bring a mate") */
+  players_can_invite?: boolean;
   description: string | null;
   payment_mode: PaymentMode;
   price_pence: number;

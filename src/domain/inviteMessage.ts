@@ -42,4 +42,19 @@ export function gameInviteMessage(g: GameInviteInfo, url: string) {
   ].filter((l) => l !== null).join('\n');
 }
 
+/** A player bringing a mate: personal, says how many places are left. */
+export function mateInviteMessage(g: GameInviteInfo, url: string) {
+  const d = new Date(g.starts_at);
+  const day = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const left = g.places_left ?? 0;
+  return [
+    `⚽ I'm playing ${g.name} on ${day}, ${time}${g.venue ? ` at ${g.venue}` : ''}.`,
+    left > 0 ? `We need ${left} more${g.format_size ? ` for ${g.format_size}-a-side` : ''}. Fancy it?` : 'Fancy it?',
+    g.price_pence ? `£${(g.price_pence / 100).toFixed(2).replace(/\.00$/, '')} each.` : null,
+    '',
+    `Sign up and tap “I'm in”: ${url}`,
+  ].filter((l) => l !== null).join('\n');
+}
+
 export const whatsappUrl = (text: string) => `https://wa.me/?text=${encodeURIComponent(text)}`;

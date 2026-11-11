@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Linking, Platform, ScrollView, View, type HostInstance } from 'react-native';
+import { Linking, Platform, ScrollView, Switch, View, type HostInstance } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Avatar, Badge, Button, Card, Chip, ErrorState, Header, IconButton, Input, ListItem, Loading, Row, Screen, SectionTitle, Sheet, Text, useConfirm, useToast,
 } from '@/components/ui';
 import { PaymentBadge } from '@/components/football/PaymentBadge';
+import { InviteQr } from '@/components/football/InviteQr';
+import { mateInviteMessage } from '@/domain/inviteMessage';
 import { ResultCard } from '@/components/football/ResultCard';
 import { ShareFrame } from '@/components/football/ShareFrame';
 import { shareViewAsImage } from '@/lib/share';
@@ -90,6 +92,7 @@ export default function SessionScreen() {
   const outstanding = useMyOutstanding(detail.data?.session.group_id, detail.data?.session.status === 'scheduled');
   const balances = useGroupBalances(detail.data?.session.group_id, !!detail.data?.isManager);
   const [guestOpen, setGuestOpen] = useState(false);
+  const [mateOpen, setMateOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [guestName, setGuestName] = useState('');
 
@@ -174,6 +177,9 @@ export default function SessionScreen() {
       .join('  ·  ');
   };
   const guestsIn = d.guests.filter((g) => g.status === 'confirmed');
+  // bring a mate: open games always; closed games once the host allows it (only while there's space)
+  const placesLeft = Math.max(0, s.max_attendance - (d.attendance.filter((a) => a.status === 'confirmed').length + guestsIn.length));
+  const mateAllowed = s.status === 'scheduled' && (s.visibility === 'public' || !!s.players_can_invite);
   // unpaid bills from earlier games in this group (not this one) block joining
   const owedBills = (outstanding.data ?? []).filter((b) => b.session_id !== id);
   // a removed player who has been invited again can rejoin like anyone else
@@ -325,6 +331,9 @@ export default function SessionScreen() {
                       confirmLabel: `Tell ${hostName}`, reasonLabel: 'Message (optional)' });
                     if (r) run('dropout', () => rpc('request_dropout', { p_session: id, p_message: typeof r === 'object' ? r.reason || null : null }), `${hostName} has been told`);
                   }} />
+                )}
+                {mateAllowed && placesLeft > 0 && (
+                  <Button title="Bring a mate" icon="share-social-outline" variant="secondary" onPress={() => setMateOpen(true)} />
                 )}
                 <Button title="Add a guest" icon="person-add-outline" variant="ghost" onPress={() => { setGuestName(''); setGuestOpen(true); }} />
               </Row>
@@ -546,6 +555,17 @@ export default function SessionScreen() {
                 {s.status === 'scheduled' && s.max_attendance - (groups.confirmed.length + guestsIn.length) > 0 && (
                   <Spot id="session.needplayers"><NeedPlayers sessionId={id} placesLeft={s.max_attendance - (groups.confirmed.length + guestsIn.length)} /></Spot>
                 )}
+                {s.status === 'scheduled' && s.visibility !== 'public' && (
+                  <Row gap={space.md} style={{ paddingVertical: space.xs }}>
+                    <Ionicons name="share-social-outline" size={20} color={colors.textMuted} />
+                    <View style={{ flex: 1 }}>
+                      <Text variant="bodyStrong">Players can bring a mate</Text>
+                      <Text variant="caption" tone="muted">Anyone who’s in can share the game link. Their mate signs up and joins if there’s space.</Text>
+                    </View>
+                    <Switch value={!!s.players_can_invite} accessibilityLabel="Players can bring a mate" trackColor={{ true: colors.primary, false: colors.borderStrong }}
+                      onValueChange={(v) => run('mates', () => rpc('set_players_can_invite', { p_session: id, p_on: v }), v ? 'Players can now bring a mate' : 'Only you can share the game link')} />
+                  </Row>
+                )}
                 <Button title="More host tools" icon="ellipsis-horizontal" variant="secondary" onPress={() => setToolsOpen(true)} />
               </View>
             </Card></Spot>
@@ -694,6 +714,12 @@ export default function SessionScreen() {
         <Button title="Google Calendar" icon="logo-google" onPress={() => { window.open(googleCalendarUrl(calendarEvent), '_blank'); setCalendarOpen(false); }} />
         <Button title="Apple Calendar / Outlook (.ics file)" icon="calendar-outline" variant="secondary" onPress={() => { downloadIcs(calendarEvent); setCalendarOpen(false); }} />
         <Button title="Sync all my games instead" icon="sync-outline" variant="ghost" onPress={() => { setCalendarOpen(false); setSyncOpen(true); }} />
+      </Sheet>
+
+      <Sheet visible={mateOpen} onClose={() => setMateOpen(false)} title="Bring a mate">
+        <Text variant="small" tone="muted">They sign up with the link and tap “I’m in”. They pay for themselves and get their own stats. (No account? Add them as a guest instead.)</Text>
+        <InviteQr kind="session" targetId={id} message={`Join ${s.name} on MATCHDAY`} pitchLabel="Message for your mate" pitchTip={null}
+          pitch={(url) => mateInviteMessage({ name: s.name, starts_at: s.starts_at, venue: s.venue, format_size: s.format_size, places_left: placesLeft, price_pence: s.payment_mode === 'free' ? 0 : s.price_pence }, url)} />
       </Sheet>
 
       <Sheet visible={guestOpen} onClose={() => setGuestOpen(false)} title="Bring a guest">

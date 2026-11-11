@@ -598,6 +598,27 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     Object.assign(table, saved.t);
   }
 
+  // Bring a mate: on a closed game the host opened up, a player who's in can share the game link
+  {
+    session.players_can_invite = true;
+    const maxBefore = session.max_attendance;
+    session.max_attendance = 12; // two places left
+    await page.goto(base + `/session/${SID}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    const mateBtn = page.getByRole('button', { name: 'Bring a mate' });
+    if (!(await mateBtn.count())) failures.push(`${vpName}: Bring a mate button missing`);
+    else {
+      await mateBtn.first().click();
+      await page.waitForTimeout(700);
+      const mt = await page.locator('body').innerText();
+      if (!/I'm playing Wednesday Football/.test(mt) || !/We need \d+ more/.test(mt)) failures.push(`${vpName}: bring-a-mate message wrong`);
+      await page.screenshot({ path: join(OUT, `auth-${vpName}-bring-a-mate.png`) });
+      await page.keyboard.press('Escape');
+    }
+    session.players_can_invite = false;
+    session.max_attendance = maxBefore;
+  }
+
   // Send feedback: type a message, send, thank-you
   {
     rpcs.submit_feedback = 'f1111111-1111-4111-8111-111111111111';

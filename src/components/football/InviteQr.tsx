@@ -15,11 +15,14 @@ import { radius, space } from '@/theme/tokens';
  * Creates an invite link (friend / group / session) and shows it as a QR code with share actions.
  * With `pitch`, it's the host starter kit: a ready-made group-chat message with one tap to WhatsApp.
  */
-export function InviteQr({ kind, targetId, message, pitch }: {
+export function InviteQr({ kind, targetId, message, pitch, pitchLabel = 'Message for your group chat', pitchTip = 'Tip: pin it in the chat so new players can always find it.' }: {
   kind: 'friend' | 'group' | 'session';
   targetId?: string;
   message: string;
   pitch?: (url: string) => string;
+  pitchLabel?: string;
+  /** a hint under the buttons (null for none) */
+  pitchTip?: string | null;
 }) {
   const { colors } = useTheme();
   const toast = useToast();
@@ -49,7 +52,7 @@ export function InviteQr({ kind, targetId, message, pitch }: {
         <View style={{ gap: space.sm }}>
           <Row gap={6}>
             <Ionicons name="chatbubbles-outline" size={16} color={colors.primary} />
-            <Text variant="smallStrong">Message for your group chat</Text>
+            <Text variant="smallStrong">{pitchLabel}</Text>
           </Row>
           {/* reads like the chat bubble it'll become */}
           <View style={{ padding: space.md, borderRadius: radius.md, borderTopLeftRadius: 4, backgroundColor: colors.primaryMuted, borderWidth: 1, borderColor: colors.border }}>
@@ -64,7 +67,7 @@ export function InviteQr({ kind, targetId, message, pitch }: {
               <Button title="Copy message" icon="copy-outline" variant="secondary" size="sm" onPress={async () => { await Clipboard.setStringAsync(text); toast.success('Message copied'); }} />
             </View>
           </Row>
-          <Text variant="caption" tone="faint">Tip: pin it in the chat so new players can always find it.</Text>
+          {!!pitchTip && <Text variant="caption" tone="faint">{pitchTip}</Text>}
         </View>
         {qr}
         <Text variant="caption" tone="muted" numberOfLines={1} selectable align="center">{url}</Text>
