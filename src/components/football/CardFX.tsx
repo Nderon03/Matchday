@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useState } from 'react';
 import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Circle, Defs, Ellipse, G, Line, LinearGradient, Path, Pattern, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, G, Line, LinearGradient, Mask, Path, Pattern, RadialGradient, Rect, Stop } from 'react-native-svg';
 import type { CardStyle } from '@/domain/achievements';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -21,9 +21,11 @@ const AnimatedRect = Animated.createAnimatedComponent(Rect);
 /**
  * Each earned style has its own design, and each tier is a clear step up from the one below:
  *  Bronze        brushed copper lines, simple corner brackets, a soft sheen. Still.
- *  Silver        clean steel pinstripes, cut (chamfered) corners, a fine inner frame. Still.
- *  Gold          a sunburst behind your photo, laurel corners, a double gold frame. Still.
- *  Platinum      a hexagon lattice, a rainbow holographic sweep, a breathing frosted edge. Animated.
+ *  Silver        polished chrome: brushed grain, mirror reflections, a chrome frame, rivet corners. Still.
+ *  Gold          black-and-gold foil: engraved guilloche rings, art-deco corners, a metallic double frame,
+ *                and a slow foil shine (the first tier that moves).
+ *  Platinum      ice crystal: a frosted lattice clearing to the middle, frost corners, a breathing platinum
+ *                frame, a rainbow holographic sweep and glints. Animated.
  *  Diamond       diamond-cut facets, a prism halo turning behind your photo, glints, a rainbow edge. Animated.
  *  Hall of Fame  royal purple and gold (the Legend medal's colours): a living aurora, light running round the frame,
  *                gold sparks rising, a crown, and a laurel wreath with a ring of stars round the photo. The peak.
@@ -32,7 +34,7 @@ export function CardFX({ st, radius, still: frozen }: { st: CardStyle; radius: n
   const { reduceMotion } = useTheme();
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const tier = st.id;
-  const animated = st.fx >= 4;
+  const animated = st.fx >= 3; // gold's foil shine is the first moving tier
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [sweep] = useState(() => new Animated.Value(0));
   const [glow] = useState(() => new Animated.Value(0));
@@ -48,8 +50,8 @@ export function CardFX({ st, radius, still: frozen }: { st: CardStyle; radius: n
     const glints = tier === 'diamond' ? 8 : tier === 'hall_of_fame' ? 6 : tier === 'platinum' ? 4 : 0;
     const loops = [
       Animated.loop(Animated.sequence([
-        Animated.timing(sweep, { toValue: 1, duration: tier === 'platinum' ? 2200 : 1600, easing: Easing.inOut(Easing.quad), useNativeDriver: native }),
-        Animated.delay(tier === 'platinum' ? 2400 : 1600),
+        Animated.timing(sweep, { toValue: 1, duration: tier === 'gold' ? 2600 : tier === 'platinum' ? 2200 : 1600, easing: Easing.inOut(Easing.quad), useNativeDriver: native }),
+        Animated.delay(tier === 'gold' ? 4200 : tier === 'platinum' ? 2400 : 1600),
         Animated.timing(sweep, { toValue: 0, duration: 0, useNativeDriver: native }),
       ])),
       Animated.loop(Animated.sequence([
@@ -88,6 +90,17 @@ export function CardFX({ st, radius, still: frozen }: { st: CardStyle; radius: n
 
   const frame = (inset: number, colour: string, width = 1) => (
     <View style={{ position: 'absolute', top: inset, left: inset, right: inset, bottom: inset, borderRadius: Math.max(4, radius - inset), borderWidth: width, borderColor: colour }} />
+  );
+  // a metallic frame: a gradient stroke that catches the light like polished metal
+  const metal = (key: string, stops: [number, string][], inset: number, sw: number) => (
+    <Svg width={w} height={h} style={StyleSheet.absoluteFill}>
+      <Defs>
+        <LinearGradient id={id(key)} x1="0" y1="0" x2="1" y2="1">
+          {stops.map(([o, c]) => <Stop key={o} offset={String(o)} stopColor={c} />)}
+        </LinearGradient>
+      </Defs>
+      <Rect x={inset} y={inset} width={w - inset * 2} height={h - inset * 2} rx={Math.max(4, radius - inset)} fill="none" stroke={`url(#${id(key)})`} strokeWidth={sw} />
+    </Svg>
   );
   const corners = (render: (flipX: boolean, flipY: boolean) => React.ReactNode, inset = 7, opacity: number | Animated.AnimatedInterpolation<number> = 0.95) =>
     ([[0, 0], [1, 0], [0, 1], [1, 1]] as const).map(([fx, fy]) => (
@@ -152,86 +165,118 @@ export function CardFX({ st, radius, still: frozen }: { st: CardStyle; radius: n
             </>
           )}
 
-          {/* ---------- SILVER: clean steel pinstripes, cut corners, inner frame ---------- */}
+          {/* ---------- SILVER: polished chrome, brushed grain, mirror reflections, rivet corners ---------- */}
           {tier === 'silver' && (
             <>
-              <Svg width={w} height={h} style={StyleSheet.absoluteFill} opacity={0.08}>
-                {Array.from({ length: Math.ceil(h / 4) }, (_, i) => (
-                  <Line key={i} x1={0} y1={i * 4} x2={w} y2={i * 4} stroke={st.accent} strokeWidth={0.5} />
-                ))}
-              </Svg>
               <Svg width={w} height={h} style={StyleSheet.absoluteFill}>
                 <Defs>
-                  <LinearGradient id={id('steel')} x1="0" y1="0" x2="1" y2="0.6">
-                    <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.1" />
-                    <Stop offset="0.35" stopColor="#FFFFFF" stopOpacity="0" />
-                    <Stop offset="0.7" stopColor="#FFFFFF" stopOpacity="0.05" />
-                    <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+                  <LinearGradient id={id('mirror')} x1="0" y1="0" x2="1" y2="0.75">
+                    <Stop offset="0.1" stopColor="#FFFFFF" stopOpacity="0" />
+                    <Stop offset="0.16" stopColor="#FFFFFF" stopOpacity="0.16" />
+                    <Stop offset="0.24" stopColor="#FFFFFF" stopOpacity="0.03" />
+                    <Stop offset="0.28" stopColor="#FFFFFF" stopOpacity="0.1" />
+                    <Stop offset="0.31" stopColor="#FFFFFF" stopOpacity="0" />
+                    <Stop offset="0.68" stopColor="#FFFFFF" stopOpacity="0" />
+                    <Stop offset="0.76" stopColor="#FFFFFF" stopOpacity="0.07" />
+                    <Stop offset="0.84" stopColor="#FFFFFF" stopOpacity="0" />
                   </LinearGradient>
+                  <RadialGradient id={id('gloss')} cx={w * 0.5} cy={-h * 0.15} r={Math.max(w, h) * 0.7} gradientUnits="userSpaceOnUse">
+                    <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.16" />
+                    <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+                  </RadialGradient>
                 </Defs>
-                <Rect width={w} height={h} fill={`url(#${id('steel')})`} />
+                {/* brushed grain: fine lines of uneven brightness */}
+                {Array.from({ length: Math.ceil(h / 3) }, (_, i) => (
+                  <Line key={i} x1={0} y1={i * 3} x2={w} y2={i * 3} stroke="#FFFFFF" strokeWidth={0.5} opacity={[0.035, 0.07, 0.02, 0.05, 0.09][i % 5]} />
+                ))}
+                <Rect width={w} height={h} fill={`url(#${id('gloss')})`} />
+                <Rect width={w} height={h} fill={`url(#${id('mirror')})`} />
               </Svg>
-              {frame(6, `${st.accent}40`)}
+              {metal('chrome', [[0, '#FFFFFF'], [0.25, '#7D8894'], [0.5, '#F8FAFC'], [0.75, '#66717D'], [1, '#E5E9EE']], 5, 1.6)}
               {corners(() => (
-                <Svg width={18} height={18}>
-                  <Path d="M1 10 L10 1" stroke={st.border!} strokeWidth={2} />
-                  <Path d="M1 16 L1 10 M10 1 L16 1" stroke={st.border!} strokeWidth={1.2} />
+                <Svg width={22} height={22} viewBox="0 0 22 22">
+                  <Path d="M1 13 L1 6 L6 1 L13 1" stroke="#F1F5F9" strokeWidth={1.6} fill="none" />
+                  <Path d="M5 13 L5 8 L8 5 L13 5" stroke="#AAB4C0" strokeWidth={0.8} fill="none" />
+                  <Circle cx={10} cy={10} r={1.8} fill="#E8EDF3" />
+                  <Circle cx={9.5} cy={9.5} r={0.7} fill="#FFFFFF" />
                 </Svg>
-              ), 4)}
+              ), 7)}
             </>
           )}
 
-          {/* ---------- GOLD: sunburst behind the photo, laurels, double frame ---------- */}
+          {/* ---------- GOLD: black-and-gold foil, engraved guilloche, art-deco corners, a foil shine ---------- */}
           {tier === 'gold' && (
             <>
               <Svg width={w} height={h} style={StyleSheet.absoluteFill}>
                 <Defs>
-                  <RadialGradient id={id('aura')} cx={cx} cy={cy} r={Math.max(w, h) * 0.55} gradientUnits="userSpaceOnUse">
-                    <Stop offset="0" stopColor={st.accent} stopOpacity="0.22" />
-                    <Stop offset="1" stopColor={st.accent} stopOpacity="0" />
+                  <RadialGradient id={id('warm')} cx={cx} cy={cy} r={Math.max(w, h) * 0.6} gradientUnits="userSpaceOnUse">
+                    <Stop offset="0" stopColor="#FFD45C" stopOpacity="0.2" />
+                    <Stop offset="1" stopColor="#FFD45C" stopOpacity="0" />
                   </RadialGradient>
                 </Defs>
-                <Rect width={w} height={h} fill={`url(#${id('aura')})`} />
-                <G opacity={0.11}>
-                  {Array.from({ length: 24 }, (_, i) => {
-                    const a = (i / 24) * Math.PI * 2;
-                    const a2 = a + Math.PI / 48;
-                    const r = Math.max(w, h) * 1.2;
-                    return <Path key={i} fill={st.accent} d={`M${cx} ${cy} L${cx + Math.cos(a) * r} ${cy + Math.sin(a) * r} L${cx + Math.cos(a2) * r} ${cy + Math.sin(a2) * r} Z`} />;
-                  })}
+                <Rect width={w} height={h} fill={`url(#${id('warm')})`} />
+                {/* engraved rings from two corners cross like a banknote */}
+                <G opacity={0.09}>
+                  {Array.from({ length: Math.ceil(Math.max(w, h) * 1.3 / 7) }, (_, i) => (
+                    <Circle key={`a${i}`} cx={w * 1.05} cy={h * 1.08} r={18 + i * 7} stroke="#FFD45C" strokeWidth={0.6} fill="none" />
+                  ))}
+                  {Array.from({ length: Math.ceil(Math.max(w, h) * 0.9 / 9) }, (_, i) => (
+                    <Circle key={`b${i}`} cx={-w * 0.05} cy={-h * 0.1} r={18 + i * 9} stroke="#FFD45C" strokeWidth={0.5} fill="none" />
+                  ))}
                 </G>
               </Svg>
-              {frame(5, `${st.accent}66`)}
+              {sweepBand('white', 0.09, band * 1.3)}
+              {metal('foil', [[0, '#FFF3B8'], [0.22, '#D9A21B'], [0.45, '#7A560C'], [0.62, '#FBE08A'], [0.82, '#B8860B'], [1, '#FFE9A0']], 4, 2.2)}
+              {frame(10, '#FFD45C40')}
               {corners(() => (
-                <Svg width={26} height={26} viewBox="0 0 26 26">
-                  {/* a laurel sprig curling out of the corner */}
-                  <Path d="M2 24 Q4 8 22 2" stroke={st.accent} strokeWidth={1.4} fill="none" />
-                  {[[6, 16, -60], [9, 10, -45], [14, 6, -30], [19, 3.5, -15]].map(([x, y, r], i) => (
-                    <Ellipse key={i} cx={x} cy={y} rx={3.4} ry={1.5} fill={st.accent} transform={`rotate(${r} ${x} ${y})`} />
+                <Svg width={30} height={30} viewBox="0 0 30 30">
+                  {/* an art-deco fan tucked into the corner */}
+                  {[8, 14, 20].map((r, i) => <Path key={r} d={`M${r} 1 A${r - 1} ${r - 1} 0 0 1 1 ${r}`} stroke="#FFD45C" strokeWidth={i === 2 ? 1.4 : 0.9} fill="none" opacity={1 - i * 0.2} />)}
+                  {[20, 45, 70].map((deg) => (
+                    <Line key={deg} x1={1} y1={1} x2={1 + Math.cos((deg * Math.PI) / 180) * 19} y2={1 + Math.sin((deg * Math.PI) / 180) * 19} stroke="#FFD45C" strokeWidth={0.6} opacity={0.7} />
                   ))}
-                  <Circle cx={2.5} cy={23.5} r={1.8} fill={st.accent} />
+                  <Path d="M24 2 L26 4 L24 6 L22 4 Z M2 22 L4 24 L2 26 L0 24 Z" fill="#FFE9A0" />
                 </Svg>
-              ), 4)}
+              ), 5)}
             </>
           )}
 
-          {/* ---------- PLATINUM: hexagon lattice, holographic sweep, breathing frost ---------- */}
+          {/* ---------- PLATINUM: ice crystal: frosted lattice, frost corners, breathing platinum frame, holo sweep ---------- */}
           {tier === 'platinum' && (
             <>
-              <Svg width={w} height={h} style={StyleSheet.absoluteFill} opacity={0.13}>
+              <Svg width={w} height={h} style={StyleSheet.absoluteFill}>
                 <Defs>
-                  <Pattern id={id('hex')} patternUnits="userSpaceOnUse" width={24} height={41.6}>
-                    <Path d="M12 0 L24 6.9 L24 20.8 L12 27.7 L0 20.8 L0 6.9 Z M12 27.7 L12 41.6" stroke={st.accent} strokeWidth={0.8} fill="none" />
+                  <Pattern id={id('hex')} patternUnits="userSpaceOnUse" width={20} height={34.6}>
+                    <Path d="M10 0 L20 5.8 L20 17.3 L10 23.1 L0 17.3 L0 5.8 Z M10 23.1 L10 34.6" stroke="#CFFAFE" strokeWidth={0.7} fill="none" />
                   </Pattern>
+                  {/* the lattice frosts in from the edges and clears in the middle */}
+                  <RadialGradient id={id('clear')} cx="50%" cy="50%" r="70%">
+                    <Stop offset="0.35" stopColor="#000000" />
+                    <Stop offset="1" stopColor="#FFFFFF" />
+                  </RadialGradient>
+                  <Mask id={id('edge')}><Rect width={w} height={h} fill={`url(#${id('clear')})`} /></Mask>
+                  <RadialGradient id={id('frost')} cx={w * 0.85} cy={0} r={Math.max(w, h) * 0.8} gradientUnits="userSpaceOnUse">
+                    <Stop offset="0" stopColor="#E0FBFF" stopOpacity="0.2" />
+                    <Stop offset="1" stopColor="#E0FBFF" stopOpacity="0" />
+                  </RadialGradient>
                 </Defs>
-                <Rect width={w} height={h} fill={`url(#${id('hex')})`} />
+                <Rect width={w} height={h} fill={`url(#${id('frost')})`} />
+                <Rect width={w} height={h} fill={`url(#${id('hex')})`} mask={`url(#${id('edge')})`} opacity={0.3} />
               </Svg>
-              {sweepBand('holo', 0.22, band * 1.6)}
-              <Animated.View style={[StyleSheet.absoluteFill, { borderRadius: radius, borderWidth: 2, borderColor: st.border!, opacity: pulse(0.2) }]} />
-              {frame(6, `${st.accent}33`)}
+              {sweepBand('holo', 0.28, band * 1.6)}
+              <Animated.View style={[StyleSheet.absoluteFill, { opacity: pulse(0.45) }]}>
+                {metal('plat', [[0, '#FFFFFF'], [0.2, '#8FB3C0'], [0.45, '#F0FDFF'], [0.7, '#5E8A99'], [1, '#E0FBFF']], 4, 2)}
+              </Animated.View>
+              {frame(9, '#A5F3FC33')}
               {corners(() => (
-                <Svg width={14} height={14} viewBox="0 0 14 14"><Path d="M7 0 L14 7 L7 14 L0 7 Z" fill={st.accent} /><Path d="M7 3 L11 7 L7 11 L3 7 Z" fill="#FFFFFF" opacity={0.7} /></Svg>
-              ), 6, pulse(0.55))}
+                <Svg width={26} height={26} viewBox="0 0 26 26">
+                  {/* a frost crystal growing from the corner */}
+                  <Path d="M2 2 L20 20 M2 2 L22 2 M2 2 L2 22" stroke="#E0FBFF" strokeWidth={1.2} />
+                  <Path d="M9 2 L12 -1 M9 2 L12 5 M16 2 L18 0 M16 2 L18 4 M2 9 L-1 12 M2 9 L5 12 M2 16 L0 18 M2 16 L4 18 M8 8 L12 7 M8 8 L7 12 M14 14 L17 13 M14 14 L13 17"
+                    stroke="#A5F3FC" strokeWidth={0.9} />
+                  <Path d="M2 -1 L5 2 L2 5 L-1 2 Z" fill="#FFFFFF" />
+                </Svg>
+              ), 6, pulse(0.6))}
               {[0, 1, 2, 3].map((i) => glint(i, '#FFFFFF'))}
             </>
           )}

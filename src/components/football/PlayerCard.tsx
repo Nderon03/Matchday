@@ -103,6 +103,9 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
   const [w, setW] = useState(0);
   const compact = w > 0 && w < 340;
   const roomy = w >= 460;
+  // Hall of Fame's wreath needs room round the photo, so its photo is a touch smaller to keep the name in full
+  const hof = st.id === 'hall_of_fame';
+  const photo = hof ? (compact ? 52 : roomy ? 84 : 66) : compact ? 62 : roomy ? 96 : 84;
   const cells: [string, string | number][] = [
     // no stats (private profile) shows dashes rather than misleading zeros
     ['Matches', s ? s.fixtures : '–'], ['Wins', s ? s.wins : '–'], ['Win %', s ? `${Number(s.win_pct).toFixed(0)}%` : '–'], ['MOTM', s ? s.motm : '–'],
@@ -140,10 +143,11 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
               </View>
             )}
           </View>
-          <View>
-            {st.id === 'diamond' && <PhotoHalo size={compact ? 62 : roomy ? 96 : 84} still={still} />}
-            {st.id === 'hall_of_fame' && <PhotoLaurel size={compact ? 62 : roomy ? 96 : 84} still={still} />}
-            <Avatar uri={data.avatar_url} name={data.display_name} size={compact ? 62 : roomy ? 96 : 84} ring={st.accent} />
+          {/* the Hall of Fame wreath reaches ~18px past the photo: give it room so it never touches the rating or name */}
+          <View style={hof ? { marginHorizontal: compact ? 8 : 10, marginVertical: 10 } : st.id === 'diamond' ? { marginHorizontal: 4 } : undefined}>
+            {st.id === 'diamond' && <PhotoHalo size={photo} still={still} />}
+            {hof && <PhotoLaurel size={photo} still={still} />}
+            <Avatar uri={data.avatar_url} name={data.display_name} size={photo} ring={st.accent} />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text variant={compact ? 'h3' : 'h2'} color="#F4F6F8" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{data.display_name}</Text>

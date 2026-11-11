@@ -85,9 +85,9 @@ export const CARD_STYLES: CardStyle[] = [
   { id: 'sunset', name: 'Sunset', points: 0, base: true, fx: 0, from: '#4A230B', to: '#120804', accent: '#FB923C', muted: '#CBAE98', border: null },
   { id: 'stealth', name: 'Stealth', points: 0, base: true, fx: 0, from: '#2A2D33', to: '#08090A', accent: '#E5E7EB', muted: '#A1A6AE', border: null },
   { id: 'bronze', name: 'Bronze', points: 4, fx: 1, icon: 'shield', from: '#4A2A12', to: '#140904', accent: '#E39A5B', muted: '#C9A585', border: '#B8722F' },
-  { id: 'silver', name: 'Silver', points: 8, fx: 2, icon: 'shield-checkmark', from: '#3A434E', to: '#0E1216', accent: '#E8EDF3', muted: '#AAB4C0', border: '#CDD5DF' },
-  { id: 'gold', name: 'Gold', points: 16, fx: 3, icon: 'star', from: '#5A420A', to: '#160F02', accent: '#FFC933', muted: '#D8BE7E', border: '#F2B21B' },
-  { id: 'platinum', name: 'Platinum', points: 26, fx: 4, icon: 'flash', from: '#103746', to: '#04121A', accent: '#8BE9FD', muted: '#9BCAD6', border: '#BFF3FF' },
+  { id: 'silver', name: 'Silver', points: 8, fx: 2, icon: 'shield-checkmark', from: '#5A6573', to: '#13171C', accent: '#F1F5F9', muted: '#B8C2CE', border: '#DDE3EA' },
+  { id: 'gold', name: 'Gold', points: 16, fx: 3, icon: 'star', from: '#2E2006', to: '#080602', accent: '#FFD45C', muted: '#D9C08A', border: '#C9961A' },
+  { id: 'platinum', name: 'Platinum', points: 26, fx: 4, icon: 'flash', from: '#22566A', to: '#04131A', accent: '#A5F3FC', muted: '#A9D3DC', border: '#D9FBFF' },
   { id: 'diamond', name: 'Diamond', points: 33, fx: 5, icon: 'diamond', from: '#0E3A78', to: '#020A1C', accent: '#E0F2FE', muted: '#9FC3E6', border: '#BAE6FD' },
   { id: 'hall_of_fame', name: 'Hall of Fame', points: MAX_POINTS, fx: 6, icon: 'trophy', from: '#4C1D95', to: '#12041F', accent: '#F5C542', muted: '#D4B8F0', border: '#F5C542', label: 'HALL OF FAME' },
 ];
