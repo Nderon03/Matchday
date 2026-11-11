@@ -260,7 +260,7 @@ export function CardFX({ st, radius, still: frozen }: { st: CardStyle; radius: n
               </Animated.View>
               {frame(7, `${st.accent}30`)}
               {corners(() => (
-                <Svg width={16} height={16} viewBox="0 0 16 16"><Path d="M8 0 L16 8 L8 16 L0 8 Z" fill="#E0E7FF" /><Path d="M8 0 L8 16 M0 8 L16 8" stroke="#6366F1" strokeWidth={0.8} /></Svg>
+                <Svg width={16} height={16} viewBox="0 0 16 16"><Path d="M8 0 L16 8 L8 16 L0 8 Z" fill="#E0F2FE" /><Path d="M8 0 L8 16 M0 8 L16 8" stroke="#0EA5E9" strokeWidth={0.8} /></Svg>
               ), 7)}
               {GLINTS.map((_, i) => glint(i, i % 3 === 0 ? '#A5F3FC' : '#FFFFFF'))}
             </>
