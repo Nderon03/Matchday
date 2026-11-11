@@ -175,7 +175,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
             {unlocked.has(SEASON_CHAMPION.code) && (
               <Row gap={space.sm} style={{ marginTop: space.md, justifyContent: 'center' }}>
                 <Ionicons name="ribbon" size={16} color={colors.gold} />
-                <Text variant="smallStrong" tone="gold">Season Champion</Text>
+                <Text variant="smallStrong" tone="gold">Player of the Season</Text>
               </Row>
             )}
           </Card>

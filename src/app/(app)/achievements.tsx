@@ -52,10 +52,10 @@ export default function Achievements() {
           <Spot id="ach.grid" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, justifyContent: 'space-between' }}>
             {tracks.map((t, i) => <TrackTile key={t.def.track} t={t} index={i} width={cardWidth} onPress={() => setOpen(t)} />)}
             {!!champion && (
-              <Card style={{ width: cardWidth as any, opacity: champion.unlocked_at ? 1 : 0.85 }} accessibilityLabel={`Season Champion${champion.value ? `, won ${plural(champion.value, 'time')}` : ', not yet won'}`}>
+              <Card style={{ width: cardWidth as any, opacity: champion.unlocked_at ? 1 : 0.85 }} accessibilityLabel={`Player of the Season${champion.value ? `, won ${plural(champion.value, 'time')}` : ', not yet won'}`}>
                 <View style={{ alignItems: 'center', gap: 6 }}>
                   <AchievementBadge icon={SEASON_CHAMPION.icon} level={champion.unlocked_at ? 5 : 0} size={54} />
-                  <Text variant="smallStrong" align="center" numberOfLines={2}>Season Champion</Text>
+                  <Text variant="smallStrong" align="center" numberOfLines={2}>Player of the Season</Text>
                   <Text variant="caption" tone={champion.unlocked_at ? 'gold' : 'faint'} align="center">
                     {champion.unlocked_at ? `Player of the Season${champion.value > 1 ? ` ×${champion.value}` : ''}` : 'Win Player of the Season'}
                   </Text>

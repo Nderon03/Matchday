@@ -89,7 +89,7 @@ const myAchievements = {
       code: `${track}_l${i + 1}`, name, description: `Reach ${target}.`, icon, tier: LV[i], track, level: i + 1, target, value,
       unlocked_at: i < levels ? ago(i === levels - 1 ? days : days + 60) : null, holders: Math.max(0, 120 - i * 30),
     }))),
-    { code: 'season_champion', name: 'Season Champion', description: 'Be named Player of the Season.', icon: 'ribbon', tier: 'legend', track: 'season_champion', level: null, target: 1, value: 1, unlocked_at: ago(2), holders: 3 },
+    { code: 'season_champion', name: 'Player of the Season', description: 'Be named Player of the Season in your group.', icon: 'ribbon', tier: 'legend', track: 'season_champion', level: null, target: 1, value: 1, unlocked_at: ago(2), holders: 3 },
   ],
 };
 const reveal = {
@@ -99,6 +99,8 @@ const reveal = {
 };
 const rpcs = {
   create_invite_link: 'Ab12Cd34',
+  get_my_seasons: { current: { name: 'Autumn 2026', starts_on: '2026-10-01', ends_on: '2026-12-31' },
+    groups: [{ group_id: GID, group_name: 'Wednesday Football', games: 5, my_games: 4, needed: 7, my_needed: 4 }], results: [] },
   get_match_reveals: [],
   get_calendar_feed: 'a'.repeat(64),
   get_my_group_invites: [{ group_id: '66666666-6666-4666-8666-666666666666', name: 'Sunday Kickabout', logo_url: null, location: 'Mill Hill', members: 12, invited_by: 'Alex Reid', created_at: ago(0.2) }],
@@ -215,7 +217,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       else if (!calls.includes('set_card_image')) failures.push(`${vpName}: card picture not recorded`);
     }
     if (name === 'profile' && !(await page.getByLabel('Title: Baller').count())) failures.push(`${vpName}: card title missing`);
-    if (name === 'profile' && !(await page.getByLabel(/^Medals: Goals Gold, Man of the Match Silver, Season Champion Legend/).count())) failures.push(`${vpName}: card medals missing`);
+    if (name === 'profile' && !(await page.getByLabel(/^Medals: Goals Gold, Man of the Match Silver, Player of the Season Legend/).count())) failures.push(`${vpName}: card medals missing`);
     if (name === 'achievements') {
       // Compare: one swipe for where from, then tap a side and search for a player
       table.friendships = people.slice(1, 6).map((p) => ({ user_a: ME, user_b: p.id, a: people[0], b: p }));
@@ -619,6 +621,25 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     session.max_attendance = maxBefore;
   }
 
+  // a season ends: the big reveal on Home, once
+  {
+    const before = rpcs.get_my_seasons.results;
+    rpcs.get_my_seasons.results = [{ season_id: 'se111111-1111-4111-8111-111111111111', season_name: 'Summer 2026', group_id: GID, group_name: 'Wednesday Football',
+      finalised_at: ago(1), games: 11, winners: [{ user_id: ME, name: 'Sam Carter', avatar_url: null, value: 8.66 }] }];
+    await page.goto(base + '/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(2600);
+    const st = await page.locator('body').innerText();
+    if (!/SUMMER 2026 · SEASON OVER/.test(st) || !/SAM CARTER/.test(st) || !/That’s you!/.test(st)) failures.push(`${vpName}: season reveal missing`);
+    if (!/AUTUMN 2026/.test(st)) failures.push(`${vpName}: season countdown card missing`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-season-reveal.png`) });
+    await page.getByRole('button', { name: 'Close' }).last().click();
+    await page.waitForTimeout(400);
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);
+    if (/SEASON OVER/.test(await page.locator('body').innerText())) failures.push(`${vpName}: season reveal shown twice`);
+    rpcs.get_my_seasons.results = before;
+  }
+
   // Send feedback: type a message, send, thank-you
   {
     rpcs.submit_feedback = 'f1111111-1111-4111-8111-111111111111';
@@ -674,7 +695,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   await page.getByRole('button', { name: 'Done' }).click();
   await page.waitForTimeout(1200);
   ct = await page.locator('body').innerText();
-  if (!ct.includes('Season Champion') || !ct.includes('Next (1 more)')) failures.push(`${vpName}: unlock celebration not shown`);
+  if (!ct.includes('Player of the Season') || !ct.includes('Next (1 more)')) failures.push(`${vpName}: unlock celebration not shown`);
   await page.screenshot({ path: join(OUT, `auth-${vpName}-celebration.png`) });
   await page.getByRole('button', { name: /Next \(1 more\)/ }).click();
   await page.waitForTimeout(900);

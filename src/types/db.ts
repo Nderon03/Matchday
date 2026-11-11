@@ -76,6 +76,9 @@ export interface Season {
   starts_on: string;
   ends_on: string;
   status: 'active' | 'completed';
+  /** set when the season finishes: games played, and whether there were awards (7+ games) */
+  games?: number | null;
+  awarded?: boolean;
 }
 
 export interface Session {

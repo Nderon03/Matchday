@@ -26,7 +26,7 @@ export const TRACKS: TrackDef[] = [
   { track: 'haul', name: 'Big Game', icon: 'flash', targets: [2, 3, 4, 5, 6], unit: (n) => `${n} goals in a game` },
 ];
 
-export const SEASON_CHAMPION = { code: 'season_champion', name: 'Season Champion', icon: 'ribbon' };
+export const SEASON_CHAMPION = { code: 'season_champion', name: 'Player of the Season', icon: 'ribbon' };
 
 /** Track and level from a code ("goals_l3" → goals, 3). Season Champion counts as a Legend medal. */
 export function parseCode(code: string): { track: string; level: Level } {

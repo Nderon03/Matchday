@@ -312,8 +312,8 @@ describe('seasons, records, head-to-head and the scheduler', () => {
     const today = new Date();
     const start = new Date(today.getFullYear(), 0, 1).toISOString().slice(0, 10);
     const end = new Date(today.getFullYear(), 11, 31).toISOString().slice(0, 10);
-    const seasonId = await db.rpc<string>(host, 'create_season', { p_group: groupId, p_name: 'Season 1', p_starts: start, p_ends: end });
-    await expectAppError(db.rpc(host, 'create_season', { p_group: groupId, p_name: 'Overlap', p_starts: start, p_ends: end }), 'season_overlap');
+    // seasons run themselves now (every three months, the same for everyone)
+    await expectAppError(db.rpc(host, 'create_season', { p_group: groupId, p_name: 'Season 1', p_starts: start, p_ends: end }), 'seasons_automatic');
 
     for (let round = 0; round < 3; round++) {
       const sid = await createSession(host, groupId, rest, { starts_at: new Date(Date.now() - (3 - round) * 3600_000).toISOString() });
@@ -358,15 +358,13 @@ describe('seasons, records, head-to-head and the scheduler', () => {
     const ratingLb = await db.as(host, `select * from public.get_leaderboard('rating', 'group', $1)`, [groupId]);
     expect(ratingLb[0].user_id).toBe(players[2]);
 
+    // the games joined this quarter's season by themselves; 3 games is short of the 7 needed for awards
+    const [{ season_id: seasonId }] = await db.admin(`select distinct season_id from sessions where group_id = $1 and status = 'finalised'`, [groupId]);
+    const [se] = await db.admin(`select name from seasons where id = $1`, [seasonId]);
+    expect(se.name).toMatch(/^(Winter|Spring|Summer|Autumn) \d{4}$/);
     await db.rpc(host, 'finalise_season', { p_season: seasonId });
-    const awards = await db.admin(`select award, user_id from season_awards where season_id = $1`, [seasonId]);
-    expect(awards).toEqual(expect.arrayContaining([
-      { award: 'player_of_season', user_id: players[2] },
-      { award: 'golden_boot', user_id: players[1] },
-      { award: 'most_motm', user_id: players[2] },
-    ]));
-    const ach = await db.admin(`select 1 from player_achievements where user_id = $1 and achievement_code = 'season_champion'`, [players[2]]);
-    expect(ach).toHaveLength(1);
+    expect(await db.admin(`select 1 from season_awards where season_id = $1`, [seasonId])).toHaveLength(0);
+    expect((await db.admin(`select games, awarded from seasons where id = $1`, [seasonId]))[0]).toEqual({ games: 3, awarded: false });
     const career = await db.admin(`select sessions from v_career_stats where user_id = $1`, [players[2]]);
     expect(career[0].sessions).toBe(3);
 

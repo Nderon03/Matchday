@@ -101,7 +101,7 @@ function Celebration({ item, more, players, newStyle, onDone }: { item: MyAchiev
   }, [card, badge, text, reduceMotion]);
 
   const done = () => onDone(item);
-  const headline = isChampion ? 'Season Champion' : level > 1 ? `Level up · ${tier.label}` : `New medal · ${tier.label}`;
+  const headline = isChampion ? 'Player of the Season' : level > 1 ? `Level up · ${tier.label}` : `New medal · ${tier.label}`;
   const shareLine = isChampion ? 'I was named Player of the Season on MATCHDAY 🏆' : `I reached ${tier.label} in ${item.name} on MATCHDAY 🏅`;
   return (
     <Modal visible transparent animationType="fade" onRequestClose={done} statusBarTranslucent>

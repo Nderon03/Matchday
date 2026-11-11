@@ -59,8 +59,8 @@ export default function GroupScreen() {
   const [tourOpen, setTourOpen] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const friends = useFriends();
-  const [seasonOpen, setSeasonOpen] = useState(false);
-  const [season, setSeason] = useState({ name: '', starts: new Date().toISOString().slice(0, 10), ends: `${new Date().getFullYear()}-12-31` });
+  // seasons run themselves (every three months, the same for everyone): this group's progress this season
+  const mySeasons = useQuery({ queryKey: ['my-seasons'], queryFn: () => rpc<any>('get_my_seasons') });
   const { run, busy } = useAction([keys.group(id), keys.groups]);
   const records = useQuery({ queryKey: ['group', id, 'records'], enabled: tab === 'history' || tab === 'overview', queryFn: () => rpc<any>('get_group_records', { p_group: id }) });
   const awards = useQuery({
@@ -308,7 +308,7 @@ export default function GroupScreen() {
         <View style={{ gap: space.md }}>
           <SectionTitle title="Awards" />
           {!!awards.isLoading && <Loading />}
-          {awards.data?.length === 0 && <EmptyState icon="trophy-outline" title="No awards yet" message="Awards are calculated when an admin finalises a season." />}
+          {awards.data?.length === 0 && <EmptyState icon="trophy-outline" title="No awards yet" message="Awards are worked out automatically when a season ends (7+ games needed)." />}
           {seasons.filter((s) => s.status === 'completed').map((s) => {
             const list = (awards.data ?? []).filter((a) => a.season_id === s.id);
             if (!list.length) return null;
@@ -336,19 +336,35 @@ export default function GroupScreen() {
       {tab === 'history' && (
         <View style={{ gap: space.md }}>
           <SectionTitle title="Seasons" />
-          {!!isAdmin && <Button title="Start a new season" icon="add" variant="secondary" onPress={() => setSeasonOpen(true)} />}
-          {seasons.length === 0 && <EmptyState icon="calendar-number-outline" title="No seasons yet" message="Seasons add separate tables and awards. Career history is never reset." />}
-          {seasons.map((s) => (
+          <Text variant="caption" tone="muted">Seasons run every three months, the same for everyone. Awards need 7 games in the season, and you need to play at least half of them. Career history is never reset.</Text>
+          {(() => {
+            const cur = mySeasons.data?.current;
+            const mine = mySeasons.data?.groups?.find((x: any) => x.group_id === id);
+            if (!cur || !mine) return null;
+            return (
+              <Card variant="highlight">
+                <View style={{ gap: space.xs }}>
+                  <Row style={{ justifyContent: 'space-between' }}>
+                    <Text variant="bodyStrong">{cur.name}</Text>
+                    <Badge label="Now" tone="success" />
+                  </Row>
+                  <Text variant="small" tone="muted">
+                    {mine.games >= 7 ? `${plural(mine.games, 'game')} played: awards are on.` : `${plural(mine.games, 'game')} of the 7 needed for awards.`}
+                    {' '}You’ve played {mine.my_games} (need {mine.my_needed} to qualify).
+                  </Text>
+                  <Text variant="caption" tone="faint">Ends {formatDate(cur.ends_on)}. Awards are worked out automatically a few days later.</Text>
+                </View>
+              </Card>
+            );
+          })()}
+          {seasons.filter((s) => s.status === 'completed').map((s) => (
             <Card key={s.id}>
               <Row gap={space.md}>
                 <View style={{ flex: 1 }}>
                   <Text variant="bodyStrong">{s.name}</Text>
-                  <Text variant="caption" tone="muted">{formatDate(s.starts_on)} – {formatDate(s.ends_on)}</Text>
+                  <Text variant="caption" tone="muted">{formatDate(s.starts_on)} – {formatDate(s.ends_on)}{s.games != null ? ` · ${plural(s.games, 'game')}` : ''}</Text>
                 </View>
-                <Badge label={s.status === 'active' ? 'Active' : 'Completed'} tone={s.status === 'active' ? 'success' : 'neutral'} />
-                {!!isAdmin && s.status === 'active' && (
-                  <Button title="Finalise" size="sm" variant="ghost" loading={busy === `fs-${s.id}`} onPress={() => run(`fs-${s.id}`, () => rpc('finalise_season', { p_season: s.id }), 'Season finalised — awards calculated')} />
-                )}
+                <Badge label={s.awarded === false && s.games != null && s.games < 7 ? 'No awards' : 'Finished'} tone="neutral" />
               </Row>
             </Card>
           ))}
@@ -411,17 +427,6 @@ export default function GroupScreen() {
           <Text variant="caption" tone="faint">Send this to your group chat, or let them scan the QR code. The link expires in 7 days.</Text>
           <InviteQr kind="group" targetId={id} message={`Join ${g.name} on MATCHDAY`} pitch={(url) => groupInviteMessage(g.name, url)} />
         </ScrollView>
-      </Sheet>
-      <Sheet visible={seasonOpen} onClose={() => setSeasonOpen(false)} title="New season">
-        <Input label="Name" value={season.name} onChangeText={(v) => setSeason((s) => ({ ...s, name: v }))} placeholder={`e.g. Season ${seasons.length + 1} — ${new Date().getFullYear()}`} />
-        <Row gap={space.sm}>
-          <View style={{ flex: 1 }}><Input label="Starts (YYYY-MM-DD)" value={season.starts} onChangeText={(v) => setSeason((s) => ({ ...s, starts: v }))} /></View>
-          <View style={{ flex: 1 }}><Input label="Ends (YYYY-MM-DD)" value={season.ends} onChangeText={(v) => setSeason((s) => ({ ...s, ends: v }))} /></View>
-        </Row>
-        <Button title="Create season" loading={busy === 'season'} onPress={async () => {
-          const ok = await run('season', () => rpc('create_season', { p_group: id, p_name: season.name || `Season ${seasons.length + 1}`, p_starts: season.starts, p_ends: season.ends }), 'Season started');
-          if (ok !== undefined) setSeasonOpen(false);
-        }} />
       </Sheet>
     </Screen>
   );

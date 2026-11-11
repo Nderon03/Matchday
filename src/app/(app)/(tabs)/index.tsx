@@ -17,6 +17,7 @@ import { formatKickoff, plural, rating } from '@/domain/format';
 import { usePriceLabel } from '@/hooks/useFees';
 import { useLayout } from '@/hooks/useLayout';
 import { NearlyThere } from '@/features/moments/NearlyThere';
+import { SeasonCard, SeasonReveal, useMySeasons } from '@/features/Seasons';
 import { HelpButton } from '@/features/ScreenHelp';
 import { MatchdayHero, isMatchday } from '@/features/MatchdayHero';
 import { useNow } from '@/hooks/useNow';
@@ -41,6 +42,8 @@ const APP_TOUR: CoachStep[] = [
 
 export default function Home() {
   const { profile, userId } = useAuth();
+  // the season everyone's in (ranked), and the big reveal when one ends
+  const seasons = useMySeasons(!!userId);
   const friends = useFriends();
   const mine = useMyAchievements();
   const streak = mine.data?.streak.current ?? 0;
@@ -64,6 +67,7 @@ export default function Home() {
 
   return (
     <Screen onRefresh={() => home.refetch()} refreshing={home.isRefetching}>
+      {!!seasons.data && !!userId && <SeasonReveal data={seasons.data} userId={userId} />}
       <Coachmarks steps={APP_TOUR} visible={tourOpen || firstTour.due || tourParam === '1'} onDone={endTour} finishLabel="Let’s play" />
       <Sheet visible={helpOpen} onClose={() => setHelpOpen(false)} title="Help">
         <ListItem title="Replay the app tour" subtitle="A 30-second look around" left={<Ionicons name="play-circle-outline" size={20} color={colors.primary} />}
@@ -173,6 +177,7 @@ export default function Home() {
                 <StatTile label="MOTM" value={career?.motm ?? 0} compact />
               </Row>
               <NearlyThere data={mine.data} />
+              {!!seasons.data && <SeasonCard data={seasons.data} />}
             </View>
           </View>
 
