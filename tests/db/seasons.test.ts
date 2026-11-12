@@ -174,3 +174,15 @@ describe('season badges', () => {
     expect(await title()).toBe('season:s3_regular');
   });
 });
+
+describe('season wrapped', () => {
+  it('your season: numbers, badge and where you finished in each race', async () => {
+    const players = Array.from({ length: 10 }, (_, i) => ({ apps: 8, rating: 9 - i * 0.3, goals: i === 1 ? 4 : 0 }));
+    const { host, users, seasonId } = await season(8, players, "date '2027-02-01'");
+    await db.admin(`update session_player_statistics set played_at = '2027-02-10' where season_id = $1`, [seasonId]);
+    await db.rpc(host, 'finalise_season', { p_season: seasonId });
+    const w = await db.rpc<any>(users[1], 'get_season_wrapped', { p_quarter: '2027-02-15' });
+    expect(w).toMatchObject({ quarter: '2027-01-01', season_name: 'Winter 2027', season_label: 'Season 1', badge: 's1_elite', sessions: 8, goals: 4 });
+    expect(w.races).toEqual([expect.objectContaining({ group_name: 'Ranked FC', finished: true, rank: 2, of: 10, eligible: true, apps: 8, games: 8 })]);
+  });
+});

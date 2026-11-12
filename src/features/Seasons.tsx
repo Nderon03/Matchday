@@ -69,6 +69,13 @@ export interface SeasonRaceData { season_name: string; season_label?: string; pl
 export const useSeasonRace = (groupId: string, enabled = true) =>
   useQuery({ queryKey: ['season-race', groupId], enabled, queryFn: () => rpc<SeasonRaceData>('get_season_race', { p_group: groupId }) });
 
+/** "Winter 2027" → "2027-01-01" (the season's first day), for Season Wrapped. */
+function quarterOf(seasonName: string): string | null {
+  const m = /^(Winter|Spring|Summer|Autumn) (\d{4})$/.exec(seasonName);
+  if (!m) return null;
+  return `${m[2]}-${['01', '04', '07', '10'][['Winter', 'Spring', 'Summer', 'Autumn'].indexOf(m[1])]}-01`;
+}
+
 const PODIUM = ['#F5C542', '#CDD5DF', '#E39A5B'];
 
 /**
@@ -257,7 +264,8 @@ function Reveal({ r, isMe, newSeason, onClose }: { r: SeasonResult; isMe: boolea
             )}
             <Text variant="caption" color="#D4B8F0" align="center" style={{ marginTop: space.sm }}>{newSeason} has started. Everyone’s back to zero for the season (career stats are kept).</Text>
             <View style={{ alignSelf: 'stretch', gap: space.sm, marginTop: space.sm }}>
-              <Button title="See all awards" onPress={() => { done(); router.push(`/group/${r.group_id}`); }} />
+              <Button title="Your Season Wrapped" icon="sparkles" onPress={() => { done(); router.push({ pathname: '/wrapped', params: quarterOf(r.season_name) ? { season: quarterOf(r.season_name)! } : {} }); }} />
+              <Button title="See all awards" variant="secondary" onPress={() => { done(); router.push(`/group/${r.group_id}`); }} />
               <Pressable onPress={done} accessibilityRole="button" style={{ alignSelf: 'center', padding: space.sm }}>
                 <Text variant="smallStrong" color="#D4B8F0">Close</Text>
               </Pressable>

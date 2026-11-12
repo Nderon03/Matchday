@@ -107,6 +107,10 @@ const rpcs = {
     { user_id: 'r4', name: 'Leo Hart', avatar_url: null, apps: 5, rating: 6.8, motm: 0, score: 7.3, eligible: true, rank: 4 },
     { user_id: 'r5', name: 'Ali Khan', avatar_url: null, apps: 2, rating: 8.1, motm: 1, score: 9.05, eligible: false, rank: null },
   ] },
+  get_season_wrapped: { quarter: '2026-10-01', season_name: 'Autumn 2026', season_label: 'Pre-season', ends_on: '2026-12-31', badge: 'pre',
+    sessions: 11, fixtures: 22, goals: 9, assists: 4, wins: 12, draws: 3, losses: 7, rating: 7.4, motm: 2, best_win_streak: 4,
+    best_performance: { session_id: SID, name: 'Wednesday Football', rating: 8.6, goals: 3 }, teammates: [{ display_name: 'Jordan Pike' }],
+    races: [{ group_id: GID, group_name: 'Wednesday Football', finished: false, rank: 2, of: 9, score: 8.18, eligible: true, apps: 11, games: 12 }] },
   get_my_seasons: { current: { name: 'Autumn 2026', starts_on: '2026-10-01', ends_on: '2026-12-31', label: 'Pre-season' },
     groups: [{ group_id: GID, group_name: 'Wednesday Football', games: 5, my_games: 4, needed: 7, my_needed: 4 }], results: [] },
   get_match_reveals: [],
@@ -201,6 +205,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['done-redirect', `/done?kind=paid&session=${SID}`, 'Host dashboard'],
     ['achievements', '/achievements', 'Customise your card'],
     ['help', '/help', 'Help & FAQ'],
+    ['season-wrapped', '/wrapped', 'Wednesday Football'],
     ['edit-profile', '/settings/profile', 'Club you support'],
     ['group-settings', `/group/${GID}/settings`, 'Members ·'],
     ['invite', `/session/${SID}/invite`, 'Message for your group chat'],
@@ -227,6 +232,10 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     if (name === 'profile' && !(await page.getByLabel('Title: Baller').count())) failures.push(`${vpName}: card title missing`);
     if (name === 'profile' && !/Season history/i.test(await page.locator('body').innerText())) failures.push(`${vpName}: season history missing`);
     if (name === 'profile' && !(await page.getByLabel(/^Medals: Goals Gold, Man of the Match Silver, Player of the Season Legend/).count())) failures.push(`${vpName}: card medals missing`);
+    if (name === 'season-wrapped') {
+      const t = await page.locator('body').innerText();
+      if (!/PRE-SEASON/.test(t) || !/2nd/.test(t) || !/of 9 in the race/.test(t) || !/so far/.test(t)) failures.push(`${vpName}: season wrapped content wrong`);
+    }
     if (name === 'achievements') {
       // Compare: one swipe for where from, then tap a side and search for a player
       table.friendships = people.slice(1, 6).map((p) => ({ user_a: ME, user_b: p.id, a: people[0], b: p }));
