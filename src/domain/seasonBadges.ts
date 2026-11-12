@@ -20,7 +20,7 @@ export const SEASON_TIERS: Record<SeasonTier, SeasonTierInfo> = {
   contender: { name: 'Contender', hint: 'Top half of the race', colour: '#E2E8F0', fill: '#334155', icon: 'shield-half' },
   regular: { name: 'Regular', hint: 'Played half the group’s games', colour: '#E39A5B', fill: '#4A2A12', icon: 'shield' },
   squad: { name: 'Squad', hint: 'Played 3 or more games', colour: '#A1A6AE', fill: '#24272C', icon: 'people' },
-  preseason: { name: 'Pre-season', hint: 'Played before Season 1 (a tester)', colour: '#5EEAD4', fill: '#0F3B36', icon: 'flask' },
+  preseason: { name: 'Pre-season', hint: 'One-off badge for playing before Season 1', colour: '#5EEAD4', fill: '#0F3B36', icon: 'flask' },
 };
 
 /** Season 1 starts here. */

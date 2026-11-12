@@ -186,3 +186,17 @@ describe('season wrapped', () => {
     expect(w.races).toEqual([expect.objectContaining({ group_name: 'Ranked FC', finished: true, rank: 2, of: 10, eligible: true, apps: 8, games: 8 })]);
   });
 });
+
+describe('frozen seasons', () => {
+  it('a game finalised after its season was decided does not join it', async () => {
+    const { host, groupId, seasonId } = await season(7, [{ apps: 7, rating: 7 }]);
+    await db.rpc(host, 'finalise_season', { p_season: seasonId });
+    const sid = await db.rpc<string>(host, 'create_session', { p: { name: 'Late one', group_id: groupId, starts_at: new Date(Date.now() + 3600_000).toISOString(), format_size: 5 } });
+    await db.admin(`update sessions set status = 'completed' where id = $1`, [sid]);
+    await db.admin(`update sessions set status = 'finalised', finalised_at = now() where id = $1`, [sid]);
+    const [row] = await db.admin(`select season_id from sessions where id = $1`, [sid]);
+    expect(row.season_id).toBeNull();
+    const [se] = await db.admin(`select games from seasons where id = $1`, [seasonId]);
+    expect(se.games).toBe(7);
+  });
+});

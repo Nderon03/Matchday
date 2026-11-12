@@ -179,7 +179,7 @@ function SeasonCard({ d, name, avatar }: { d: any; name?: string; avatar?: strin
         {badge ? (
           <View style={{ alignItems: 'center', gap: space.sm }} accessible accessibilityLabel={`Ranked title: ${badge.label}`}>
             <SeasonEmblem code={badge.code} size={84} />
-            <Text style={{ fontFamily: fonts.scoreHeavy, fontSize: 30, lineHeight: 34, color: accent }}>{badge.label.toUpperCase()}</Text>
+            {badge.tier !== 'preseason' && <Text style={{ fontFamily: fonts.scoreHeavy, fontSize: 30, lineHeight: 34, color: accent }}>{badge.label.toUpperCase()}</Text>}
             <Text variant="caption" color="#C9CED6">{badge.info.hint}</Text>
           </View>
         ) : (
