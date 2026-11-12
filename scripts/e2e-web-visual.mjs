@@ -54,7 +54,7 @@ const home = {
 const table = {
   season_badges: [{ code: 'pre', tier: 'preseason', quarter_start: '2026-10-01' }],
   groups: [{ id: GID, name: 'Wednesday Football', description: 'Weekly 5-a-side in Hackney.', visibility: 'private', join_policy: 'request', location: 'Hackney', rules: null, logo_url: null, cover_url: null, created_by: ME }],
-  profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z', terms_version: LEGAL_VERSION, terms_accepted_at: '2026-11-01T00:00:00Z', card_style: 'gold', nationality: 'XK', supported_club: 'arsenal', card_medals: ['goals_l3', 'motm_l2', 'season_champion'], card_title: 'baller', card_season: 'pre' }],
+  profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z', terms_version: LEGAL_VERSION, terms_accepted_at: '2026-11-01T00:00:00Z', card_style: 'gold', nationality: 'XK', supported_club: 'arsenal', card_medals: ['goals_l3', 'motm_l2', 'season_champion'], card_title: 'baller' }],
   session_videos: [{ id: 'v1', session_id: SID, video_id: 'dQw4w9WgXcQ', title: 'Game 1', added_by: ME, created_at: kickoff }],
   payments: [],
   session_guests: [{ id: 'g1111111-1111-4111-8111-111111111111', session_id: SID, name: 'Dave', added_by: people[1].id, status: 'confirmed', created_at: kickoff },
@@ -225,7 +225,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       else if (!calls.includes('set_card_image')) failures.push(`${vpName}: card picture not recorded`);
     }
     if (name === 'profile' && !(await page.getByLabel('Title: Baller').count())) failures.push(`${vpName}: card title missing`);
-    if (name === 'profile' && (!(await page.getByLabel('Season badge: Pre-season').count()) || !/Season history/i.test(await page.locator('body').innerText()))) failures.push(`${vpName}: season badge / history missing`);
+    if (name === 'profile' && !/Season history/i.test(await page.locator('body').innerText())) failures.push(`${vpName}: season history missing`);
     if (name === 'profile' && !(await page.getByLabel(/^Medals: Goals Gold, Man of the Match Silver, Player of the Season Legend/).count())) failures.push(`${vpName}: card medals missing`);
     if (name === 'achievements') {
       // Compare: one swipe for where from, then tap a side and search for a player

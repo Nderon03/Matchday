@@ -31,21 +31,6 @@ export function SeasonEmblem({ code, size = 36 }: { code: string; size?: number 
   );
 }
 
-/** A chip for the player card: the emblem and "S1 ELITE". */
-export function SeasonBadgeChip({ code, compact }: { code: string; compact?: boolean }) {
-  const b = parseSeasonBadge(code);
-  if (!b) return null;
-  return (
-    <View accessible accessibilityLabel={`Season badge: ${b.label}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6, alignSelf: 'flex-start',
-      paddingLeft: 2, paddingRight: 8, paddingVertical: 1, borderRadius: 8, backgroundColor: `${b.info.fill}CC`, borderWidth: 1, borderColor: `${b.info.colour}99` }}>
-      <SeasonEmblem code={code} size={compact ? 18 : 20} />
-      <Text numberOfLines={1} style={{ fontSize: compact ? 9 : 10, lineHeight: 13, fontWeight: '800', letterSpacing: 0.8, color: b.info.colour }}>
-        {b.tier === 'preseason' ? 'PRE-SEASON' : `${b.short} ${b.info.name.toUpperCase()}`}
-      </Text>
-    </View>
-  );
-}
-
 /**
  * A tiny rank pip for the corner of a player's photo in lists, team sheets and the pitch: the tier's
  * colours and icon. Sized from the photo, so it scales with it.

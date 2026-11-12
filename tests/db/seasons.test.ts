@@ -123,8 +123,8 @@ describe('season badges', () => {
     await db.rpc(host, 'finalise_season', { p_season: seasonId });
     const rows = await badges(users);
     expect(rows.map((r) => [codeOf(rows, r.user_id), r.tier])).toEqual([['pre', 'preseason'], ['pre', 'preseason']]);
-    const [p] = await db.admin(`select card_season from profiles where id = $1`, [users[1]]);
-    expect(p.card_season).toBe('pre');
+    const [p] = await db.admin(`select card_title from profiles where id = $1`, [users[1]]);
+    expect(p.card_title).toBe('season:pre');
   });
 
   it('Season 1: Champion, Elite, Contender, Regular and Squad by where you finished', async () => {
@@ -154,22 +154,23 @@ describe('season badges', () => {
     expect(pots).toEqual([{ user_id: users[0] }]);
   });
 
-  it('keeps your best badge of the season; you can pick yours or none, and then it stays put', async () => {
+  it('keeps your best badge; a new one becomes your title unless you picked a normal title', async () => {
     const u = await db.createUser(uniq('sb'));
-    const q = '2027-01-01';
-    for (const tier of ['squad', 'elite', 'contender']) await db.admin(`select public.give_season_badge($1, $2, $3, null, null)`, [u, q, tier]);
+    const title = async () => (await db.admin(`select card_title from profiles where id = $1`, [u]))[0].card_title;
+    for (const tier of ['squad', 'elite', 'contender']) await db.admin(`select public.give_season_badge($1, '2027-01-01', $2, null, null)`, [u, tier]);
     expect((await badges([u])).map((r) => r.code)).toEqual(['s1_elite']);
-    expect((await db.admin(`select card_season from profiles where id = $1`, [u]))[0].card_season).toBe('s1_elite');
-    await expectAppError(db.rpc(u, 'set_card_season', { p_code: 's1_champion' }), 'title_locked');
-    await db.rpc(u, 'set_card_season', { p_code: null });
-    await db.admin(`select public.give_season_badge($1, '2027-04-01', 'champion', null, null)`, [u]);
-    expect((await db.admin(`select card_season from profiles where id = $1`, [u]))[0].card_season).toBeNull();
-    // each badge unlocks its title; others stay locked
-    await db.rpc(u, 'set_card_title', { p_title: 'season:s2_champion' });
-    expect((await db.admin(`select card_title from profiles where id = $1`, [u]))[0].card_title).toBe('season:s2_champion');
+    expect(await title()).toBe('season:s1_elite');
+    // ranked titles need the badge
     await expectAppError(db.rpc(u, 'set_card_title', { p_title: 'season:s1_champion' }), 'title_locked');
+    // a normal title is never replaced by a new badge...
     await db.rpc(u, 'set_card_title', { p_title: 'weekend_warrior' });
-    await db.rpc(u, 'set_card_season', { p_code: 's2_champion' });
-    expect((await db.admin(`select card_season from profiles where id = $1`, [u]))[0].card_season).toBe('s2_champion');
+    await db.admin(`select public.give_season_badge($1, '2027-04-01', 'champion', null, null)`, [u]);
+    expect(await title()).toBe('weekend_warrior');
+    // ...but you can pick the new ranked title yourself
+    await db.rpc(u, 'set_card_title', { p_title: 'season:s2_champion' });
+    expect(await title()).toBe('season:s2_champion');
+    // and while showing a ranked title, the next badge takes its place
+    await db.admin(`select public.give_season_badge($1, '2027-07-01', 'regular', null, null)`, [u]);
+    expect(await title()).toBe('season:s3_regular');
   });
 });

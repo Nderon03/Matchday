@@ -20,7 +20,6 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { Spot } from '@/features/ScreenHelp';
 import { SeasonEmblem } from '@/components/football/SeasonBadge';
-import { parseSeasonBadge } from '@/domain/seasonBadges';
 
 function Tile({ s, selected, unlocked, points, onPress }: { s: CardStyle; selected: boolean; unlocked: boolean; points: number; onPress: () => void }) {
   const { colors } = useTheme();
@@ -61,8 +60,8 @@ export function useMyCardData(): PlayerCardData | null {
   const profile = usePlayerProfile(userId ?? '');
   const extra = useQuery({
     queryKey: ['player', userId, 'card'], enabled: !!userId,
-    queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null; card_medals: string[]; card_title: string | null; card_season: string | null } | null>(
-      supabase.from('profiles').select('card_style, nationality, supported_club, card_medals, card_title, card_season').eq('id', userId!).maybeSingle()),
+    queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null; card_medals: string[]; card_title: string | null } | null>(
+      supabase.from('profiles').select('card_style, nationality, supported_club, card_medals, card_title').eq('id', userId!).maybeSingle()),
   });
   const reliability = useReliability(userId ? [userId] : []);
   const d = profile.data;
@@ -73,12 +72,11 @@ export function useMyCardData(): PlayerCardData | null {
     card_style: extra.data?.card_style, nationality: extra.data?.nationality, supported_club: extra.data?.supported_club,
     medals: extra.data?.card_medals ?? [],
     title: extra.data?.card_title ?? null,
-    season: extra.data?.card_season ?? null,
     reliability: reliability.data?.[userId] ?? null,
   };
 }
 
-export interface CardDraft { style: string; title: string | null; medals: string[]; season: string | null }
+export interface CardDraft { style: string; title: string | null; medals: string[] }
 
 /**
  * Your card on top, every style underneath. Tap a style or title to see it on your card straight
@@ -133,7 +131,7 @@ export function CardStylePicker({ draft, onDraft, overrides, actions }: {
       {card ? (
         <View>
           <Spot id="ep.card" style={{ opacity: locked ? 0.92 : 1 }}>
-            <PlayerCard data={{ ...card, ...overrides, card_style: shown.id, medals: draft.medals, title: shownTitle, season: draft.season }} />
+            <PlayerCard data={{ ...card, ...overrides, card_style: shown.id, medals: draft.medals, title: shownTitle }} />
           </Spot>
           {(locked || titleLockedPreview) && (
             <View style={{ position: 'absolute', top: space.sm, right: space.sm, flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -150,7 +148,6 @@ export function CardStylePicker({ draft, onDraft, overrides, actions }: {
       {!!mine.data && (
         <Spot id="ep.title"><TitleChooser value={shownTitle} have={have} onChoose={chooseTitle} /></Spot>
       )}
-      <SeasonChooser value={draft.season} onChoose={(season) => { haptics.tap(); onDraft({ ...draft, season }); }} />
       {locked ? (
         <View style={{ gap: 6 }}>
           <Row style={{ justifyContent: 'space-between' }}>
@@ -188,21 +185,33 @@ function TitleChooser({ value, have, onChoose }: {
   const { colors } = useTheme();
   const shown = cardTitle(value);
   const lockedShown = !!shown && !titleUnlocked(shown, have);
-  // season titles (S1 Champion…) come first: you only see the ones you've earned
-  const all: CardTitle[] = [...[...(have.seasons ?? [])].map(seasonTitle).filter((t): t is CardTitle => !!t), ...CARD_TITLES];
-  const unlockedCount = all.filter((t) => titleUnlocked(t, have)).length;
+  // ranked titles come from season badges, so you only see the ones you've earned (newest first)
+  const ranked: CardTitle[] = [...(have.seasons ?? [])].map(seasonTitle).filter((t): t is CardTitle => !!t);
+  const unlockedCount = CARD_TITLES.filter((t) => titleUnlocked(t, have)).length;
   return (
     <View style={{ gap: space.sm }}>
-      <Text variant="caption" tone="muted">Title · {unlockedCount}/{all.length} unlocked</Text>
+      <Text variant="caption" tone="muted">Title · one on your card</Text>
       {lockedShown && (
         <Row gap={6}>
           <Ionicons name="lock-closed" size={13} color={colors.warning} />
           <Text variant="caption" tone="warning" style={{ flex: 1 }}>Preview · to unlock “{shown!.label}”: {shown!.hint}</Text>
         </Row>
       )}
+      <Text variant="overline" tone="muted">Ranked · from your seasons</Text>
+      {ranked.length ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 2, alignItems: 'center' }}>
+          {ranked.map((t) => (
+            <Chip key={t.id} label={t.label} selected={value === t.id} onPress={() => onChoose(t.id)}
+              icon={t.req.kind === 'season' ? <SeasonEmblem code={t.req.code} size={14} /> : undefined} />
+          ))}
+        </ScrollView>
+      ) : (
+        <Text variant="caption" tone="faint">Finish a season to earn a ranked title (S1 Champion, S1 Elite…). Season 1 starts in January 2027.</Text>
+      )}
+      <Text variant="overline" tone="muted">Titles · {unlockedCount}/{CARD_TITLES.length} unlocked</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 2 }}>
         <Chip label="None" selected={!value} onPress={() => onChoose(null)} />
-        {[...all].sort((a, b) => Number(titleUnlocked(b, have)) - Number(titleUnlocked(a, have))).map((t) => {
+        {[...CARD_TITLES].sort((a, b) => Number(titleUnlocked(b, have)) - Number(titleUnlocked(a, have))).map((t) => {
           const open = titleUnlocked(t, have);
           return (
             <Chip key={t.id} label={t.label} selected={value === t.id} onPress={() => onChoose(t.id)}
@@ -270,23 +279,4 @@ export function useSeasonBadges(userId: string | null | undefined) {
     queryFn: () => q<{ code: string; tier: string; quarter_start: string }[]>(
       supabase.from('season_badges').select('code, tier, quarter_start').eq('user_id', userId!).order('quarter_start', { ascending: false })),
   });
-}
-
-/** Pick which season badge goes on your card (only shows once you've earned one). */
-function SeasonChooser({ value, onChoose }: { value: string | null; onChoose: (code: string | null) => void }) {
-  const { userId } = useAuth();
-  const badges = useSeasonBadges(userId);
-  if (!badges.data?.length) return null;
-  return (
-    <View style={{ gap: space.sm }}>
-      <Text variant="caption" tone="muted">Season badge</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 2, alignItems: 'center' }}>
-        <Chip label="None" selected={!value} onPress={() => onChoose(null)} />
-        {badges.data.map((b) => (
-          <Chip key={b.code} label={parseSeasonBadge(b.code)?.label ?? b.code} selected={value === b.code} onPress={() => onChoose(b.code)}
-            icon={<SeasonEmblem code={b.code} size={14} />} />
-        ))}
-      </ScrollView>
-    </View>
-  );
 }

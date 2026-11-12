@@ -3,7 +3,7 @@ import { View, type HostInstance } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { radius, space } from '@/theme/tokens';
 import { Avatar, Text } from '@/components/ui';
-import { rating } from '@/domain/format';
+import { POSITION_LABEL, rating } from '@/domain/format';
 import { SEASON_CHAMPION, TRACKS, cardStyle, levelInfo, parseCode } from '@/domain/achievements';
 import { AchievementBadge } from './AchievementBadge';
 import { cardTitle } from '@/domain/titles';
@@ -29,8 +29,6 @@ export interface PlayerCardData {
   title?: string | null;
   /** up to five medal codes the player chose to show (e.g. goals_l4) */
   medals?: string[] | null;
-  /** the season badge shown on the card (e.g. s1_elite), if any */
-  season?: string | null;
   /** turned-up rate, once known (5+ commitments) */
   reliability?: { pct: number | null; attended: number } | null;
 }
@@ -140,16 +138,10 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
           <View style={{ alignItems: 'center' }}>
             <Text variant="display" color="#F4F6F8" style={{ fontSize: compact ? 42 : 54, lineHeight: compact ? 44 : 56 }}>{rating(s?.rating)}</Text>
             <Text variant="overline" color={st.accent}>{data.position === 'ANY' ? 'ALL' : data.position}</Text>
-            {/* the season badge sits with the rating, like a rank on a game card */}
-            {!!parseSeasonBadge(data.season) && (
-              <View accessible accessibilityLabel={`Season badge: ${parseSeasonBadge(data.season)!.label}`} style={{ marginTop: compact ? 6 : 8 }}>
-                <SeasonEmblem code={data.season!} size={compact ? 24 : roomy ? 36 : 30} />
-              </View>
-            )}
             {(!!data.nationality || !!data.supported_club) && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: compact ? 5 : 7, marginTop: compact ? 6 : 8 }}>
-                {!!data.nationality && <Flag code={data.nationality} height={compact ? 13 : 15} />}
-                {!!data.supported_club && <ClubShield club={data.supported_club} size={compact ? 20 : 22} />}
+              <View style={{ alignItems: 'center', gap: 6, marginTop: 6 }}>
+                <Flag code={data.nationality} height={14} />
+                {!!data.supported_club && <ClubShield club={data.supported_club} size={24} />}
               </View>
             )}
           </View>
@@ -162,13 +154,24 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text variant={compact ? 'h3' : 'h2'} color="#F4F6F8" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{data.display_name}</Text>
             <Text variant="small" color={st.muted} numberOfLines={1}>@{data.username}</Text>
+            <Text variant="caption" color={st.muted} numberOfLines={1}>{POSITION_LABEL[data.position] ?? data.position}</Text>
             <ReliabilityMark r={data.reliability} accent={st.accent} muted={st.muted} compact={compact} />
-            {!!cardTitle(data.title) && (
-              <Text numberOfLines={1} color={st.accent} accessibilityLabel={`Title: ${cardTitle(data.title)!.label}`}
-                style={{ marginTop: 6, fontSize: 11, lineHeight: 14, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' }}>
-                {cardTitle(data.title)!.label}
-              </Text>
-            )}
+            {(() => {
+              const t = cardTitle(data.title);
+              if (!t) return null;
+              const titleStyle = { fontSize: 11, lineHeight: 14, fontWeight: '800' as const, letterSpacing: 1.2, textTransform: 'uppercase' as const };
+              // a ranked title wears its season badge, in the tier's colour
+              const ranked = t.req.kind === 'season' ? parseSeasonBadge(t.req.code) : null;
+              if (ranked) {
+                return (
+                  <View accessible accessibilityLabel={`Title: ${t.label}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                    <SeasonEmblem code={ranked.code} size={compact ? 18 : 20} />
+                    <Text numberOfLines={1} color={ranked.info.colour} style={[titleStyle, { flexShrink: 1 }]}>{t.label}</Text>
+                  </View>
+                );
+              }
+              return <Text numberOfLines={1} color={st.accent} accessibilityLabel={`Title: ${t.label}`} style={[titleStyle, { marginTop: 6 }]}>{t.label}</Text>;
+            })()}
           </View>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: space.md }}>

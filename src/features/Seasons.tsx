@@ -251,7 +251,7 @@ function Reveal({ r, isMe, newSeason, onClose }: { r: SeasonResult; isMe: boolea
                 <View style={{ flex: 1 }}>
                   <Text variant="caption" color="#D4B8F0">Your season</Text>
                   <Text style={{ fontFamily: fonts.scoreHeavy, fontSize: 22, lineHeight: 26, color: myBadge.info.colour }}>{myBadge.label.toUpperCase()}</Text>
-                  <Text variant="caption" color="#D4B8F0">{myBadge.info.hint}. It’s on your card now.</Text>
+                  <Text variant="caption" color="#D4B8F0">{myBadge.info.hint}. A new ranked title for your card.</Text>
                 </View>
               </View>
             )}

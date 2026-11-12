@@ -40,7 +40,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   const links = useQuery({ queryKey: ['player', userId, 'connections'], queryFn: () => rpc<Connections | null>('get_player_connections', { p_user: userId }) });
   const bests = useQuery({ queryKey: ['player', userId, 'bests'], queryFn: () => rpc<PersonalBests | null>('get_personal_bests', { p_user: userId }) });
   // card style, flag and club live on the profile row (readable by everyone signed in)
-  const style = useQuery({ queryKey: ['player', userId, 'card'], queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null; card_medals: string[]; card_title: string | null; card_season: string | null } | null>(supabase.from('profiles').select('card_style, nationality, supported_club, card_medals, card_title, card_season').eq('id', userId).maybeSingle()) });
+  const style = useQuery({ queryKey: ['player', userId, 'card'], queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null; card_medals: string[]; card_title: string | null } | null>(supabase.from('profiles').select('card_style, nationality, supported_club, card_medals, card_title').eq('id', userId).maybeSingle()) });
 
   // the card as everyone sees it; your own is also saved as a picture for your invite-link preview
   const pd = profile.data;
@@ -48,7 +48,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
     ...pd.profile, stats: pd.stats ? { ...pd.stats, rating: pd.stats.rating } : null,
     achievements: medalPoints(new Set<string>((pd.achievements ?? []).map((a: { code: string }) => a.code))),
     card_style: style.data?.card_style, nationality: style.data?.nationality, supported_club: style.data?.supported_club,
-    medals: style.data?.card_medals, title: style.data?.card_title, season: style.data?.card_season, reliability: reliability.data?.[userId] ?? null,
+    medals: style.data?.card_medals, title: style.data?.card_title, reliability: reliability.data?.[userId] ?? null,
   } : null;
   const still = useCardSnapshot(cardRef, userId, style.data && reliability.data ? cardData : null, !!pd?.is_self);
 

@@ -37,7 +37,7 @@ export default function EditProfile() {
   const [avatar, setAvatar] = useState(profile?.avatar_url ?? null);
   const [nationality, setNationality] = useState<string | null>(profile?.nationality ?? null);
   const [club, setClub] = useState<string | null>(profile?.supported_club ?? null);
-  const savedCard: CardDraft | null = card ? { style: card.card_style ?? 'classic', title: card.title ?? null, medals: card.medals ?? [], season: card.season ?? null } : null;
+  const savedCard: CardDraft | null = card ? { style: card.card_style ?? 'classic', title: card.title ?? null, medals: card.medals ?? [] } : null;
   const [cardDraft, setCardDraft] = useState<CardDraft | null>(null);
   const draft = cardDraft ?? savedCard;
   const [picker, setPicker] = useState<'country' | 'club' | null>(null);
@@ -71,7 +71,6 @@ export default function EditProfile() {
         if (cardDraft.style !== savedCard.style) await rpc('set_card_style', { p_style: cardDraft.style });
         if (cardDraft.title !== savedCard.title) await rpc('set_card_title', { p_title: cardDraft.title });
         if (!same(cardDraft.medals, savedCard.medals)) await rpc('set_card_medals', { p_codes: cardDraft.medals });
-        if (cardDraft.season !== savedCard.season) await rpc('set_card_season', { p_code: cardDraft.season });
       }
       await refreshProfile();
       qc.invalidateQueries({ queryKey: ['player'] });
