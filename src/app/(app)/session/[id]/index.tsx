@@ -47,6 +47,8 @@ import { NeedPlayers } from '@/features/NeedPlayers';
 import { MatchdayHero, isMatchday } from '@/features/MatchdayHero';
 import { checkInOrQueue } from '@/lib/offline';
 import { locateSessionLater } from '@/lib/sessionLocation';
+import { useCardSeasons } from '@/features/SeasonPips';
+import { SeasonPip } from '@/components/football/SeasonBadge';
 
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -108,6 +110,7 @@ export default function SessionScreen() {
       pending: d.invited.filter((p) => !responded.has(p.id)),
     };
   }, [d]);
+  const squadSeasons = useCardSeasons(groups?.confirmed.map((a) => a.user_id) ?? []);
 
   if (detail.isLoading) return <Screen><Header title="Game" /><Loading /></Screen>;
   if (!d || !groups) return <Screen><Header title="Game" /><ErrorState error={detail.error} onRetry={detail.refetch} /></Screen>;
@@ -624,7 +627,7 @@ export default function SessionScreen() {
           <Card padded={false}>
           {groups.confirmed.map((a, i) => (
             <Row key={a.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
-              <Avatar uri={a.profile.avatar_url} name={a.profile.display_name} size={36} />
+              <View><Avatar uri={a.profile.avatar_url} name={a.profile.display_name} size={36} /><SeasonPip code={squadSeasons[a.user_id]} avatar={36} /></View>
               <View style={{ flex: 1 }}>
                 <Text variant="bodyStrong" onPress={() => router.push(`/player/${a.user_id}`)}>{a.profile.display_name}{a.user_id === s.host_id ? ' · host' : ''}</Text>
                 <Text variant="caption" tone="muted">@{a.profile.username}{a.checked_in_at ? ' · checked in' : ''}{a.late_arrival ? ' · late' : ''}</Text>

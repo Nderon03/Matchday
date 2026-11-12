@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Chip, Row, SwipeSelect, Text, useToast } from '@/components/ui';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
-import { CARD_TITLES, cardTitle, titleUnlocked } from '@/domain/titles';
+import { CARD_TITLES, cardTitle, seasonTitle, titleUnlocked, type CardTitle } from '@/domain/titles';
 import { CardFX } from '@/components/football/CardFX';
 import { CardMedals, MAX_CARD_MEDALS, PERFECT_RELIABILITY_GAMES, PlayerCard, type PlayerCardData } from '@/components/football/PlayerCard';
 import { CARD_STYLES, SEASON_CHAMPION, TRACKS, cardStyle, levelInfo, medalPoints, parseCode, type CardStyle } from '@/domain/achievements';
@@ -92,6 +92,8 @@ export function CardStylePicker({ draft, onDraft, overrides, actions }: {
   const { colors } = useTheme();
   const mine = useMyAchievements();
   const card = useMyCardData();
+  const { userId: me } = useAuth();
+  const seasonBadges = useSeasonBadges(me);
   // locked things you're just looking at (not chosen)
   const [previewStyle, setPreviewStyle] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string | null>(null);
@@ -99,6 +101,7 @@ export function CardStylePicker({ draft, onDraft, overrides, actions }: {
   const have = {
     codes: new Set((mine.data?.items ?? []).filter((i) => i.unlocked_at).map((i) => i.code)), points,
     perfectlyReliable: card?.reliability?.pct === 100 && (card?.reliability?.attended ?? 0) >= PERFECT_RELIABILITY_GAMES,
+    seasons: new Set((seasonBadges.data ?? []).map((b) => b.code)),
   };
   const shown = cardStyle(previewStyle ?? draft.style);
   const locked = points < shown.points;
@@ -180,15 +183,17 @@ export function CardStylePicker({ draft, onDraft, overrides, actions }: {
  * your card as a preview with what it takes to unlock them.
  */
 function TitleChooser({ value, have, onChoose }: {
-  value: string | null; have: { codes: Set<string>; points: number; perfectlyReliable: boolean }; onChoose: (id: string | null) => void;
+  value: string | null; have: { codes: Set<string>; points: number; perfectlyReliable: boolean; seasons?: Set<string> }; onChoose: (id: string | null) => void;
 }) {
   const { colors } = useTheme();
   const shown = cardTitle(value);
   const lockedShown = !!shown && !titleUnlocked(shown, have);
-  const unlockedCount = CARD_TITLES.filter((t) => titleUnlocked(t, have)).length;
+  // season titles (S1 Champion…) come first: you only see the ones you've earned
+  const all: CardTitle[] = [...[...(have.seasons ?? [])].map(seasonTitle).filter((t): t is CardTitle => !!t), ...CARD_TITLES];
+  const unlockedCount = all.filter((t) => titleUnlocked(t, have)).length;
   return (
     <View style={{ gap: space.sm }}>
-      <Text variant="caption" tone="muted">Title · {unlockedCount}/{CARD_TITLES.length} unlocked</Text>
+      <Text variant="caption" tone="muted">Title · {unlockedCount}/{all.length} unlocked</Text>
       {lockedShown && (
         <Row gap={6}>
           <Ionicons name="lock-closed" size={13} color={colors.warning} />
@@ -197,7 +202,7 @@ function TitleChooser({ value, have, onChoose }: {
       )}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 2 }}>
         <Chip label="None" selected={!value} onPress={() => onChoose(null)} />
-        {[...CARD_TITLES].sort((a, b) => Number(titleUnlocked(b, have)) - Number(titleUnlocked(a, have))).map((t) => {
+        {[...all].sort((a, b) => Number(titleUnlocked(b, have)) - Number(titleUnlocked(a, have))).map((t) => {
           const open = titleUnlocked(t, have);
           return (
             <Chip key={t.id} label={t.label} selected={value === t.id} onPress={() => onChoose(t.id)}

@@ -33,6 +33,8 @@ import { ReliabilityChip, useReliability } from '@/features/Reliability';
 import { GroupWelcome } from '@/features/GroupWelcome';
 import { HelpButton } from '@/features/ScreenHelp';
 import { SeasonRace } from '@/features/Seasons';
+import { useCardSeasons } from '@/features/SeasonPips';
+import { SeasonPip } from '@/components/football/SeasonBadge';
 
 type Tab = 'overview' | 'games' | 'tables' | 'history' | 'members';
 const AWARD_LABEL: Record<string, string> = {
@@ -101,6 +103,7 @@ export default function GroupScreen() {
     if (finished && isNew === '1') setInviteOpen(true);
   };
 
+  const memberSeasons = useCardSeasons(group.data?.members.map((m) => m.user_id) ?? []);
   if (group.isLoading) return <Screen><Header title="Group" /><Loading /></Screen>;
   if (!group.data) return <Screen><Header title="Group" /><ErrorState error={group.error} onRetry={group.refetch} /></Screen>;
   const { group: g, members, seasons, myRole, joinRequests, settings } = group.data;
@@ -263,7 +266,7 @@ export default function GroupScreen() {
         <Card padded={false}>
           {members.map((m, i) => (
             <Row key={m.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
-              <Avatar uri={m.profile.avatar_url} name={m.profile.display_name} size={36} />
+              <View><Avatar uri={m.profile.avatar_url} name={m.profile.display_name} size={36} /><SeasonPip code={memberSeasons[m.user_id]} avatar={36} /></View>
               <View style={{ flex: 1 }}>
                 <Text variant="bodyStrong" onPress={() => router.push(`/player/${m.user_id}`)}>{m.profile.display_name}</Text>
                 <Text variant="caption" tone="muted">@{m.profile.username} · joined {formatDate(m.joined_at)}</Text>

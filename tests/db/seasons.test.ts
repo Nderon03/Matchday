@@ -164,6 +164,11 @@ describe('season badges', () => {
     await db.rpc(u, 'set_card_season', { p_code: null });
     await db.admin(`select public.give_season_badge($1, '2027-04-01', 'champion', null, null)`, [u]);
     expect((await db.admin(`select card_season from profiles where id = $1`, [u]))[0].card_season).toBeNull();
+    // each badge unlocks its title; others stay locked
+    await db.rpc(u, 'set_card_title', { p_title: 'season:s2_champion' });
+    expect((await db.admin(`select card_title from profiles where id = $1`, [u]))[0].card_title).toBe('season:s2_champion');
+    await expectAppError(db.rpc(u, 'set_card_title', { p_title: 'season:s1_champion' }), 'title_locked');
+    await db.rpc(u, 'set_card_title', { p_title: 'weekend_warrior' });
     await db.rpc(u, 'set_card_season', { p_code: 's2_champion' });
     expect((await db.admin(`select card_season from profiles where id = $1`, [u]))[0].card_season).toBe('s2_champion');
   });

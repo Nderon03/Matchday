@@ -10,7 +10,8 @@ import { cardTitle } from '@/domain/titles';
 import { Ionicons } from '@expo/vector-icons';
 import { ClubShield, Flag } from './Identity';
 import { CardFX, PhotoHalo, PhotoLaurel } from './CardFX';
-import { SeasonBadgeChip } from './SeasonBadge';
+import { SeasonEmblem } from './SeasonBadge';
+import { parseSeasonBadge } from '@/domain/seasonBadges';
 
 export interface PlayerCardData {
   display_name: string;
@@ -139,6 +140,12 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
           <View style={{ alignItems: 'center' }}>
             <Text variant="display" color="#F4F6F8" style={{ fontSize: compact ? 42 : 54, lineHeight: compact ? 44 : 56 }}>{rating(s?.rating)}</Text>
             <Text variant="overline" color={st.accent}>{data.position === 'ANY' ? 'ALL' : data.position}</Text>
+            {/* the season badge sits with the rating, like a rank on a game card */}
+            {!!parseSeasonBadge(data.season) && (
+              <View accessible accessibilityLabel={`Season badge: ${parseSeasonBadge(data.season)!.label}`} style={{ marginTop: 6 }}>
+                <SeasonEmblem code={data.season!} size={compact ? 26 : roomy ? 38 : 32} />
+              </View>
+            )}
             {(!!data.nationality || !!data.supported_club) && (
               <View style={{ alignItems: 'center', gap: 6, marginTop: 6 }}>
                 <Flag code={data.nationality} height={14} />
@@ -163,7 +170,6 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
                 {cardTitle(data.title)!.label}
               </Text>
             )}
-            {!!data.season && <SeasonBadgeChip code={data.season} compact={compact} />}
           </View>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: space.md }}>

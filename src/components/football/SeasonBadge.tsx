@@ -45,3 +45,22 @@ export function SeasonBadgeChip({ code, compact }: { code: string; compact?: boo
     </View>
   );
 }
+
+/**
+ * A tiny rank pip for the corner of a player's photo in lists, team sheets and the pitch: the tier's
+ * colours and icon. Sized from the photo, so it scales with it.
+ */
+export function SeasonPip({ code, avatar }: { code: string | null | undefined; avatar: number }) {
+  const b = parseSeasonBadge(code);
+  if (!b) return null;
+  const size = Math.max(14, Math.round(avatar * 0.42));
+  return (
+    <View pointerEvents="none" accessible accessibilityLabel={b.label}
+      style={{ position: 'absolute', top: -size * 0.28, right: -size * 0.28, width: size, height: size * 1.1, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size * 1.1} viewBox="0 0 40 44" style={{ position: 'absolute' }}>
+        <Path d="M20 1.5 L37.5 11.5 L37.5 32.5 L20 42.5 L2.5 32.5 L2.5 11.5 Z" fill={b.info.fill} stroke={b.info.colour} strokeWidth={3.2} />
+      </Svg>
+      <Ionicons name={b.info.icon} size={size * 0.5} color={b.info.colour} />
+    </View>
+  );
+}

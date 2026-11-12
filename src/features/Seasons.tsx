@@ -7,7 +7,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Avatar, Button, Card, Text } from '@/components/ui';
 import { Confetti } from '@/components/football/Confetti';
 import { PhotoLaurel } from '@/components/football/CardFX';
-import { SeasonEmblem } from '@/components/football/SeasonBadge';
+import { SeasonEmblem, SeasonPip } from '@/components/football/SeasonBadge';
+import { useCardSeasons } from '@/features/SeasonPips';
 import { parseSeasonBadge } from '@/domain/seasonBadges';
 import { rpc } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
@@ -78,6 +79,7 @@ export function SeasonRace({ groupId, userId, top, onSeeAll }: { groupId: string
   const { colors } = useTheme();
   const now = useNow(60_000);
   const race = useSeasonRace(groupId);
+  const pips = useCardSeasons((race.data?.rows ?? []).map((r) => r.user_id));
   const d = race.data;
   if (!d) return null;
   const daysLeft = Math.max(0, Math.ceil((new Date(`${d.ends_on}T23:59:59`).getTime() - now) / 86400_000));
@@ -98,7 +100,7 @@ export function SeasonRace({ groupId, userId, top, onSeeAll }: { groupId: string
           backgroundColor: medal ? `${medal}26` : 'transparent', borderWidth: medal ? 1 : 0, borderColor: medal ?? undefined }}>
           <Text variant="smallStrong" color={medal ?? colors.textMuted}>{r.rank ?? '–'}</Text>
         </View>
-        <Avatar uri={r.avatar_url} name={r.name} size={32} />
+        <View><Avatar uri={r.avatar_url} name={r.name} size={32} /><SeasonPip code={pips[r.user_id]} avatar={32} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text variant="bodyStrong" numberOfLines={1}>{r.name}{mine ? ' (you)' : ''}</Text>
           <Text variant="caption" tone="muted" numberOfLines={2}>

@@ -19,6 +19,7 @@ import { removeSessionPlayer } from '@/features/removePlayer';
 import { TeamsReveal } from '@/features/moments/TeamsReveal';
 import { useAuth } from '@/providers/AuthProvider';
 import { ScreenHelp, Spot } from '@/features/ScreenHelp';
+import { useCardSeasons } from '@/features/SeasonPips';
 
 type Strengths = { players: BalancePlayer[]; pairings: { user_a: string; user_b: string; times: number }[] };
 
@@ -95,6 +96,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
     }
     return map;
   }, [d]);
+  const seasons = useCardSeasons(Object.keys(players));
   // guests have no history, so the balancer treats them as an average (6.0) player
   const withGuests = (pool: BalancePlayer[]): BalancePlayer[] => [
     ...pool,
@@ -288,6 +290,7 @@ function LineupEditor({ id, detail: d, fixture, strengths, strengthsLoading, aut
         teamNames={names}
         teamColours={{ A: fixture.teams[0]?.colour ?? '#22C55E', B: fixture.teams[1]?.colour ?? '#F5F5F5' }}
         payments={payments}
+        seasons={seasons}
         showPayments={d.session.payment_mode !== 'free'}
         exemptFromPayment={d.session.host_id}
         ratings={ratings}

@@ -1,3 +1,5 @@
+import { parseSeasonBadge } from './seasonBadges';
+
 /**
  * Player card titles: a short line under your name. A few are free; the rest unlock with medals,
  * Player of the Season, perfect reliability or medal points. The same rules are checked on the
@@ -7,7 +9,8 @@ export type TitleRequirement =
   | { kind: 'free' }
   | { kind: 'medal'; code: string }
   | { kind: 'points'; points: number }
-  | { kind: 'reliable' };
+  | { kind: 'reliable' }
+  | { kind: 'season'; code: string };
 
 export interface CardTitle { id: string; label: string; hint: string; req: TitleRequirement }
 
@@ -49,14 +52,23 @@ export const CARD_TITLES: CardTitle[] = [
   { id: 'legend', label: 'Legend', hint: 'Reach Hall of Fame (40 medal points)', req: { kind: 'points', points: 40 } },
 ];
 
-export const cardTitle = (id?: string | null) => CARD_TITLES.find((t) => t.id === id) ?? null;
+/** Each season badge unlocks a matching title: 'season:s1_champion' is "S1 Champion". */
+export function seasonTitle(code: string): CardTitle | null {
+  const b = parseSeasonBadge(code);
+  if (!b) return null;
+  return { id: `season:${code}`, label: b.label, hint: `Earn the ${b.label} badge`, req: { kind: 'season', code } };
+}
+
+export const cardTitle = (id?: string | null) =>
+  (id?.startsWith('season:') ? seasonTitle(id.slice(7)) : CARD_TITLES.find((t) => t.id === id)) ?? null;
 
 /** Whether a title is unlocked, from the player's medal codes, medal points and reliability. */
-export function titleUnlocked(t: CardTitle, have: { codes: Set<string>; points: number; perfectlyReliable: boolean }) {
+export function titleUnlocked(t: CardTitle, have: { codes: Set<string>; points: number; perfectlyReliable: boolean; seasons?: Set<string> }) {
   switch (t.req.kind) {
     case 'free': return true;
     case 'medal': return have.codes.has(t.req.code);
     case 'points': return have.points >= t.req.points;
     case 'reliable': return have.perfectlyReliable;
+    case 'season': return !!have.seasons?.has(t.req.code);
   }
 }

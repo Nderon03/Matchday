@@ -13,6 +13,7 @@ import { radius, space } from '@/theme/tokens';
 import { Avatar, Text } from '@/components/ui';
 import type { PlayerPosition, PaymentStatus } from '@/types/db';
 import { PaymentBadge } from './PaymentBadge';
+import { SeasonPip } from './SeasonBadge';
 import { arrangeOutfield, type Slot, type LineupState, type Zone } from '@/domain/lineup';
 
 export type { Slot, LineupState, Zone } from '@/domain/lineup';
@@ -37,6 +38,8 @@ interface TokenProps {
   colour: string;
   payment?: PaymentStatus;
   showPayment?: boolean;
+  /** the player's season badge, shown as a rank pip */
+  season?: string | null;
   selected?: boolean;
   editable: boolean;
   onTap: () => void;
@@ -49,7 +52,7 @@ interface TokenProps {
 
 const POS_SHORT: Record<string, string> = { GK: 'GK', DEF: 'DEF', MID: 'MID', FWD: 'FWD', ANY: 'ANY' };
 
-function Token({ player, slot, colour, payment, showPayment, selected, editable, onTap, onDrop, onDragState, size = 44, rating }: TokenProps) {
+function Token({ player, slot, colour, payment, showPayment, season, selected, editable, onTap, onDrop, onDragState, size = 44, rating }: TokenProps) {
   const { colors } = useTheme();
   const [pan] = useState(() => new Animated.ValueXY());
   const dragging = useRef(false);
@@ -105,6 +108,7 @@ function Token({ player, slot, colour, payment, showPayment, selected, editable,
     >
       <View>
         <Avatar uri={player.avatar_url} name={player.display_name} size={size} ring={selected ? colors.warning : colour} />
+        <SeasonPip code={season} avatar={size} />
         {!!(slot?.is_goalkeeper) && (
           <View style={{ position: 'absolute', top: -4, left: -4, backgroundColor: colors.warning, borderRadius: 8, paddingHorizontal: 4 }}>
             <Text variant="caption" color="#111" style={{ fontSize: 9, lineHeight: 13 }}>GK</Text>
@@ -148,6 +152,8 @@ export interface PitchProps {
   teamNames?: { A: string; B: string };
   teamColours?: { A: string; B: string };
   payments?: Record<string, PaymentStatus>;
+  /** each player's season badge (for the rank pips) */
+  seasons?: Record<string, string>;
   showPayments?: boolean;
   /** Average rating per player id (group rating, else career). */
   ratings?: Record<string, number | null>;
@@ -159,7 +165,7 @@ export interface PitchProps {
   onDragState?: (dragging: boolean) => void;
 }
 
-export function Pitch({ players, lineup, bench, editable, teamNames, teamColours, payments, showPayments, exemptFromPayment, ratings, selected, onTapPlayer, onMove, onDragState }: PitchProps) {
+export function Pitch({ players, lineup, bench, editable, teamNames, teamColours, payments, seasons, showPayments, exemptFromPayment, ratings, selected, onTapPlayer, onMove, onDragState }: PitchProps) {
   const { colors } = useTheme();
   const zones = useRef<Record<Zone, LayoutRectangle | null>>({ A: null, B: null, bench: null });
   const refA = useRef<HostInstance>(null);
@@ -209,7 +215,7 @@ export function Pitch({ players, lineup, bench, editable, teamNames, teamColours
           row.length ? (
             <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
               {row.map((s) => players[s.user_id] && (
-                <Token key={s.user_id} player={players[s.user_id]} slot={s} colour={colour} payment={payments?.[s.user_id]} showPayment={!!showPayments && s.user_id !== exemptFromPayment && !players[s.user_id]?.isGuest}
+                <Token key={s.user_id} player={players[s.user_id]} slot={s} colour={colour} season={seasons?.[s.user_id]} payment={payments?.[s.user_id]} showPayment={!!showPayments && s.user_id !== exemptFromPayment && !players[s.user_id]?.isGuest}
                   rating={ratings ? ratings[s.user_id] ?? null : undefined} selected={selected === s.user_id} editable={editable} onTap={() => onTapPlayer?.(s.user_id)} onDrop={dropAt(s.user_id)} onDragState={handleDragState} />
               ))}
             </View>
@@ -218,7 +224,7 @@ export function Pitch({ players, lineup, bench, editable, teamNames, teamColours
         {subs.length > 0 && (
           <View style={{ flexDirection: 'row', justifyContent: 'center', gap: space.sm, opacity: 0.85 }}>
             {subs.map((s) => players[s.user_id] && (
-              <Token key={s.user_id} size={34} player={players[s.user_id]} slot={s} colour={colour} payment={payments?.[s.user_id]} showPayment={!!showPayments && s.user_id !== exemptFromPayment && !players[s.user_id]?.isGuest}
+              <Token key={s.user_id} size={34} player={players[s.user_id]} slot={s} colour={colour} season={seasons?.[s.user_id]} payment={payments?.[s.user_id]} showPayment={!!showPayments && s.user_id !== exemptFromPayment && !players[s.user_id]?.isGuest}
                 rating={ratings ? ratings[s.user_id] ?? null : undefined} selected={selected === s.user_id} editable={editable} onTap={() => onTapPlayer?.(s.user_id)} onDrop={dropAt(s.user_id)} onDragState={handleDragState} />
             ))}
           </View>
@@ -262,7 +268,7 @@ export function Pitch({ players, lineup, bench, editable, teamNames, teamColours
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
             {bench.map((id) => players[id] && (
-              <Token key={id} size={38} player={players[id]} colour={colors.borderStrong} payment={payments?.[id]} showPayment={!!showPayments && id !== exemptFromPayment && !players[id]?.isGuest}
+              <Token key={id} size={38} player={players[id]} colour={colors.borderStrong} season={seasons?.[id]} payment={payments?.[id]} showPayment={!!showPayments && id !== exemptFromPayment && !players[id]?.isGuest}
                 rating={ratings ? ratings[id] ?? null : undefined} selected={selected === id} editable={editable} onTap={() => onTapPlayer?.(id)} onDrop={dropAt(id)} onDragState={handleDragState} />
             ))}
             {bench.length === 0 && <Text variant="small" tone="faint">Everyone has been picked.</Text>}
