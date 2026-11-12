@@ -3,7 +3,7 @@ import { View, type HostInstance } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { radius, space } from '@/theme/tokens';
 import { Avatar, Text } from '@/components/ui';
-import { POSITION_LABEL, rating } from '@/domain/format';
+import { rating } from '@/domain/format';
 import { SEASON_CHAMPION, TRACKS, cardStyle, levelInfo, parseCode } from '@/domain/achievements';
 import { AchievementBadge } from './AchievementBadge';
 import { cardTitle } from '@/domain/titles';
@@ -142,12 +142,12 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
             <Text variant="overline" color={st.accent}>{data.position === 'ANY' ? 'ALL' : data.position}</Text>
             {/* the season badge sits with the rating, like a rank on a game card */}
             {!!parseSeasonBadge(data.season) && (
-              <View accessible accessibilityLabel={`Season badge: ${parseSeasonBadge(data.season)!.label}`} style={{ marginTop: 6 }}>
-                <SeasonEmblem code={data.season!} size={compact ? 26 : roomy ? 38 : 32} />
+              <View accessible accessibilityLabel={`Season badge: ${parseSeasonBadge(data.season)!.label}`} style={{ marginTop: compact ? 6 : 8 }}>
+                <SeasonEmblem code={data.season!} size={compact ? 24 : roomy ? 36 : 30} />
               </View>
             )}
             {(!!data.nationality || !!data.supported_club) && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: compact ? 5 : 7, marginTop: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: compact ? 5 : 7, marginTop: compact ? 6 : 8 }}>
                 {!!data.nationality && <Flag code={data.nationality} height={compact ? 13 : 15} />}
                 {!!data.supported_club && <ClubShield club={data.supported_club} size={compact ? 20 : 22} />}
               </View>
@@ -162,7 +162,6 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text variant={compact ? 'h3' : 'h2'} color="#F4F6F8" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{data.display_name}</Text>
             <Text variant="small" color={st.muted} numberOfLines={1}>@{data.username}</Text>
-            <Text variant="caption" color={st.muted} numberOfLines={1}>{POSITION_LABEL[data.position] ?? data.position}</Text>
             <ReliabilityMark r={data.reliability} accent={st.accent} muted={st.muted} compact={compact} />
             {!!cardTitle(data.title) && (
               <Text numberOfLines={1} color={st.accent} accessibilityLabel={`Title: ${cardTitle(data.title)!.label}`}
