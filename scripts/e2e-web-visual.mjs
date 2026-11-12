@@ -52,8 +52,9 @@ const home = {
   groups: [{ id: GID, name: 'Wednesday Football', logo_url: null, my_rank: 2, leader: { display_name: 'Alex Reid', value: 7.6 } }],
 };
 const table = {
+  season_badges: [{ code: 'pre', tier: 'preseason', quarter_start: '2026-10-01' }],
   groups: [{ id: GID, name: 'Wednesday Football', description: 'Weekly 5-a-side in Hackney.', visibility: 'private', join_policy: 'request', location: 'Hackney', rules: null, logo_url: null, cover_url: null, created_by: ME }],
-  profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z', terms_version: LEGAL_VERSION, terms_accepted_at: '2026-11-01T00:00:00Z', card_style: 'gold', nationality: 'XK', supported_club: 'arsenal', card_medals: ['goals_l3', 'motm_l2', 'season_champion'], card_title: 'baller' }],
+  profiles: [{ ...people[0], onboarded: true, bio: 'Left foot only.', created_at: '2026-01-01T00:00:00Z', terms_version: LEGAL_VERSION, terms_accepted_at: '2026-11-01T00:00:00Z', card_style: 'gold', nationality: 'XK', supported_club: 'arsenal', card_medals: ['goals_l3', 'motm_l2', 'season_champion'], card_title: 'baller', card_season: 'pre' }],
   session_videos: [{ id: 'v1', session_id: SID, video_id: 'dQw4w9WgXcQ', title: 'Game 1', added_by: ME, created_at: kickoff }],
   payments: [],
   session_guests: [{ id: 'g1111111-1111-4111-8111-111111111111', session_id: SID, name: 'Dave', added_by: people[1].id, status: 'confirmed', created_at: kickoff },
@@ -106,7 +107,7 @@ const rpcs = {
     { user_id: 'r4', name: 'Leo Hart', avatar_url: null, apps: 5, rating: 6.8, motm: 0, score: 7.3, eligible: true, rank: 4 },
     { user_id: 'r5', name: 'Ali Khan', avatar_url: null, apps: 2, rating: 8.1, motm: 1, score: 9.05, eligible: false, rank: null },
   ] },
-  get_my_seasons: { current: { name: 'Autumn 2026', starts_on: '2026-10-01', ends_on: '2026-12-31' },
+  get_my_seasons: { current: { name: 'Autumn 2026', starts_on: '2026-10-01', ends_on: '2026-12-31', label: 'Pre-season' },
     groups: [{ group_id: GID, group_name: 'Wednesday Football', games: 5, my_games: 4, needed: 7, my_needed: 4 }], results: [] },
   get_match_reveals: [],
   get_calendar_feed: 'a'.repeat(64),
@@ -224,6 +225,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       else if (!calls.includes('set_card_image')) failures.push(`${vpName}: card picture not recorded`);
     }
     if (name === 'profile' && !(await page.getByLabel('Title: Baller').count())) failures.push(`${vpName}: card title missing`);
+    if (name === 'profile' && (!(await page.getByLabel('Season badge: Pre-season').count()) || !/Season history/i.test(await page.locator('body').innerText()))) failures.push(`${vpName}: season badge / history missing`);
     if (name === 'profile' && !(await page.getByLabel(/^Medals: Goals Gold, Man of the Match Silver, Player of the Season Legend/).count())) failures.push(`${vpName}: card medals missing`);
     if (name === 'achievements') {
       // Compare: one swipe for where from, then tap a side and search for a player
@@ -641,19 +643,19 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   // a season ends: the big reveal on Home, once
   {
     const before = rpcs.get_my_seasons.results;
-    rpcs.get_my_seasons.results = [{ season_id: 'se111111-1111-4111-8111-111111111111', season_name: 'Summer 2026', group_id: GID, group_name: 'Wednesday Football',
+    rpcs.get_my_seasons.results = [{ season_id: 'se111111-1111-4111-8111-111111111111', season_name: 'Summer 2026', season_label: 'Pre-season', my_badge: 'pre', group_id: GID, group_name: 'Wednesday Football',
       finalised_at: ago(1), games: 11, winners: [{ user_id: ME, name: 'Sam Carter', avatar_url: null, value: 8.66 }] }];
     await page.goto(base + '/', { waitUntil: 'networkidle' });
     await page.waitForTimeout(2600);
     const st = await page.locator('body').innerText();
-    if (!/SUMMER 2026 · SEASON OVER/.test(st) || !/SAM CARTER/.test(st) || !/That’s you!/.test(st)) failures.push(`${vpName}: season reveal missing`);
-    if (!/AUTUMN 2026/.test(st)) failures.push(`${vpName}: season countdown card missing`);
+    if (!/PRE-SEASON IS OVER/.test(st) || !/SAM CARTER/.test(st) || !/That’s you!/.test(st) || !/Your season[\s\S]*PRE-SEASON/.test(st)) failures.push(`${vpName}: season reveal missing`);
+    if (!/PRE-SEASON · AUTUMN 2026/.test(st)) failures.push(`${vpName}: season countdown card missing`);
     await page.screenshot({ path: join(OUT, `auth-${vpName}-season-reveal.png`) });
     await page.getByRole('button', { name: 'Close' }).last().click();
     await page.waitForTimeout(400);
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForTimeout(1500);
-    if (/SEASON OVER/.test(await page.locator('body').innerText())) failures.push(`${vpName}: season reveal shown twice`);
+    if (/IS OVER/.test(await page.locator('body').innerText())) failures.push(`${vpName}: season reveal shown twice`);
     rpcs.get_my_seasons.results = before;
   }
 

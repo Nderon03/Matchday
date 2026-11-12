@@ -10,6 +10,7 @@ import { cardTitle } from '@/domain/titles';
 import { Ionicons } from '@expo/vector-icons';
 import { ClubShield, Flag } from './Identity';
 import { CardFX, PhotoHalo, PhotoLaurel } from './CardFX';
+import { SeasonBadgeChip } from './SeasonBadge';
 
 export interface PlayerCardData {
   display_name: string;
@@ -27,6 +28,8 @@ export interface PlayerCardData {
   title?: string | null;
   /** up to five medal codes the player chose to show (e.g. goals_l4) */
   medals?: string[] | null;
+  /** the season badge shown on the card (e.g. s1_elite), if any */
+  season?: string | null;
   /** turned-up rate, once known (5+ commitments) */
   reliability?: { pct: number | null; attended: number } | null;
 }
@@ -160,6 +163,7 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
                 {cardTitle(data.title)!.label}
               </Text>
             )}
+            {!!data.season && <SeasonBadgeChip code={data.season} compact={compact} />}
           </View>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: space.md }}>

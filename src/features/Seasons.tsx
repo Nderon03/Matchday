@@ -7,6 +7,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Avatar, Button, Card, Text } from '@/components/ui';
 import { Confetti } from '@/components/football/Confetti';
 import { PhotoLaurel } from '@/components/football/CardFX';
+import { SeasonEmblem } from '@/components/football/SeasonBadge';
+import { parseSeasonBadge } from '@/domain/seasonBadges';
 import { rpc } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { happyMoment } from '@/lib/review';
@@ -21,10 +23,10 @@ const PURPLE = '#4C1D95';
 
 interface SeasonGroup { group_id: string; group_name: string; games: number; my_games: number; needed: number; my_needed: number }
 interface SeasonResult {
-  season_id: string; season_name: string; group_id: string; group_name: string; finalised_at: string; games: number | null;
+  season_id: string; season_name: string; season_label?: string; my_badge?: string | null; group_id: string; group_name: string; finalised_at: string; games: number | null;
   winners: { user_id: string; name: string; avatar_url: string | null; value: number }[];
 }
-export interface MySeasons { current: { name: string; starts_on: string; ends_on: string }; groups: SeasonGroup[]; results: SeasonResult[] }
+export interface MySeasons { current: { name: string; starts_on: string; ends_on: string; label?: string }; groups: SeasonGroup[]; results: SeasonResult[] }
 
 export const useMySeasons = (enabled = true) => useQuery({ queryKey: ['my-seasons'], enabled, queryFn: () => rpc<MySeasons>('get_my_seasons') });
 
@@ -42,7 +44,7 @@ export function SeasonCard({ data }: { data: MySeasons }) {
       <View style={{ gap: space.sm }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
           <Ionicons name="trophy-outline" size={18} color={GOLD} />
-          <Text style={{ fontFamily: fonts.score, fontSize: 16, letterSpacing: 2, color: colors.text, flex: 1 }}>{data.current.name.toUpperCase()}</Text>
+          <Text style={{ fontFamily: fonts.score, fontSize: 16, letterSpacing: 2, color: colors.text, flex: 1 }}>{data.current.label ? `${data.current.label.toUpperCase()} · ` : ''}{data.current.name.toUpperCase()}</Text>
           <Text variant="smallStrong" color={daysLeft <= 7 ? GOLD : colors.textMuted}>{daysLeft === 0 ? 'Ends today' : `${plural(daysLeft, 'day')} left`}</Text>
         </View>
         <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.surfaceAlt, overflow: 'hidden' }}>
@@ -62,7 +64,7 @@ export function SeasonCard({ data }: { data: MySeasons }) {
 }
 
 interface RaceRow { user_id: string; name: string; avatar_url: string | null; apps: number; rating: number | null; motm: number; score: number | null; eligible: boolean; rank: number | null }
-export interface SeasonRaceData { season_name: string; ends_on: string; games: number; needed: number; min_apps: number; rows: RaceRow[] }
+export interface SeasonRaceData { season_name: string; season_label?: string; players?: number; players_needed?: number; ends_on: string; games: number; needed: number; min_apps: number; rows: RaceRow[] }
 export const useSeasonRace = (groupId: string, enabled = true) =>
   useQuery({ queryKey: ['season-race', groupId], enabled, queryFn: () => rpc<SeasonRaceData>('get_season_race', { p_group: groupId }) });
 
@@ -117,7 +119,7 @@ export function SeasonRace({ groupId, userId, top, onSeeAll }: { groupId: string
           <Ionicons name="trophy" size={18} color={GOLD} />
           <View style={{ flex: 1 }}>
             <Text variant="bodyStrong">Race for Player of the Season</Text>
-            <Text variant="caption" tone="muted">{d.season_name} · {daysLeft === 0 ? 'ends today' : `${plural(daysLeft, 'day')} left`}</Text>
+            <Text variant="caption" tone="muted">{d.season_label ? `${d.season_label} · ` : ''}{d.season_name} · {daysLeft === 0 ? 'ends today' : `${plural(daysLeft, 'day')} left`}</Text>
           </View>
         </View>
         {!awardsOn && (
@@ -144,6 +146,9 @@ export function SeasonRace({ groupId, userId, top, onSeeAll }: { groupId: string
               <Text variant="caption" tone="muted">You’ve played {plural(me.apps, 'game')}. Play {d.min_apps - me.apps} more to join the race.</Text>
             )}
           </>
+        )}
+        {d.season_label !== 'Pre-season' && d.players_needed != null && (d.players ?? 0) < d.players_needed && (
+          <Text variant="caption" tone="muted">Ranked season badges need {d.players_needed} different players this season ({d.players ?? 0} so far). Everyone with 3+ games still gets Squad.</Text>
         )}
         <Text variant="caption" tone="faint">Score = average rating + a bonus for MOTM awards and for turning up.</Text>
         {!!onSeeAll && d.rows.length > shown.length && (
@@ -173,7 +178,7 @@ export function SeasonReveal({ data, userId }: { data: MySeasons; userId: string
     AsyncStorage.setItem(`matchday.seasonSeen.${next.season_id}`, '1').catch(() => undefined);
     setSeen({ ...seen, [next.season_id]: true });
   };
-  return <Reveal key={next.season_id} r={next} isMe={next.winners.some((w) => w.user_id === userId)} newSeason={data.current.name} onClose={close} />;
+  return <Reveal key={next.season_id} r={next} isMe={next.winners.some((w) => w.user_id === userId)} newSeason={data.current.label && data.current.label !== 'Pre-season' ? `${data.current.label} (${data.current.name})` : data.current.name} onClose={close} />;
 }
 
 function Reveal({ r, isMe, newSeason, onClose }: { r: SeasonResult; isMe: boolean; newSeason: string; onClose: () => void }) {
@@ -192,6 +197,7 @@ function Reveal({ r, isMe, newSeason, onClose }: { r: SeasonResult; isMe: boolea
   }, [reduceMotion, step, winners.length, isMe]);
   const done = () => { onClose(); if (isMe) happyMoment(); };
   const shared = winners.length > 1;
+  const myBadge = parseSeasonBadge(r.my_badge);
   return (
     <Modal visible transparent animationType="fade" onRequestClose={done} statusBarTranslucent>
       <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} />
@@ -199,8 +205,10 @@ function Reveal({ r, isMe, newSeason, onClose }: { r: SeasonResult; isMe: boolea
         <View accessibilityViewIsModal style={{ width: '100%', maxWidth: 400, borderRadius: radius.xl, overflow: 'hidden', borderWidth: 2, borderColor: GOLD, backgroundColor: '#12041F' }}>
           <View style={[StyleSheet.absoluteFill, { backgroundColor: PURPLE, opacity: 0.55 }]} />
           <View style={{ padding: space.xl, gap: space.md, alignItems: 'center' }}>
-            <Text style={{ fontFamily: fonts.score, color: GOLD, fontSize: 15, letterSpacing: 3 }}>{r.season_name.toUpperCase()} · SEASON OVER</Text>
-            <Text variant="small" color="#D4B8F0" align="center">{r.group_name}</Text>
+            <Text style={{ fontFamily: fonts.score, color: GOLD, fontSize: 15, letterSpacing: 3 }} align="center">
+              {r.season_label ? `${r.season_label.toUpperCase()} IS OVER` : `${r.season_name.toUpperCase()} · SEASON OVER`}
+            </Text>
+            <Text variant="small" color="#D4B8F0" align="center">{r.season_label ? `${r.season_name} · ` : ''}{r.group_name}</Text>
             {winners.length ? (
               <>
                 <Text variant="h2" color="#FFFFFF" align="center" accessibilityRole="header">{shared ? 'Players of the Season' : 'And the Player of the Season is…'}</Text>
@@ -232,6 +240,18 @@ function Reveal({ r, isMe, newSeason, onClose }: { r: SeasonResult; isMe: boolea
                 <Text variant="h3" color="#FFFFFF" align="center">No awards this time</Text>
                 <Text variant="small" color="#D4B8F0" align="center">{r.group_name} played {plural(r.games ?? 0, 'game')}; awards need 7 in a season. Get a few more games in this time.</Text>
               </>
+            )}
+            {!!myBadge && (
+              <View style={{ alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: space.md, marginTop: space.sm, padding: space.md,
+                borderRadius: radius.lg, backgroundColor: 'rgba(0,0,0,0.25)', borderWidth: 1, borderColor: `${myBadge.info.colour}66` }}
+                accessible accessibilityLabel={`Your season badge: ${myBadge.label}`}>
+                <SeasonEmblem code={myBadge.code} size={48} />
+                <View style={{ flex: 1 }}>
+                  <Text variant="caption" color="#D4B8F0">Your season</Text>
+                  <Text style={{ fontFamily: fonts.scoreHeavy, fontSize: 22, lineHeight: 26, color: myBadge.info.colour }}>{myBadge.label.toUpperCase()}</Text>
+                  <Text variant="caption" color="#D4B8F0">{myBadge.info.hint}. It’s on your card now.</Text>
+                </View>
+              </View>
             )}
             <Text variant="caption" color="#D4B8F0" align="center" style={{ marginTop: space.sm }}>{newSeason} has started. Everyone’s back to zero for the season (career stats are kept).</Text>
             <View style={{ alignSelf: 'stretch', gap: space.sm, marginTop: space.sm }}>

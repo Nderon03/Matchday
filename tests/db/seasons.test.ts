@@ -6,13 +6,13 @@ beforeAll(() => db.connect());
 afterAll(() => db.end());
 
 // a group with `games` finalised games this season, and each player's season in numbers
-async function season(games: number, players: { apps: number; rating: number; motm?: number; goals?: number }[]) {
+async function season(games: number, players: { apps: number; rating: number; motm?: number; goals?: number }[], day = 'current_date') {
   const host = await db.createUser(uniq('sh'));
   const users: string[] = [];
   for (let i = 0; i < players.length; i++) users.push(await db.createUser(uniq('sp')));
   const groupId = await db.rpc<string>(host, 'create_group', { p_name: 'Ranked FC', p_join_policy: 'open', p_visibility: 'private' });
   for (const u of users) await db.admin(`insert into group_members (group_id, user_id) values ($1, $2) on conflict do nothing`, [groupId, u]);
-  const [{ id: seasonId }] = await db.admin(`select public.ensure_group_season($1, current_date) id`, [groupId]);
+  const [{ id: seasonId }] = await db.admin(`select public.ensure_group_season($1, ${day}) id`, [groupId]);
   for (let g = 0; g < games; g++) {
     const sid = await db.rpc<string>(host, 'create_session', { p: { name: `Game ${g + 1}`, group_id: groupId, starts_at: new Date(Date.now() + 3600_000).toISOString(), format_size: 5 } });
     await db.admin(`update sessions set status = 'finalised', finalised_at = now(), season_id = $2 where id = $1`, [sid, seasonId]);
@@ -111,5 +111,60 @@ describe('season race and nudges', () => {
     await db.admin(`select public.run_season_nudges()`);
     const notes = await db.admin(`select title, body from notifications where type = 'season_nudge' and user_id = $1`, [users[0]]);
     expect(notes).toEqual([{ title: 'Ranked FC needs 3 more games', body: expect.stringMatching(/^two weeks left of .+\. Awards need 7 games in a season\.$/) }]);
+  });
+});
+
+describe('season badges', () => {
+  const badges = (users: string[]) => db.admin(`select user_id, code, tier from season_badges where user_id = any($1)`, [users]);
+  const codeOf = (rows: any[], u: string) => rows.find((r) => r.user_id === u)?.code ?? null;
+
+  it('Pre-season: everyone who played gets the one-off badge, and it goes on their card', async () => {
+    const { host, users, seasonId } = await season(3, [{ apps: 3, rating: 7 }, { apps: 1, rating: 6 }]);
+    await db.rpc(host, 'finalise_season', { p_season: seasonId });
+    const rows = await badges(users);
+    expect(rows.map((r) => [codeOf(rows, r.user_id), r.tier])).toEqual([['pre', 'preseason'], ['pre', 'preseason']]);
+    const [p] = await db.admin(`select card_season from profiles where id = $1`, [users[1]]);
+    expect(p.card_season).toBe('pre');
+  });
+
+  it('Season 1: Champion, Elite, Contender, Regular and Squad by where you finished', async () => {
+    // 8 games, 13 players: 10 qualify (8 games each, ratings 9.0 down to 6.3), two play 3 (Squad), one plays 1 (nothing)
+    const players = [
+      ...Array.from({ length: 10 }, (_, i) => ({ apps: 8, rating: 9 - i * 0.3 })),
+      { apps: 3, rating: 9.9 }, { apps: 3, rating: 5 }, { apps: 1, rating: 8 },
+    ];
+    const { host, users, seasonId } = await season(8, players, "date '2027-02-01'");
+    await db.rpc(host, 'finalise_season', { p_season: seasonId });
+    const rows = await badges(users);
+    expect(users.map((u) => codeOf(rows, u))).toEqual([
+      's1_champion', 's1_elite', 's1_elite', 's1_contender', 's1_contender',
+      's1_regular', 's1_regular', 's1_regular', 's1_regular', 's1_regular',
+      's1_squad', 's1_squad', null,
+    ]);
+    const label = await db.admin(`select public.season_label(date '2027-04-01') a, public.season_label(date '2026-11-01') b`);
+    expect(label[0]).toEqual({ a: 'Season 2', b: 'Pre-season' });
+  });
+
+  it('fewer than 10 players: no ranked badges (Squad only), though Player of the Season is still awarded', async () => {
+    const { host, users, seasonId } = await season(8, Array.from({ length: 9 }, (_, i) => ({ apps: 8, rating: 8 - i * 0.2 })), "date '2027-02-01'");
+    await db.rpc(host, 'finalise_season', { p_season: seasonId });
+    const rows = await badges(users);
+    expect(new Set(users.map((u) => codeOf(rows, u)))).toEqual(new Set(['s1_squad']));
+    const pots = await db.admin(`select user_id from season_awards where season_id = $1 and award = 'player_of_season'`, [seasonId]);
+    expect(pots).toEqual([{ user_id: users[0] }]);
+  });
+
+  it('keeps your best badge of the season; you can pick yours or none, and then it stays put', async () => {
+    const u = await db.createUser(uniq('sb'));
+    const q = '2027-01-01';
+    for (const tier of ['squad', 'elite', 'contender']) await db.admin(`select public.give_season_badge($1, $2, $3, null, null)`, [u, q, tier]);
+    expect((await badges([u])).map((r) => r.code)).toEqual(['s1_elite']);
+    expect((await db.admin(`select card_season from profiles where id = $1`, [u]))[0].card_season).toBe('s1_elite');
+    await expectAppError(db.rpc(u, 'set_card_season', { p_code: 's1_champion' }), 'title_locked');
+    await db.rpc(u, 'set_card_season', { p_code: null });
+    await db.admin(`select public.give_season_badge($1, '2027-04-01', 'champion', null, null)`, [u]);
+    expect((await db.admin(`select card_season from profiles where id = $1`, [u]))[0].card_season).toBeNull();
+    await db.rpc(u, 'set_card_season', { p_code: 's2_champion' });
+    expect((await db.admin(`select card_season from profiles where id = $1`, [u]))[0].card_season).toBe('s2_champion');
   });
 });

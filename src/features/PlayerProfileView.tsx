@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Platform, Pressable, View, type HostInstance } from 'react-native';
+import { Platform, Pressable, ScrollView, View, type HostInstance } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -20,6 +20,9 @@ import { space } from '@/theme/tokens';
 import { ReliabilityChip, useReliability } from '@/features/Reliability';
 import { HandshakeModal, type Friend } from '@/features/moments/Handshake';
 import { Spot } from '@/features/ScreenHelp';
+import { useSeasonBadges } from '@/features/CardStylePicker';
+import { SeasonEmblem } from '@/components/football/SeasonBadge';
+import { parseSeasonBadge } from '@/domain/seasonBadges';
 
 export function PlayerProfileView({ userId }: { userId: string }) {
   const { colors } = useTheme();
@@ -33,10 +36,11 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   const [newFriend, setNewFriend] = useState<Friend | null>(null);
   const [reason, setReason] = useState('');
   const reliability = useReliability([userId]);
+  const seasonBadges = useSeasonBadges(userId);
   const links = useQuery({ queryKey: ['player', userId, 'connections'], queryFn: () => rpc<Connections | null>('get_player_connections', { p_user: userId }) });
   const bests = useQuery({ queryKey: ['player', userId, 'bests'], queryFn: () => rpc<PersonalBests | null>('get_personal_bests', { p_user: userId }) });
   // card style, flag and club live on the profile row (readable by everyone signed in)
-  const style = useQuery({ queryKey: ['player', userId, 'card'], queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null; card_medals: string[]; card_title: string | null } | null>(supabase.from('profiles').select('card_style, nationality, supported_club, card_medals, card_title').eq('id', userId).maybeSingle()) });
+  const style = useQuery({ queryKey: ['player', userId, 'card'], queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null; card_medals: string[]; card_title: string | null; card_season: string | null } | null>(supabase.from('profiles').select('card_style, nationality, supported_club, card_medals, card_title, card_season').eq('id', userId).maybeSingle()) });
 
   // the card as everyone sees it; your own is also saved as a picture for your invite-link preview
   const pd = profile.data;
@@ -44,7 +48,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
     ...pd.profile, stats: pd.stats ? { ...pd.stats, rating: pd.stats.rating } : null,
     achievements: medalPoints(new Set<string>((pd.achievements ?? []).map((a: { code: string }) => a.code))),
     card_style: style.data?.card_style, nationality: style.data?.nationality, supported_club: style.data?.supported_club,
-    medals: style.data?.card_medals, title: style.data?.card_title, reliability: reliability.data?.[userId] ?? null,
+    medals: style.data?.card_medals, title: style.data?.card_title, season: style.data?.card_season, reliability: reliability.data?.[userId] ?? null,
   } : null;
   const still = useCardSnapshot(cardRef, userId, style.data && reliability.data ? cardData : null, !!pd?.is_self);
 
@@ -106,6 +110,23 @@ export function PlayerProfileView({ userId }: { userId: string }) {
       <Text variant="caption" tone="faint">{POSITION_LABEL[p.position]} · Joined {formatDate(p.created_at)} · {plural(d.friends_count, 'friend')}</Text>
       {/* 90%+ is already on the card; below that it shows here so hosts can see it */}
       {(reliability.data?.[userId]?.pct ?? 100) < 90 && <ReliabilityChip r={reliability.data?.[userId]} />}
+
+      {!!seasonBadges.data?.length && (
+        <View style={{ gap: space.sm }}>
+          <Text variant="overline" tone="muted">Season history</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.md }}>
+            {[...seasonBadges.data].reverse().map((b) => {
+              const info = parseSeasonBadge(b.code);
+              return (
+                <View key={b.code} style={{ alignItems: 'center', gap: 4, width: 64 }} accessible accessibilityLabel={info?.label}>
+                  <SeasonEmblem code={b.code} size={40} />
+                  <Text variant="caption" color={info?.info.colour} numberOfLines={1} style={{ fontWeight: '700' }}>{info?.tier === 'preseason' ? 'Pre-season' : info?.info.name}</Text>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
       {d.groups.length > 0 && d.can_view_stats && (
         <Spot id={d.is_self ? 'profile.stats' : 'player.stats'}><SwipeSelect label="Stats" value={groupId} onChange={setGroupId}
