@@ -147,9 +147,9 @@ export const PlayerCard = forwardRef<HostInstance, { data: PlayerCardData; still
               </View>
             )}
             {(!!data.nationality || !!data.supported_club) && (
-              <View style={{ alignItems: 'center', gap: 6, marginTop: 6 }}>
-                <Flag code={data.nationality} height={14} />
-                {!!data.supported_club && <ClubShield club={data.supported_club} size={24} />}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: compact ? 5 : 7, marginTop: 8 }}>
+                {!!data.nationality && <Flag code={data.nationality} height={compact ? 13 : 15} />}
+                {!!data.supported_club && <ClubShield club={data.supported_club} size={compact ? 20 : 22} />}
               </View>
             )}
           </View>
