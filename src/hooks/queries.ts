@@ -135,6 +135,8 @@ export function useSessionDetail(id: string) {
     // a session changes often (RSVPs, invites, line-ups): always refresh when a screen opens
     staleTime: 0,
     refetchOnMount: 'always',
+    // also runs on data saved for offline use by an older version, so a hidden profile can't crash a screen
+    select: safeSessionDetail,
     queryFn: async (): Promise<SessionDetail> => {
       const session = await q<Session>(supabase.from('sessions').select('*').eq('id', id).single());
       const [attendance0, invites, fixtures, hosts, submissions, goals, payments, motm, stats, isManager, group, host, guests, videos] = await Promise.all([
@@ -154,7 +156,7 @@ export function useSessionDetail(id: string) {
         // match videos (older databases without the table just show none)
         q<SessionVideo[]>(supabase.from('session_videos').select('*').eq('session_id', id).order('created_at')).catch(() => [] as SessionVideo[]),
       ]);
-      const attendance = withProfile(attendance0);
+      const attendance = attendance0;
       const approved = new Map<string, { user_id: string; goals: number; assists: number }>();
       for (const g of goals) {
         const cur = approved.get(g.user_id) ?? { user_id: g.user_id, goals: 0, assists: 0 };
@@ -247,11 +249,23 @@ export interface GroupDetail {
   myRemoval: { reason: string | null; removed_at: string } | null;
 }
 
+const ROLE_ORDER: Record<GroupRole, number> = { owner: 0, admin: 1, moderator: 2, member: 3 };
+export function safeGroupDetail(d: GroupDetail): GroupDetail {
+  const members = withProfile(d.members ?? []).sort((a, b) =>
+    ROLE_ORDER[a.role as GroupRole] - ROLE_ORDER[b.role as GroupRole] || a.profile.display_name.localeCompare(b.profile.display_name));
+  return { ...d, members, joinRequests: withProfile(d.joinRequests ?? []), removals: (d.removals ?? []).filter((r: any) => r.profile) };
+}
+export function safeSessionDetail(d: SessionDetail): SessionDetail {
+  return { ...d, attendance: withProfile(d.attendance ?? []), invited: (d.invited ?? []).filter(Boolean) };
+}
+
 export function useGroup(id: string) {
   const { userId } = useAuth();
   return useQuery({
     queryKey: keys.group(id),
     enabled: !!id && !!userId,
+    // also runs on data saved for offline use by an older version, so a hidden profile can't crash a screen
+    select: safeGroupDetail,
     queryFn: async (): Promise<GroupDetail> => {
       const [group, settings, members0, seasons, requests0, removals] = await Promise.all([
         q<Group>(supabase.from('groups').select('*').eq('id', id).single()),
@@ -261,10 +275,8 @@ export function useGroup(id: string) {
         q<any[]>(supabase.from('group_join_requests').select(`id, user_id, message, created_at, profile:profiles!group_join_requests_user_id_fkey(${PROFILE_COLS})`).eq('group_id', id).eq('status', 'pending')),
         q<any[]>(supabase.from('group_removals').select(`user_id, reason, removed_at, profile:profiles!group_removals_user_id_fkey(${PROFILE_COLS})`).eq('group_id', id).order('removed_at', { ascending: false })),
       ]);
-      const members = withProfile(members0);
-      const requests = withProfile(requests0);
-      const order: Record<GroupRole, number> = { owner: 0, admin: 1, moderator: 2, member: 3 };
-      members.sort((a, b) => order[a.role as GroupRole] - order[b.role as GroupRole] || a.profile.display_name.localeCompare(b.profile.display_name));
+      const members = members0;
+      const requests = requests0;
       const mine = removals.find((r) => r.user_id === userId);
       return {
         group, settings, members, seasons, myRole: members.find((m) => m.user_id === userId)?.role ?? null, joinRequests: requests,

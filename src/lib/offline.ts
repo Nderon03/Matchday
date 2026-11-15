@@ -9,7 +9,8 @@ import { rpc } from './api';
  * groups, profiles) is saved on the phone and shown when there's no connection, and a
  * check-in made offline is sent as soon as you're back online.
  */
-const CACHE_KEY = 'matchday.offlineCache.v1';
+// bump when saved data changes shape, so a new version never starts from an old version's data
+const CACHE_KEY = 'matchday.offlineCache.v2';
 const CHECKINS_KEY = 'matchday.pendingCheckins';
 const KEEP = new Set(['profile', 'home', 'sessions', 'session', 'groups', 'group', 'player', 'achievements', 'friends', 'prefs', 'notifications']);
 const MAX_AGE = 7 * 86400_000;
