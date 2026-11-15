@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, type ScrollViewInstance, type ScrollViewProps, type ViewStyle } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { router } from 'expo-router';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Avatar, Card, EmptyState, ErrorState, Header, Input, ListItem, Loading, Row, Screen, SectionTitle, Sheet, SwipeSelect, Text } from '@/components/ui';

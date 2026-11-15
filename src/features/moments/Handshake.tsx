@@ -10,7 +10,7 @@ import { q } from '@/lib/api';
 import { haptics } from '@/lib/haptics';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { nameList } from '@/domain/format';

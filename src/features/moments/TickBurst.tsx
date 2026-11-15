@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Platform, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { useTheme } from '@/theme/ThemeProvider';
 
 const native = Platform.OS !== 'web';
 const DOTS = 8;
 
 /** A tick that pops in with a small burst of dots around it. Plays once when mounted. */
-export function TickBurst({ size = 56, colour, icon = 'checkmark' }: { size?: number; colour?: string; icon?: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap }) {
+export function TickBurst({ size = 56, colour, icon = 'checkmark' }: { size?: number; colour?: string; icon?: keyof typeof import('@/components/ui/Ionicons').default.glyphMap }) {
   const { colors, reduceMotion } = useTheme();
   const c = colour ?? colors.primary;
   const [pop] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));

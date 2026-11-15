@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, Platform, View, type ViewStyle } from 'react-native';
 import Svg, { Circle, Line, Rect } from 'react-native-svg';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { errorMessage, toAppError } from '@/lib/errors';

@@ -4,7 +4,7 @@ import { tourRef, tourTarget } from '@/features/tourTargets';
 import { useOnce } from '@/features/moments/useOnce';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Avatar, Badge, Button, Card, EmptyState, ErrorState, IconButton, ListItem, Row, Screen, SectionTitle, Sheet, Skeleton, StatTile, Text } from '@/components/ui';
 import { TaskCard } from '@/components/football/TaskCard';
 import { useFriends, useHome, useMyAchievements } from '@/hooks/queries';

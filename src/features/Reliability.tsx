@@ -1,6 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { Text } from '@/components/ui';
 import { rpc } from '@/lib/api';

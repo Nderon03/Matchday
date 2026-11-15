@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, Switch, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { haptics } from '@/lib/haptics';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Card, Chip, EmptyState, ErrorState, Header, Input, Loading, Row, Screen, Segmented, Sheet, Text, useConfirm, useToast } from '@/components/ui';

@@ -2,7 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Button, Card, Row, Text } from '@/components/ui';
 import { rpc } from '@/lib/api';
 import { formatDate, formatPence } from '@/domain/format';

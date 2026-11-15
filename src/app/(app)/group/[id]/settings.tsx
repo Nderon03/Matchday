@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, Switch, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Avatar, Button, Card, ErrorState, Header, Input, ListItem, Loading, Row, Screen, SectionTitle, Sheet, Stepper, SwipeSelect, Text, useConfirm, useToast } from '@/components/ui';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { keys, useGroup, type GroupDetail } from '@/hooks/queries';
 import { removeGroupMember } from '@/features/removePlayer';
 import { GroupAccessPicker, accessOf, accessToSettings } from '@/features/GroupAccess';

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Card, Header, Input, Screen, Segmented, Text } from '@/components/ui';
 import { HELP } from '@/legal/help';
 import { CONTACT_EMAIL } from '@/legal/content';

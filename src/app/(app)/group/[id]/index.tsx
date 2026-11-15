@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { ScrollView, View, Pressable, type HostInstance } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
 import {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { StadiumHero } from '@/features/AuthShell';
 import { Text } from '@/components/ui';
 import { useNow } from '@/hooks/useNow';

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Text } from '@/components/ui';
 import { StadiumHero } from '@/features/AuthShell';
 import { useTheme } from '@/theme/ThemeProvider';

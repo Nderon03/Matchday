@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Avatar, Button, Card, ErrorState, Loading, Row, Screen, Text, useToast } from '@/components/ui';
 import { PlayerCard } from '@/components/football/PlayerCard';
 import { Confetti } from '@/components/football/Confetti';

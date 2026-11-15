@@ -1,6 +1,6 @@
 import React, { forwardRef, useState } from 'react';
 import { View, type HostInstance } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Text } from '@/components/ui';
 import { StadiumHero } from '@/features/AuthShell';
 import { fonts, radius, space } from '@/theme/tokens';

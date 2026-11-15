@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Avatar, Badge, Button, Card, EmptyState, ErrorState, Row, Screen, Segmented, SkeletonList, SwipeSelect, Text } from '@/components/ui';
 import { Leaderboard } from '@/components/football/Leaderboard';
 import { useMyGroups } from '@/hooks/queries';

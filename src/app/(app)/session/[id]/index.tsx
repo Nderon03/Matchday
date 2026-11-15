@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking, Platform, ScrollView, Switch, View, type HostInstance } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import {
   Avatar, Badge, Button, Card, Chip, ErrorState, Header, IconButton, Input, ListItem, Loading, Row, Screen, SectionTitle, Sheet, Text, useConfirm, useToast,
 } from '@/components/ui';

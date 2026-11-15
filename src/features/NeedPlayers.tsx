@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Input, Row, Sheet, Text, useToast } from '@/components/ui';
 import { formatKickoff, plural } from '@/domain/format';

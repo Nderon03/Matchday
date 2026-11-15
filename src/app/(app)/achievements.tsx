@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Card, ErrorState, Header, Row, Screen, SectionTitle, Sheet, SkeletonList, Text } from '@/components/ui';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
 import { StreakCard } from '@/components/football/Streak';

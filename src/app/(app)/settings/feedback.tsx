@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Platform, View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import * as Device from 'expo-device';

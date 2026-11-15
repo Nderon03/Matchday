@@ -1,5 +1,5 @@
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { SwipeSelect } from '@/components/ui';
 import type { GroupJoinPolicy, GroupVisibility } from '@/types/db';
 

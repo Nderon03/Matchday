@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, useWindowDimensions, type HostInstance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Button, Text } from '@/components/ui';
 import { tourIcon } from './tourIcons';
 import { TIPS_KEY } from './tipsKey';

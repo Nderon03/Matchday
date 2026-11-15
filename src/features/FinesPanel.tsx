@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Avatar, Badge, Button, Card, EmptyState, ErrorState, IconButton, Input, ListItem, Loading, Row, SectionTitle, Sheet, Text, useConfirm } from '@/components/ui';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { rpc } from '@/lib/api';
 import { useAction } from '@/hooks/useAction';
 import { formatDate, formatPence, poundsToPence } from '@/domain/format';

@@ -7,7 +7,7 @@ import { POSITION_LABEL, rating } from '@/domain/format';
 import { SEASON_CHAMPION, TRACKS, cardStyle, levelInfo, parseCode } from '@/domain/achievements';
 import { AchievementBadge } from './AchievementBadge';
 import { cardTitle } from '@/domain/titles';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { ClubShield, Flag } from './Identity';
 import { CardFX, PhotoHalo, PhotoLaurel } from './CardFX';
 import { SeasonEmblem } from './SeasonBadge';

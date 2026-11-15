@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Linking, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import * as Clipboard from 'expo-clipboard';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Button, Loading, Row, Text, useToast } from '@/components/ui';
 import { rpc } from '@/lib/api';
 import { inviteUrl } from '@/lib/links';

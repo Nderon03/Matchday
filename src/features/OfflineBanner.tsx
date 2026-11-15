@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Platform, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui';
 import { useOffline } from '@/lib/offline';

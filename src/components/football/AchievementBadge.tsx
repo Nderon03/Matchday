@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useState } from 'react';
 import { Animated, Easing, Platform, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Polygon, RadialGradient, Stop } from 'react-native-svg';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { levelInfo } from '@/domain/achievements';
 import { useTheme } from '@/theme/ThemeProvider';
 

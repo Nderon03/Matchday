@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button, EmptyState, ErrorState, Header, Screen, SkeletonList, Text, Row } from '@/components/ui';
 import { keys, useNotifications } from '@/hooks/queries';

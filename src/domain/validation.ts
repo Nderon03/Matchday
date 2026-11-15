@@ -1,5 +1,5 @@
 /** Centralised validation shared by forms (and mirrored by database constraints). */
-import { z } from 'zod';
+import { z, type SchemaError } from './schema';
 
 export const usernameSchema = z
   .string()
@@ -74,7 +74,7 @@ export const goalClaimSchema = z.object({
   assists: z.number().int().min(0).max(50),
 });
 
-export function fieldErrors(error: z.ZodError): Record<string, string> {
+export function fieldErrors(error: SchemaError): Record<string, string> {
   const out: Record<string, string> = {};
   for (const issue of error.issues) {
     const key = issue.path.join('.') || '_';

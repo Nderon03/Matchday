@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { happyMoment } from '@/lib/review';
 import { Avatar, Button, Text } from '@/components/ui';
 import { Confetti } from '@/components/football/Confetti';

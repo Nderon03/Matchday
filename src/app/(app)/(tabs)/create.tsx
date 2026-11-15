@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, IconButton, Row, Screen, SectionTitle, Text, useConfirm, useToast } from '@/components/ui';
 import { useTemplates } from '@/hooks/queries';

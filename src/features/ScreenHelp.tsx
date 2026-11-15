@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, View, type ViewProps } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Coachmarks } from '@/features/Coachmarks';
 import { useOnce } from '@/features/moments/useOnce';

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Platform, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { useQuery } from '@tanstack/react-query';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Badge, Button, Card, ErrorState, Header, Loading, Row, Screen, Text, useToast } from '@/components/ui';
 import { invoke } from '@/lib/api';
 import { useTheme } from '@/theme/ThemeProvider';

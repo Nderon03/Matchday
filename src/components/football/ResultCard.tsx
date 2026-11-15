@@ -2,7 +2,7 @@ import React, { forwardRef } from 'react';
 import { View, type HostInstance } from 'react-native';
 import Svg, { Defs, Line, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Text } from '@/components/ui';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { formatDate, plural } from '@/domain/format';
 import { radius, space } from '@/theme/tokens';
 

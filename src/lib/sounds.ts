@@ -15,11 +15,11 @@ const tapListeners = new Set<(v: boolean) => void>();
 AsyncStorage.getItem(TAP_KEY).then((v) => { if (v === 'on') { tapEnabled = true; tapListeners.forEach((l) => l(true)); } }).catch(() => undefined);
 let lastTick = 0;
 const FILES = {
-  whistle: require('../../assets/sounds/whistle.wav'),
-  goal: require('../../assets/sounds/goal.wav'),
-  unlock: require('../../assets/sounds/unlock.wav'),
-  in: require('../../assets/sounds/in.wav'),
-  chime: require('../../assets/sounds/chime.wav'),
+  whistle: require('../../assets/sounds/whistle.m4a'),
+  goal: require('../../assets/sounds/goal.m4a'),
+  unlock: require('../../assets/sounds/unlock.m4a'),
+  in: require('../../assets/sounds/in.m4a'),
+  chime: require('../../assets/sounds/chime.m4a'),
   tick: require('../../assets/sounds/tick.wav'),
 } as const;
 export type SoundName = keyof typeof FILES;

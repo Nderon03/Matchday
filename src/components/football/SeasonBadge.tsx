@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Text } from '@/components/ui';
 import { fonts } from '@/theme/tokens';
 import { parseSeasonBadge } from '@/domain/seasonBadges';

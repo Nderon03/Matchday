@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Linking, Pressable, View, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { router } from 'expo-router';
 import { Screen, Text } from '@/components/ui';
 import { PlayerCard, type PlayerCardData } from '@/components/football/PlayerCard';

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { Avatar, Badge, Card, EmptyState, ErrorState, Header, Input, Row, Screen, SkeletonList, SwipeSelect, Text } from '@/components/ui';
 import { rpc } from '@/lib/api';

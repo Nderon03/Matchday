@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Platform, View } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Button, Input, Text } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { authRedirectUrl } from '@/lib/links';

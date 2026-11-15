@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Avatar, Badge, Button, Card, ErrorState, Header, IconButton, Loading, Row, Screen, SectionTitle, Sheet, SwipeSelect, Text } from '@/components/ui';
 import { PeoplePicker } from '@/components/football/PeoplePicker';
 import { keys, useFriends, useSessionDetail, type PublicProfile } from '@/hooks/queries';

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { router } from 'expo-router';
 import { Button, Input, Text } from '@/components/ui';
 import { AuthShell } from '@/features/AuthShell';

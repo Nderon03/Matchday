@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Badge, Button, Card, ErrorState, Header, Input, Loading, Row, Screen, SectionTitle, Sheet, SwipeSelect, Text, useConfirm } from '@/components/ui';
 import { keys, useSessionDetail } from '@/hooks/queries';

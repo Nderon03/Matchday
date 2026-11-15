@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { FlatList, Pressable, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Input, Sheet, Text } from '@/components/ui';
 import { ClubShield, Flag } from '@/components/football/Identity';
 import { COUNTRIES, COUNTRY_BY_CODE } from '@/data/countries';

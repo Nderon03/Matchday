@@ -6,7 +6,7 @@
  */
 import React, { useMemo, useRef, useState } from 'react';
 import { Animated, PanResponder, Platform, View, type HostInstance, type LayoutRectangle } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import Svg, { Circle, Line, Rect } from 'react-native-svg';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';

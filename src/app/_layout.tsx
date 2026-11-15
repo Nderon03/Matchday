@@ -6,8 +6,7 @@ import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold } from '@expo-google-fonts/inter';
-import { BarlowCondensed_700Bold, BarlowCondensed_800ExtraBold } from '@expo-google-fonts/barlow-condensed';
+import { useFonts } from 'expo-font';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { queryClient } from '@/lib/queryClient';
@@ -18,6 +17,17 @@ import { useOtaUpdates } from '@/hooks/useOtaUpdates';
 import { Sentry, rememberScreen, reportError, sentryEnabled, trackScreen } from '@/lib/sentry';
 import { Button, ConfirmProvider, Text, ToastProvider } from '@/components/ui';
 import { space } from '@/theme/tokens';
+
+// only the weights we use, trimmed to Latin + symbols (scripts/subset-fonts.py) to keep the app small
+const FONTS = {
+  Inter_400Regular: require('../../assets/fonts/Inter_400Regular.ttf'),
+  Inter_500Medium: require('../../assets/fonts/Inter_500Medium.ttf'),
+  Inter_600SemiBold: require('../../assets/fonts/Inter_600SemiBold.ttf'),
+  Inter_700Bold: require('../../assets/fonts/Inter_700Bold.ttf'),
+  Inter_800ExtraBold: require('../../assets/fonts/Inter_800ExtraBold.ttf'),
+  BarlowCondensed_700Bold: require('../../assets/fonts/BarlowCondensed_700Bold.ttf'),
+  BarlowCondensed_800ExtraBold: require('../../assets/fonts/BarlowCondensed_800ExtraBold.ttf'),
+};
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -45,7 +55,7 @@ function ThemedStack() {
 }
 
 function RootLayout() {
-  const [loaded, error] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, Inter_800ExtraBold, BarlowCondensed_700Bold, BarlowCondensed_800ExtraBold });
+  const [loaded, error] = useFonts(FONTS);
   // what you loaded last time, so the app opens with it even without signal
   const [cacheReady, setCacheReady] = useState(false);
   useEffect(() => {

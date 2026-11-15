@@ -1,4 +1,4 @@
-import type { Ionicons } from '@expo/vector-icons';
+import type Ionicons from '@/components/ui/Ionicons';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Linking, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@/components/ui/Ionicons';
 import { Button, Card, IconButton, Input, Row, SectionTitle, Sheet, Text, useConfirm } from '@/components/ui';
 import type { SessionDetail } from '@/hooks/queries';
 import { keys } from '@/hooks/queries';

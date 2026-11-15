@@ -3,7 +3,18 @@
 Things that need a **new native build** (they add native code, so they can't go out as an
 over-the-air update). The code below is done and tested; one build ships it all.
 
-## Ready in this build
+## Ready for the next build (v8): a much smaller app
+- [x] **Unused native libraries left out** (react-native-reanimated, -worklets, -gesture-handler: optional
+  companions of expo-router that nothing in the app uses). See `react-native.config.js`.
+- [x] **Android code + resource shrinking** (R8) on for release builds (`expo-build-properties` in app.json).
+  Test the build on your phone (internal testing) before rolling it out to testers.
+- [x] **App bundle 21 MB → ~8.6 MB** before Android compression: only the icon font/weights we use, fonts
+  trimmed to Latin + symbols, compressed sounds, and two heavy libraries replaced (zod → a small built-in
+  validator; the QR library's unused CSS engine). Nothing removed from the app.
+- Because the native code changes, **over-the-air updates published after this only reach v8**: build v8,
+  roll it out to testers, then carry on with updates as usual.
+
+## Shipped in build v7
 - [x] **Match sounds** (`expo-audio`): our own synthesised sounds in `assets/sounds` (full-time whistle,
   goal, medal unlock, "I'm in"), played with the matching haptic. Settings → Sounds (on by default),
   never in silent mode, doesn't stop music. No microphone permission.
