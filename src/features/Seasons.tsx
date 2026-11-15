@@ -87,7 +87,7 @@ export function SeasonRace({ groupId, userId, top, onSeeAll, hideUntilPlayed }: 
   const now = useNow(60_000);
   const race = useSeasonRace(groupId);
   const pips = useCardSeasons((race.data?.rows ?? []).map((r) => r.user_id));
-  const d = race.data;
+  const d = race.data ? { ...race.data, rows: race.data.rows ?? [] } : null;
   if (!d) return null;
   // on a group's overview the race appears once the season's first game is in (it's always in Tables)
   if (hideUntilPlayed && d.rows.length === 0) return null;

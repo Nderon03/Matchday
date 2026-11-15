@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, Pressable, Text as RNText, View } from 'react-native';
 import { Stack, router, usePathname, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Notifications from 'expo-notifications';
@@ -15,8 +15,7 @@ import { LaunchCurtain } from '@/features/LaunchCurtain';
 import { routeForNotification } from '@/lib/notifications';
 import { useOtaUpdates } from '@/hooks/useOtaUpdates';
 import { Sentry, rememberScreen, reportError, sentryEnabled, trackScreen } from '@/lib/sentry';
-import { Button, ConfirmProvider, Text, ToastProvider } from '@/components/ui';
-import { space } from '@/theme/tokens';
+import { ConfirmProvider, ToastProvider } from '@/components/ui';
 
 // only the weights we use, trimmed to Latin + symbols (scripts/subset-fonts.py) to keep the app small
 const FONTS = {
@@ -87,14 +86,28 @@ function RootLayout() {
 /** Top-level error boundary: recover without leaving the user stuck. */
 export default sentryEnabled ? Sentry.wrap(RootLayout) : RootLayout;
 
+/**
+ * The safety net when a screen hits an error. It sits outside the app's providers (theme, fonts,
+ * toasts), so it must only use plain React Native: if it used themed components it would fail too
+ * and leave a black screen. Shows the error so a screenshot is enough to fix it.
+ */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   useEffect(() => reportError(error), [error]);
+  const where = (error.stack ?? '').split('\n').find((l) => /\bat\b/.test(l))?.trim();
+  const btn = (label: string, onPress: () => void, primary?: boolean) => (
+    <Pressable onPress={onPress} accessibilityRole="button"
+      style={{ alignSelf: 'stretch', height: 50, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: primary ? '#22C55E' : 'transparent' }}>
+      <RNText style={{ color: primary ? '#04130A' : '#22C55E', fontSize: 16, fontWeight: '700' }}>{label}</RNText>
+    </Pressable>
+  );
   return (
-    <View style={{ flex: 1, backgroundColor: '#0A0C0F', alignItems: 'center', justifyContent: 'center', padding: space.xxl, gap: space.md }}>
-      <Text variant="h2" color="#F4F6F8" align="center">Something went wrong</Text>
-      <Text color="#97A1AE" align="center">{error.message}</Text>
-      <Button title="Try again" onPress={retry} />
-      <Button title="Go home" variant="ghost" onPress={() => router.replace('/')} />
+    <View style={{ flex: 1, backgroundColor: '#0A0C0F', alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 }}>
+      <RNText style={{ color: '#F4F6F8', fontSize: 22, fontWeight: '800', textAlign: 'center' }}>Something went wrong</RNText>
+      <RNText style={{ color: '#97A1AE', fontSize: 15, textAlign: 'center' }}>{error.message}</RNText>
+      {!!where && <RNText selectable style={{ color: '#5F6B78', fontSize: 11, textAlign: 'center' }}>{where}</RNText>}
+      <View style={{ height: 8 }} />
+      {btn('Try again', retry, true)}
+      {btn('Go home', () => { retry(); router.replace('/'); })}
     </View>
   );
 }
