@@ -3,11 +3,11 @@
 Things that need a **new native build** (they add native code, so they can't go out as an
 over-the-air update). The code below is done and tested; one build ships it all.
 
-## Ready for the next build (v8): a much smaller app
+## Next build (v9): v8's size savings, without R8, plus fixes
 - [x] **Unused native libraries left out** (react-native-reanimated, -worklets, -gesture-handler: optional
   companions of expo-router that nothing in the app uses). See `react-native.config.js`.
-- [x] **Android code + resource shrinking** (R8) on for release builds (`expo-build-properties` in app.json).
-  Test the build on your phone (internal testing) before rolling it out to testers.
+- Android's R8 code shrinking was tried in v8 and turned off again: it can break libraries that load
+  code indirectly, and a group screen crashed in the v8 build. The size savings below don't depend on it.
 - [x] **App bundle 21 MB → ~8.6 MB** before Android compression: only the icon font/weights we use, fonts
   trimmed to Latin + symbols, compressed sounds, and two heavy libraries replaced (zod → a small built-in
   validator; the QR library's unused CSS engine). Nothing removed from the app.
