@@ -1,4 +1,6 @@
 /** Sounds must play every time, not just the first: a replay waits for the rewind before playing. */
+import { sounds } from '../sounds'; // jest.mock calls below are hoisted above this
+
 const made: any[] = [];
 jest.mock('expo-audio', () => ({
   setAudioModeAsync: jest.fn(() => Promise.resolve()),
@@ -17,7 +19,6 @@ jest.mock('expo-audio', () => ({
 jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn(() => Promise.resolve(null)), setItem: jest.fn(() => Promise.resolve()) }));
 jest.mock('react-native', () => ({ Platform: { OS: 'android' } }));
 
-import { sounds } from '../sounds';
 
 it('plays a sound again after it has already played (waits for the rewind)', async () => {
   sounds.play('in');

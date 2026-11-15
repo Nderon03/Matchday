@@ -30,6 +30,14 @@ export const keys = {
 export type PublicProfile = Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'position'>;
 const PROFILE_COLS = 'id, username, display_name, avatar_url, position';
 
+/**
+ * A row's joined profile can be missing: a blocked player (either way round) or a deleted account
+ * isn't visible to you. Screens then get a neutral "Player" instead of crashing on null.
+ */
+export function withProfile<T extends { profile?: unknown; user_id?: string }>(rows: T[]): (T & { profile: PublicProfile })[] {
+  return rows.map((r) => (r.profile ? r : { ...r, profile: { id: r.user_id ?? '', username: 'player', display_name: 'Player', avatar_url: null, position: 'ANY' } })) as (T & { profile: PublicProfile })[];
+}
+
 export function useHome() {
   const { userId } = useAuth();
   useRealtimeInvalidate('home', [{ table: 'notifications', filter: `user_id=eq.${userId}` }], [keys.home], !!userId);
@@ -129,7 +137,7 @@ export function useSessionDetail(id: string) {
     refetchOnMount: 'always',
     queryFn: async (): Promise<SessionDetail> => {
       const session = await q<Session>(supabase.from('sessions').select('*').eq('id', id).single());
-      const [attendance, invites, fixtures, hosts, submissions, goals, payments, motm, stats, isManager, group, host, guests, videos] = await Promise.all([
+      const [attendance0, invites, fixtures, hosts, submissions, goals, payments, motm, stats, isManager, group, host, guests, videos] = await Promise.all([
         q<any[]>(supabase.from('session_attendance').select(`*, profile:profiles!session_attendance_user_id_fkey(${PROFILE_COLS})`).eq('session_id', id)),
         q<any[]>(supabase.from('session_invitations').select(`profile:profiles!session_invitations_user_id_fkey(${PROFILE_COLS})`).eq('session_id', id)),
         q<any[]>(supabase.from('fixtures').select('*, teams:fixture_teams(*, players:team_players(*))').eq('session_id', id).order('number')),
@@ -146,6 +154,7 @@ export function useSessionDetail(id: string) {
         // match videos (older databases without the table just show none)
         q<SessionVideo[]>(supabase.from('session_videos').select('*').eq('session_id', id).order('created_at')).catch(() => [] as SessionVideo[]),
       ]);
+      const attendance = withProfile(attendance0);
       const approved = new Map<string, { user_id: string; goals: number; assists: number }>();
       for (const g of goals) {
         const cur = approved.get(g.user_id) ?? { user_id: g.user_id, goals: 0, assists: 0 };
@@ -244,7 +253,7 @@ export function useGroup(id: string) {
     queryKey: keys.group(id),
     enabled: !!id && !!userId,
     queryFn: async (): Promise<GroupDetail> => {
-      const [group, settings, members, seasons, requests, removals] = await Promise.all([
+      const [group, settings, members0, seasons, requests0, removals] = await Promise.all([
         q<Group>(supabase.from('groups').select('*').eq('id', id).single()),
         q<GroupSettings | null>(supabase.from('group_settings').select('*').eq('group_id', id).maybeSingle()),
         q<any[]>(supabase.from('group_members').select(`user_id, role, joined_at, profile:profiles(${PROFILE_COLS})`).eq('group_id', id)),
@@ -252,6 +261,8 @@ export function useGroup(id: string) {
         q<any[]>(supabase.from('group_join_requests').select(`id, user_id, message, created_at, profile:profiles!group_join_requests_user_id_fkey(${PROFILE_COLS})`).eq('group_id', id).eq('status', 'pending')),
         q<any[]>(supabase.from('group_removals').select(`user_id, reason, removed_at, profile:profiles!group_removals_user_id_fkey(${PROFILE_COLS})`).eq('group_id', id).order('removed_at', { ascending: false })),
       ]);
+      const members = withProfile(members0);
+      const requests = withProfile(requests0);
       const order: Record<GroupRole, number> = { owner: 0, admin: 1, moderator: 2, member: 3 };
       members.sort((a, b) => order[a.role as GroupRole] - order[b.role as GroupRole] || a.profile.display_name.localeCompare(b.profile.display_name));
       const mine = removals.find((r) => r.user_id === userId);
@@ -308,8 +319,8 @@ export function useFriends() {
       ]);
       return {
         friends: friendships.map((f) => (f.user_a === userId ? f.b : f.a)).filter(Boolean).sort((x: PublicProfile, y: PublicProfile) => x.display_name.localeCompare(y.display_name)) as PublicProfile[],
-        incoming: incoming as { id: string; created_at: string; profile: PublicProfile }[],
-        outgoing: outgoing as { id: string; created_at: string; profile: PublicProfile }[],
+        incoming: incoming.filter((r) => r.profile) as { id: string; created_at: string; profile: PublicProfile }[],
+        outgoing: outgoing.filter((r) => r.profile) as { id: string; created_at: string; profile: PublicProfile }[],
         blocked: blocked.map((b) => b.profile).filter(Boolean) as PublicProfile[],
       };
     },

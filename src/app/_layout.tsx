@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, Text as RNText, View } from 'react-native';
+import { Pressable, Text as RNText, View } from 'react-native';
 import { Stack, router, usePathname, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -12,7 +11,7 @@ import { AuthProvider } from '@/providers/AuthProvider';
 import { queryClient } from '@/lib/queryClient';
 import { restoreOfflineCache, startOfflineCache } from '@/lib/offline';
 import { LaunchCurtain } from '@/features/LaunchCurtain';
-import { routeForNotification } from '@/lib/notifications';
+import { onNotificationTap, routeForNotification } from '@/lib/notifications';
 import { useOtaUpdates } from '@/hooks/useOtaUpdates';
 import { Sentry, rememberScreen, reportError, sentryEnabled, trackScreen } from '@/lib/sentry';
 import { ConfirmProvider, ToastProvider } from '@/components/ui';
@@ -37,12 +36,10 @@ function ThemedStack() {
   const pathname = usePathname();
   useEffect(() => { trackScreen(pathname); rememberScreen(pathname); }, [pathname]);
   useEffect(() => {
-    if (Platform.OS === 'web') return;
-    const sub = Notifications.addNotificationResponseReceivedListener((res) => {
-      const route = routeForNotification(res.notification.request.content.data as Record<string, any>);
+    return onNotificationTap((data) => {
+      const route = routeForNotification(data);
       if (route) router.push(route as any);
     });
-    return () => sub.remove();
   }, []);
   return (
     <>

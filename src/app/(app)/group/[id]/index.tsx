@@ -12,7 +12,7 @@ import { Leaderboard } from '@/components/football/Leaderboard';
 import { FeedItemCard } from '@/components/football/FeedItem';
 import { InviteQr } from '@/components/football/InviteQr';
 import { groupInviteMessage } from '@/domain/inviteMessage';
-import { keys, useFeed, useFriends, useGroup, useGroupSessions } from '@/hooks/queries';
+import { keys, useFeed, useFriends, useGroup, useGroupSessions, withProfile } from '@/hooks/queries';
 import { PeoplePicker } from '@/components/football/PeoplePicker';
 import { toggleIn } from '@/domain/sets';
 import { useAction } from '@/hooks/useAction';
@@ -72,7 +72,7 @@ export default function GroupScreen() {
     queryFn: async () => {
       const { data, error } = await supabase.from('season_awards').select('*, season:seasons!inner(id, name, group_id), profile:profiles(id, username, display_name, avatar_url)').eq('season.group_id', id);
       if (error) throw error;
-      return data as any[];
+      return withProfile(data as any[]);
     },
   });
   const feed = useFeed(tab === 'overview' ? id : undefined);

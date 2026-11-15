@@ -62,7 +62,9 @@ const table = {
   sessions: [session], session_attendance: attendance, session_invitations: [], fixtures, session_hosts: [], goal_submissions: [], player_goals: [],
   motm_awards: [], session_player_statistics: [],
   notifications: [{ id: 'n1', type: 'session_removed', title: 'Removed from Sunday Kickabout', body: '', data: { session_id: SID, session_name: 'Sunday Kickabout', reason: 'Too many no-shows' }, read_at: null, created_at: kickoff }], activity_feed: [],
-  group_members: [{ role: 'owner', user_id: ME, joined_at: '2026-01-01T00:00:00Z', profile: people[0], group: { id: GID, name: 'Wednesday Football', logo_url: null, location: 'Hackney', group_members: [{ count: 14 }] } }],
+  group_members: [{ role: 'owner', user_id: ME, joined_at: '2026-01-01T00:00:00Z', profile: people[0], group: { id: GID, name: 'Wednesday Football', logo_url: null, location: 'Hackney', group_members: [{ count: 14 }] } },
+    // a member whose profile you can't see (blocked, or a deleted account): screens must cope
+    { role: 'member', user_id: '99999999-9999-4999-8999-999999999999', joined_at: '2026-02-01T00:00:00Z', profile: null, group: null }],
   group_settings: [{ group_id: GID, track_assists: true, leaderboard_min_appearances: 3, voting_window_hours: 24, rating_min_votes: null, default_motm_mode: 'session',
     late_fines_enabled: false, late_fine_base_pence: 100, late_fine_cap_pence: 800, late_fine_reset_after: 3, require_settled: true }],
   achievements: [], friendships: [], friend_requests: [], user_blocks: [], session_templates: [], user_preferences: [{ user_id: ME, profile_visibility: 'public', show_stats: true, push_enabled: true, email_enabled: true, notification_prefs: {}, theme: 'dark' }],
@@ -156,12 +158,21 @@ const rpcs = {
 
 const browser = await chromium.launch();
 const failures = [];
+const consoleProblems = new Set();
 const cardUploads = [];
 const calls = [];
 async function openPage(vp, { dpr = 1, theme = 'dark', appTour = false, tips = false } = {}) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: dpr });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
+  // the console must stay clean: any error or warning from the app fails the run (only the network
+  // messages caused by this test's fake, unreachable server are ignored)
+  page.on('console', (m) => {
+    if (!['error', 'warning'].includes(m.type())) return;
+    const t = m.text();
+    if (/example\.supabase\.co|ERR_TUNNEL|ERR_PROXY|Failed to load resource|ERR_CONNECTION|ERR_NAME_NOT_RESOLVED|net::ERR_/.test(t)) return;
+    consoleProblems.add(t.replace(/\s+/g, ' ').slice(0, 200));
+  });
   await page.addInitScript(([uid, th, tour, tipsOn]) => {
     localStorage.setItem('matchday.theme', th);
     if (!tipsOn) localStorage.setItem('matchday.tips', 'off');
@@ -1018,5 +1029,6 @@ if (process.env.SKIP_FIT !== '1') {
 if (truncReport.length) await (await import('node:fs/promises')).writeFile(join(OUT, 'truncated.txt'), truncReport.join('\n'));
 await browser.close();
 server.close();
+for (const c of consoleProblems) failures.push(`console: ${c}`);
 if (failures.length) { console.error('Visual check FAILED:\n' + failures.join('\n')); process.exit(1); }
 console.log(`Visual check passed. Screenshots in ${OUT}`);
