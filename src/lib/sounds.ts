@@ -35,17 +35,24 @@ function setup() {
   ready = true;
   // respect the phone's silent switch, and don't stop someone's music
   setAudioModeAsync({ playsInSilentMode: false, interruptionMode: 'mixWithOthers', shouldPlayInBackground: false }).catch(() => undefined);
+  // load them all now (they're tiny), so even the first play is instant
+  for (const n of Object.keys(FILES) as SoundName[]) if (n !== 'tick' || tapEnabled) player(n);
 }
+
+const player = (name: SoundName) => (players[name] ??= createAudioPlayer(FILES[name]));
 
 export const sounds = {
   play(name: SoundName) {
     if (!enabled || Platform.OS === 'web') return;
     try {
       setup();
-      const p = (players[name] ??= createAudioPlayer(FILES[name]));
+      const p = player(name);
       p.volume = name === 'tick' ? 0.35 : 0.6;
-      p.seekTo(0).catch(() => undefined);
-      p.play();
+      // a sound that has played before sits at its end: rewind first, and only then play. Calling
+      // play() while the rewind is still going is ignored on Android, which made every sound play
+      // once and then go quiet (e.g. "I'm in" when rejoining a game).
+      if (p.currentTime > 0) p.seekTo(0).then(() => p.play(), () => p.play());
+      else p.play();
     } catch {
       // a sound is never worth a crash
     }

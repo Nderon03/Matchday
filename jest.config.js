@@ -7,7 +7,7 @@ module.exports = {
       testEnvironment: 'node',
       transform,
       testMatch: ['<rootDir>/src/**/__tests__/**/*.test.ts', '<rootDir>/supabase/functions/_shared/__tests__/**/*.test.ts'],
-      moduleNameMapper: { '^@/(.*)$': '<rootDir>/src/$1' },
+      moduleNameMapper: { '^@/(.*)$': '<rootDir>/src/$1', '\\.(m4a|wav|ttf|png)$': '<rootDir>/tests/assetStub.js' },
     },
     {
       displayName: 'db',
