@@ -517,6 +517,25 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     it = await page.locator('body').innerText();
     if (!it.includes('Sam wants you to play') || !it.includes('2 of 10 places left') || !it.includes('Nearly full')) failures.push(`${vpName}: game invite incomplete`);
     await page.screenshot({ path: join(OUT, `auth-${vpName}-invite-game.png`) });
+    // one tap: accept the link and say I'm in
+    rpcs.join_via_invite = { kind: 'session', target_id: SID, result: 'invited', joined_group: true, status: 'confirmed' };
+    await page.getByRole('button', { name: 'I’m in' }).click();
+    await page.waitForTimeout(800);
+    if (!calls.includes('join_via_invite') || !page.url().endsWith(`/session/${SID}`)) failures.push(`${vpName}: one-tap I'm in didn't join (${page.url()})`);
+    delete rpcs.join_via_invite;
+
+    // a new host: group made, straight on to the first game, then straight to the invite message
+    await page.goto(base + `/session/new?groupId=${GID}&groupName=Wednesday%20Football&first=1`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    it = await page.locator('body').innerText();
+    if (!it.includes('Your first game') || !it.includes('Wednesday Football is ready') || !it.includes('Skip for now')) failures.push(`${vpName}: first game screen incomplete`);
+    if ((await page.getByLabel('Game name').inputValue().catch(() => '')) !== 'Wednesday Football') failures.push(`${vpName}: first game not named after the group`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-first-game.png`) });
+    await page.goto(base + `/session/${SID}/invite?new=1`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+    it = await page.locator('body').innerText();
+    if (!it.includes('Game on. Now your squad') || !it.includes('Send on WhatsApp')) failures.push(`${vpName}: post-create invite screen incomplete`);
+    await page.screenshot({ path: join(OUT, `auth-${vpName}-first-invite.png`) });
     delete rpcs.get_invite;
     delete rpcs.accept_invite;
   }

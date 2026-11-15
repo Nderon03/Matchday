@@ -65,7 +65,7 @@ function when(iso: string) {
 }
 
 export function describe(p: Preview): { title: string; description: string } {
-  if (!p) return { title: 'MATCHDAY', description: 'Your weekly game, sorted: invites, fair teams, stats, MOTM votes and payments.' };
+  if (!p) return { title: 'MATCHDAY', description: 'Your weekly game without the chasing: payments before kick-off, drop-outs filled, fair teams and stats.' };
   if (p.kind === 'session') {
     if (p.status === 'cancelled') return { title: `${p.name} (cancelled)`, description: 'This game was cancelled.' };
     const place = [p.venue, p.area].filter(Boolean).join(', ');
@@ -94,7 +94,7 @@ export function describe(p: Preview): { title: string; description: string } {
 }
 
 // the public pages people share; anything else gets the homepage text
-const HOME = { title: 'MATCHDAY: Football Organiser · Your weekly game, sorted', description: 'Organise your regular football game, 5s, 7s or 11s: invites, waiting lists, fair teams, stats, MOTM votes and payments. Free on Android and in your browser.' };
+const HOME = { title: 'MATCHDAY: Football Organiser · No chasing, no no-shows', description: 'Run your weekly 5s, 7s or 11s without chasing money or players: card payments before kick-off, drop-outs filled from the waiting list, fair teams, plus ratings, stats and player cards. Free on Android and in your browser.' };
 const PAGES: Record<string, { title: string; description: string }> = {
   '/': HOME,
   '/welcome': HOME,

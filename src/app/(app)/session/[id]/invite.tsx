@@ -13,9 +13,10 @@ import { supabase } from '@/lib/supabase';
 import { space } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 import { toggleIn } from '@/domain/sets';
+import { TickBurst } from '@/features/moments/TickBurst';
 
 export default function InviteScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, new: fresh } = useLocalSearchParams<{ id: string; new?: string }>();
   const detail = useSessionDetail(id);
   const { userId } = useAuth();
   const friends = useFriends();
@@ -52,11 +53,19 @@ export default function InviteScreen() {
           const ok = await run('send', () => rpc<number>('invite_to_session', { p_session: id, p_users: [...pick] }), (n) => `${n} invited`);
           if (ok !== undefined) setPick(new Set());
         }} />}>
-      <Header title="Invite players" subtitle={d.session.name} />
+      <Header title={fresh ? 'Game on. Now your squad' : 'Invite players'} subtitle={d.session.name} />
+      {!!fresh && (
+        <Card variant="alt">
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+            <TickBurst size={36} />
+            <Text variant="small" style={{ flex: 1 }}>Your game is set up. Send this to your group chat: one tap on the link and they’re in{d.session.group_id ? ' (and in the group)' : ''}.</Text>
+          </View>
+        </Card>
+      )}
       <Card>
         <View style={{ gap: space.md }}>
           <Text variant="bodyStrong">Share a link</Text>
-          <Text variant="small" tone="muted">Anyone with the link can join the invite list (expires in 7 days).</Text>
+          <Text variant="small" tone="muted">Anyone with the link can join{d.session.group_id ? ' the game and the group' : ' the game'} (link lasts 7 days).</Text>
           <InviteQr kind="session" targetId={id} message={`Join ${d.session.name} on MATCHDAY`}
             pitch={(url) => gameInviteMessage({
               name: d.session.name, starts_at: d.session.starts_at, venue: d.session.venue, format_size: d.session.format_size,

@@ -13,6 +13,9 @@ import { haptics } from '@/lib/haptics';
 import { useAuth } from '@/providers/AuthProvider';
 import { formatKickoff, plural } from '@/domain/format';
 import { usePriceLabel } from '@/hooks/useFees';
+import { env } from '@/lib/env';
+import { friendlyAuthError, signInWithProvider } from '@/features/auth';
+import { GoogleButton } from '@/features/AuthShell';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 
@@ -59,6 +62,7 @@ async function acceptInvite(code: string) {
 }
 
 function SignedOut({ teaser }: { teaser: any }) {
+  const [error, setError] = useState<string | null>(null);
   const line = !teaser ? 'Sign in or create an account to accept.'
     : teaser.kind === 'friend' ? `${teaser.name} wants to add you as a friend on MATCHDAY.`
     : teaser.kind === 'group' ? `You’re invited to join ${teaser.name}${teaser.members ? `, ${plural(teaser.members, 'player')}` : ''}.`
@@ -68,9 +72,14 @@ function SignedOut({ teaser }: { teaser: any }) {
       <View style={{ gap: space.lg, paddingTop: space.huge }}>
         <Text variant="overline" tone="primary">MATCHDAY</Text>
         <Text variant="h1">You’ve been invited</Text>
-        <Text tone="muted">{line} It takes a minute, and we’ll bring you straight back here.</Text>
-        <Button title="Create account" size="lg" onPress={() => router.push('/sign-up')} />
-        <Button title="I already have an account" variant="secondary" size="lg" onPress={() => router.push('/sign-in')} />
+        <Text tone="muted">{line} It takes under a minute, and we’ll bring you straight back here.</Text>
+        {/* Google is the quickest way in: no password, name and photo filled in */}
+        {env.oauthProviders.includes('google') && (
+          <GoogleButton onPress={() => signInWithProvider('google').catch((e) => setError(friendlyAuthError(e)))} />
+        )}
+        <Button title={env.oauthProviders.includes('google') ? 'Sign up with email' : 'Create account'} size="lg" variant={env.oauthProviders.includes('google') ? 'secondary' : 'primary'} onPress={() => router.push('/sign-up')} />
+        <Button title="I already have an account" variant="ghost" onPress={() => router.push('/sign-in')} />
+        {!!error && <Text variant="small" tone="danger" align="center">{error}</Text>}
       </View>
     </Screen>
   );
@@ -233,15 +242,31 @@ function GameInvite({ code, p, targetId }: { code: string; p: any; targetId: str
   const toast = useToast();
   const price = usePriceLabel();
   const [busy, setBusy] = useState(false);
-  const open = async () => {
+  const [busyLook, setBusyLook] = useState(false);
+  // one tap: accept the link and say "I'm in" (and join the group when it's the host's link)
+  const imIn = async () => {
     setBusy(true);
     try {
-      await acceptInvite(code);
-      router.replace(`/session/${targetId}`); // they tap "I'm in" there
+      const r = await rpc<{ status?: string; joined_group?: boolean }>('join_via_invite', { p_code: code });
+      await AsyncStorage.removeItem('matchday.pendingInvite').catch(() => undefined);
+      haptics.in();
+      toast.success(r.status === 'waitlisted' ? 'Game full: you’re on the waiting list' : r.joined_group ? 'You’re in, and in the group!' : 'You’re in!');
+      router.replace(`/session/${targetId}`);
     } catch (e) {
       toast.error(e);
     } finally {
       setBusy(false);
+    }
+  };
+  const look = async () => {
+    setBusyLook(true);
+    try {
+      await acceptInvite(code);
+      router.replace(`/session/${targetId}`);
+    } catch (e) {
+      toast.error(e);
+    } finally {
+      setBusyLook(false);
     }
   };
   const cancelled = p.status === 'cancelled';
@@ -280,8 +305,9 @@ function GameInvite({ code, p, targetId }: { code: string; p: any; targetId: str
           <Button title="Go home" size="lg" onPress={() => router.replace('/')} />
         ) : (
           <>
-            <Button title="See the game" icon="football" size="lg" loading={busy} onPress={open} />
-            <Text variant="caption" tone="faint" align="center">You’ll choose “I’m in” on the next screen.</Text>
+            <Button title={p.places_left === 0 ? 'Join the waiting list' : 'I’m in'} icon="checkmark-circle" size="lg" loading={busy} onPress={imIn} />
+            {p.payment_mode === 'upfront' && <Text variant="caption" tone="muted" align="center">You’ll add your card on the next screen; you’re only charged once the game has happened.</Text>}
+            <Button title="See the game first" variant="secondary" loading={busyLook} onPress={look} />
             <Button title="Not now" variant="ghost" onPress={() => router.replace('/')} />
           </>
         )}

@@ -192,7 +192,8 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         qc.invalidateQueries({ queryKey: ['sessions'] });
         qc.invalidateQueries({ queryKey: ['home'] });
         toast.success(`Game created${invitees.size ? ` · ${invitees.size} invited` : ''}${savePreset ? ' · saved as a preset' : ''}`);
-        router.replace(`/session/${id}`);
+        // nobody picked from the list: the next step is the group chat, so go straight to the invite message
+        router.replace(invitees.size ? `/session/${id}` : `/session/${id}/invite?new=1`);
       }
     } catch (e) {
       toast.error(e);

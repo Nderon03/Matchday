@@ -77,15 +77,26 @@ Data processed ephemerally? **No** for all of the above.
 **App name (30):** `MATCHDAY: Football Organiser`
 
 **Short description (80):**
-> 5s, 7s or 11s: invites, fair teams, stats, MOTM votes and payments, all sorted.
+> Run your weekly game: no chasing money, no no-shows. Plus stats & player cards.
 
 **Full description (4000):**
-> MATCHDAY is the organiser for your regular football game. Five-a-side on a Tuesday night, a 7-a-side league, an 11-a-side Sunday kickabout: whatever you play, MATCHDAY gets everyone there, picks fair teams, keeps the stats and settles up.
+> Stop chasing money and players. MATCHDAY runs your regular football game: five-a-side on a Tuesday night, a 7-a-side league, an 11-a-side Sunday kickabout. Players pay before kick-off, drop-outs fill themselves, and everyone gets ratings, stats and a player card that levels up.
+>
+> **Never chase money again**
+> • Set a price; players pay by card, Apple Pay or Google Pay when they join
+> • Upfront: the card is held and only charged once the game happens. Or ask after the game
+> • Unpaid? Players settle up before they can join the next game
+> • Money goes straight to you via Stripe. Optional late fines if your group wants them
+>
+> **No more 9-a-side**
+> • A waiting list fills drop-outs automatically, even at the last minute
+> • "Need players" finds a sub in one tap
+> • Reliability scores show who actually turns up
+> • Kick-off reminders with the weather forecast
 >
 > **Get the squad together**
-> • Create a group for your regular game and invite everyone with a ready-made WhatsApp message, link or QR code
-> • Players tap "I'm in" or "Can't make it", with a waiting list when it's full
-> • Short of players? Send a "Need players" call in one tap
+> • Create a group and your first game in a minute, then send one WhatsApp link
+> • One tap on the link and players are in the game (and the group)
 > • Bring a guest, with the host's approval
 > • Kick-off reminders with the weather forecast
 > • Last-minute drop-out? The place is offered down the waiting list automatically
@@ -112,12 +123,9 @@ Data processed ephemerally? **No** for all of the above.
 > • Best partner, nemesis and head-to-heads
 > • Share results and your card straight to the group chat
 >
-> **Payments without the chasing**
-> • Hosts set a price; players pay by card, Apple Pay or Google Pay
-> • Pay upfront (card held until the game happens) or after the game
-> • Unpaid? Settle up before joining the next game
-> • Optional late fines for groups that want them
-> • Money goes straight to the host via Stripe
+> **Ranked seasons**
+> • Every three months, the race for Player of the Season
+> • Ranked titles (Champion, Elite, Contender…) and a Season Wrapped to share
 >
 > Free to download. A small booking fee is shown before you pay for paid games.
 >

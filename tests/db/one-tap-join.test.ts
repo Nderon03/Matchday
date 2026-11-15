@@ -1,0 +1,52 @@
+/** Joining from a WhatsApp link: one tap gets a new player into the game, and into the group. */
+import { Db, uniq } from './helpers';
+
+const db = new Db();
+beforeAll(() => db.connect());
+afterAll(() => db.end());
+
+async function groupGame(joinPolicy: 'open' | 'request' | 'invite_only') {
+  const host = await db.createUser(uniq('oh'));
+  const groupId = await db.rpc<string>(host, 'create_group', { p_name: 'Tap FC', p_join_policy: joinPolicy, p_visibility: 'private' });
+  const sid = await db.rpc<string>(host, 'create_session', {
+    p: { name: 'Tap FC', group_id: groupId, visibility: 'group', starts_at: new Date(Date.now() + 20 * 3600_000).toISOString(), format_size: 5, max_attendance: 10 },
+  });
+  return { host, groupId, sid };
+}
+
+describe('one-tap join', () => {
+  it("the host's game link: I'm in, and in the group, in one go", async () => {
+    const { host, groupId, sid } = await groupGame('invite_only');
+    const code = await db.rpc<string>(host, 'create_invite_link', { p_kind: 'session', p_target: sid });
+    const player = await db.createUser(uniq('op'));
+    const r = await db.rpc<any>(player, 'join_via_invite', { p_code: code });
+    expect(r).toMatchObject({ kind: 'session', target_id: sid, result: 'invited', joined_group: true, status: 'confirmed' });
+    const [m] = await db.admin(`select count(*)::int n from group_members where group_id = $1 and user_id = $2`, [groupId, player]);
+    expect(m.n).toBe(1);
+  });
+
+  it("a player's shared link (bring a mate) gets the mate into the game, not the group", async () => {
+    const { host, groupId, sid } = await groupGame('invite_only');
+    const member = await db.createUser(uniq('om'));
+    await db.admin(`insert into group_members (group_id, user_id) values ($1, $2)`, [groupId, member]);
+    await db.rpc(member, 'respond_to_session', { p_session: sid, p_response: 'confirmed' });
+    await db.rpc(host, 'set_players_can_invite', { p_session: sid, p_on: true });
+    const code = await db.rpc<string>(member, 'create_invite_link', { p_kind: 'session', p_target: sid });
+    const mate = await db.createUser(uniq('omate'));
+    const r = await db.rpc<any>(mate, 'join_via_invite', { p_code: code });
+    expect(r).toMatchObject({ joined_group: false, status: 'confirmed' });
+  });
+
+  it('someone removed from the group is not brought back by a game link', async () => {
+    const { host, groupId, sid } = await groupGame('open');
+    const player = await db.createUser(uniq('orem'));
+    await db.admin(`insert into group_members (group_id, user_id) values ($1, $2)`, [groupId, player]);
+    await db.rpc(host, 'remove_group_member', { p_group: groupId, p_user: player, p_reason: null }).catch(async () => {
+      await db.admin(`delete from group_members where group_id = $1 and user_id = $2`, [groupId, player]);
+      await db.admin(`insert into group_removals (group_id, user_id, removed_by) values ($1, $2, $3)`, [groupId, player, host]);
+    });
+    const code = await db.rpc<string>(host, 'create_invite_link', { p_kind: 'session', p_target: sid });
+    const r = await db.rpc<any>(player, 'accept_invite', { p_code: code });
+    expect(r.joined_group).toBe(false);
+  });
+});

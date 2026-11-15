@@ -18,10 +18,10 @@ const PLAY_LIVE = false;
 const PITCH = '#22C55E';
 
 const FEATURES: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }[] = [
-  { icon: 'megaphone-outline', title: 'Fill every game', body: 'Invite your squad in one tap. A waiting list that offers spare places, and “Need players” when you’re short.' },
+  { icon: 'card-outline', title: 'Never chase money again', body: 'Players pay by card when they join: held until the game happens, then paid straight to you. Unpaid? They settle up before their next game.' },
+  { icon: 'people-outline', title: 'No more 9-a-side', body: 'Drop-outs are filled from the waiting list automatically, “Need players” finds a sub in one tap, and reliability scores show who turns up.' },
   { icon: 'git-compare-outline', title: 'Fair teams in seconds', body: 'Balanced from everyone’s ratings and form. Drag to tweak, confirm, and everyone sees the line-ups.' },
-  { icon: 'trophy-outline', title: 'Stats that matter', body: 'Goals, assists, ratings and Man of the Match votes. Medals, tables and a player card that levels up.' },
-  { icon: 'card-outline', title: 'Payments sorted', body: 'Pay upfront or after. No more chasing money in the group chat: it settles up for you.' },
+  { icon: 'trophy-outline', title: 'Every player gets a card', body: 'Ratings, MOTM votes, stats and a player card that levels up, plus ranked seasons. The reason your squad opens the app.' },
 ];
 
 const DEMO_CARD: PlayerCardData = {
@@ -63,12 +63,12 @@ export function Landing() {
           </Rise>
           <Rise delay={160}>
             <Text accessibilityRole="header" style={{ color: '#F4F6F8', fontFamily: fonts.scoreHeavy, fontSize: wide ? 76 : 50, lineHeight: wide ? 78 : 54, textAlign: 'center', letterSpacing: 0.5 }}>
-              ORGANISE. PLAY.{'\n'}SETTLE UP.
+              NO CHASING.{'\n'}NO NO-SHOWS.
             </Text>
           </Rise>
           <Rise delay={260}>
             <Text style={{ color: '#B6C7BD', fontSize: wide ? 18 : 16, lineHeight: wide ? 26 : 23, textAlign: 'center', maxWidth: 560 }}>
-              Invites, fair teams, stats and payments for your regular game. 5s, 7s or 11s, all in one place, for free.
+              Players pay before kick-off and drop-outs fill themselves, so the host stops chasing. Your squad gets ratings, stats and a player card that levels up. Free for 5s, 7s or 11s.
             </Text>
           </Rise>
           <Rise delay={360}>

@@ -1,7 +1,7 @@
 import React from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { Header, Loading, Screen } from '@/components/ui';
+import { Button, Header, Loading, Screen } from '@/components/ui';
 import { SessionForm, type SessionFormInitial } from '@/features/SessionForm';
 import { supabase } from '@/lib/supabase';
 import { q } from '@/lib/api';
@@ -9,14 +9,15 @@ import { nextDays } from '@/features/sessionDates';
 import { ScreenHelp } from '@/features/ScreenHelp';
 
 export default function NewSession() {
-  const { templateId, groupId } = useLocalSearchParams<{ templateId?: string; groupId?: string }>();
+  const { templateId, groupId, groupName, first } = useLocalSearchParams<{ templateId?: string; groupId?: string; groupName?: string; first?: string }>();
   const template = useQuery({
     queryKey: ['template', templateId],
     enabled: !!templateId,
     queryFn: () => q<any>(supabase.from('session_templates').select('*').eq('id', templateId!).single()),
   });
   if (templateId && template.isLoading) return <Screen><Header title="New game" /><Loading /></Screen>;
-  let initial: SessionFormInitial | undefined = groupId ? { group_id: groupId, visibility: 'group' } : undefined;
+  // a group's game is named after the group to start with (one less thing to type)
+  let initial: SessionFormInitial | undefined = groupId ? { group_id: groupId, visibility: 'group', ...(groupName ? { name: groupName } : {}) } : undefined;
   const t = template.data;
   if (t) {
     // default to tomorrow at the template's kick-off time; the host picks the day with one tap
@@ -31,8 +32,18 @@ export default function NewSession() {
   }
   return (
     <Screen edges={['top', 'bottom']} maxWidth={720}>
-      <Header title={t ? `New: ${t.name}` : 'New game'} subtitle="Takes about 30 seconds" right={<ScreenHelp id="session-new" />} />
-      <SessionForm initial={initial} />
+      {first === '1' && groupId ? (
+        <>
+          <Header title="Your first game" subtitle={`${groupName || 'Your group'} is ready. When do you play?`} right={<ScreenHelp id="session-new" />} />
+          <SessionForm initial={initial} />
+          <Button title="Skip for now" variant="ghost" onPress={() => router.replace(`/group/${groupId}?new=1`)} />
+        </>
+      ) : (
+        <>
+          <Header title={t ? `New: ${t.name}` : 'New game'} subtitle="Takes about 30 seconds" right={<ScreenHelp id="session-new" />} />
+          <SessionForm initial={initial} />
+        </>
+      )}
     </Screen>
   );
 }
