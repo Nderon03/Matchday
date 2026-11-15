@@ -50,3 +50,13 @@ describe('one-tap join', () => {
     expect(r.joined_group).toBe(false);
   });
 });
+
+describe('match report nudge', () => {
+  it('the host hears the match report is ready when the game is finalised', async () => {
+    const { host, sid } = await groupGame('open');
+    await db.admin(`update sessions set status = 'completed' where id = $1`, [sid]);
+    await db.admin(`update sessions set status = 'finalised', finalised_at = now() where id = $1`, [sid]);
+    const n = await db.admin(`select title, body, data->>'session_id' sid from notifications where user_id = $1 and type = 'share_results'`, [host]);
+    expect(n).toEqual([{ title: 'Your match report is ready', body: expect.stringMatching(/^Score, (Man of the Match|Player of the Night|Player of the Day), scorers/), sid }]);
+  });
+});

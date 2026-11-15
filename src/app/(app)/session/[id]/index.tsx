@@ -10,6 +10,7 @@ import { PaymentBadge } from '@/components/football/PaymentBadge';
 import { InviteQr } from '@/components/football/InviteQr';
 import { mateInviteMessage } from '@/domain/inviteMessage';
 import { ResultCard } from '@/components/football/ResultCard';
+import { reportUnlocks } from '@/domain/matchReport';
 import { ShareFrame } from '@/components/football/ShareFrame';
 import { shareViewAsImage } from '@/lib/share';
 import { statusBadge } from '@/components/football/SessionCard';
@@ -24,7 +25,7 @@ import { formatKickoff, formatPence, nameList, rating, timeUntil, plural } from 
 import { tonightTable } from '@/domain/tonight';
 import { motmTitle } from '@/domain/motm';
 import { GoalsAssists } from '@/components/football/GoalsAssists';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { removeSessionPlayer } from '@/features/removePlayer';
 import { LateStatusCard, useLateStatus } from '@/features/FinesPanel';
@@ -87,6 +88,11 @@ export default function SessionScreen() {
   const [tally, setTally] = useState<{ user_id: string; votes: number }[] | null>(null);
   const [tiebreak, setTiebreak] = useState<string | null>(null);
   const resultRef = useRef<HostInstance>(null);
+  // medals and levels won in this game, for the match report
+  const unlocks = useQuery({
+    queryKey: ['session', id, 'unlocks'], enabled: detail.data?.session.status === 'finalised',
+    queryFn: () => q<{ user_id: string; achievement_code: string }[]>(supabase.from('player_achievements').select('user_id, achievement_code').eq('session_id', id)),
+  });
   const confirm = useConfirm();
   const toast = useToast();
   const price = usePriceLabel();
@@ -228,6 +234,12 @@ export default function SessionScreen() {
   const tonight = scores.length > 1 && teamsChanged ? tonightTable(scores) : [];
   // one award per session: Man of the Match, or Player of the Night/Day with several games
   const award = motmTitle(d.fixtures.length, s.starts_at);
+  // the match report picture, with a message for the group chat
+  const shareReport = () => {
+    const score = d.fixtures.filter((f) => f.played).map((f) => `${f.teams[0]?.score}–${f.teams[1]?.score}`).join(', ');
+    const motm = d.motm.filter((m) => !m.fixture_id).map((m) => nameOf(m.user_id)).join(' & ');
+    shareViewAsImage(resultRef, `matchday-${s.id}`, `${s.name}${score ? `: ${score}` : ''}${motm ? `. ${award}: ${motm}` : ''}. Full report on MATCHDAY: matchdayapp.org`).catch(() => undefined);
+  };
 
   return (
     <Screen edges={['top', 'bottom']} onRefresh={detail.refetch} refreshing={detail.isRefetching}>
@@ -481,6 +493,9 @@ export default function SessionScreen() {
               award,
               topScorers: [...d.approvedGoals].filter((g) => g.goals > 0).sort((a, b) => b.goals - a.goals).slice(0, 4).map((g) => ({ name: nameOf(g.user_id), goals: g.goals })),
               topAssists: [...d.approvedGoals].filter((g) => g.assists > 0).sort((a, b) => b.assists - a.assists).slice(0, 3).map((g) => ({ name: nameOf(g.user_id), assists: g.assists })),
+              topRated: [...d.stats].filter((x) => x.rating_eligible && x.rating_avg !== null).sort((a, b) => Number(b.rating_avg) - Number(a.rating_avg)).slice(0, 3)
+                .map((x) => ({ name: nameOf(x.user_id).split(' ')[0], rating: Number(x.rating_avg) })),
+              unlocks: reportUnlocks(unlocks.data ?? [], nameOf),
               me: (() => {
                 const st = d.stats.find((x: any) => x.user_id === userId);
                 if (!st) return null;
@@ -490,8 +505,8 @@ export default function SessionScreen() {
             }}
           />
           </ShareFrame>
-          <Button title="Share match report" icon="share-social-outline" size="sm"
-            onPress={() => shareViewAsImage(resultRef, `matchday-${s.id}`, `${s.name}: ${d.fixtures.map((f) => `${f.teams[0]?.score}-${f.teams[1]?.score}`).join(', ')} on MATCHDAY`).catch(() => undefined)} />
+          <Button title="Send to the group chat" icon="logo-whatsapp" size="lg" onPress={shareReport} />
+          <Text variant="caption" tone="faint" align="center">The match report as a picture: score, {award}, scorers and what was unlocked.</Text>
           <SectionTitle title={award} />
           {d.motm.length ? d.motm.filter((m) => !m.fixture_id).map((m) => (
             <Card key={m.user_id} onPress={() => router.push(`/player/${m.user_id}`)} variant="highlight">

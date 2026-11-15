@@ -17,6 +17,10 @@ export interface ResultCardData {
   award?: string;
   topScorers: { name: string; goals: number }[];
   topAssists?: { name: string; assists: number }[];
+  /** the night's best ratings */
+  topRated?: { name: string; rating: number }[];
+  /** medals and levels unlocked in this game (e.g. Jordan · Goals Gold) */
+  unlocks?: { name: string; medal: string; colour: string }[];
   /** the sharer's own game, when they played */
   me?: { rating: number | null; goals: number; assists: number; motm: boolean } | null;
 }
@@ -84,6 +88,23 @@ export const ResultCard = forwardRef<HostInstance, { data: ResultCardData }>(fun
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Ionicons name="git-merge" size={15} color="#D6E2DB" />
             <Text variant="small" color="#D6E2DB" style={{ flexShrink: 1 }}>{data.topAssists.map((s) => `${s.name}${s.assists > 1 ? ` ×${s.assists}` : ''}`).join(', ')}</Text>
+          </View>
+        )}
+        {!!data.topRated?.length && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="trending-up" size={15} color="#D6E2DB" />
+            <Text variant="small" color="#D6E2DB" style={{ flexShrink: 1 }}>Top rated: {data.topRated.map((r) => `${r.name} ${r.rating.toFixed(1)}`).join(', ')}</Text>
+          </View>
+        )}
+        {!!data.unlocks?.length && (
+          <View style={{ gap: 4, padding: space.sm, borderRadius: radius.md, backgroundColor: 'rgba(245,176,20,0.10)' }}>
+            <Text variant="overline" color={GOLD}>Unlocked tonight</Text>
+            {data.unlocks.map((u) => (
+              <View key={u.name + u.medal} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="ribbon" size={14} color={u.colour} />
+                <Text variant="small" color={WHITE} style={{ flexShrink: 1 }} numberOfLines={1}>{u.name} · <Text variant="small" color={u.colour}>{u.medal}</Text></Text>
+              </View>
+            ))}
           </View>
         )}
         {!!me && (

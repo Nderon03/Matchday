@@ -612,6 +612,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     table.motm_awards = [{ user_id: people[2].id, fixture_id: null, votes: 6, shared: false }];
     table.player_goals = [{ user_id: ME, fixture_id: FID, goals: 2, assists: 1 }, { user_id: people[2].id, fixture_id: FID, goals: 3, assists: 0 }, { user_id: people[6].id, fixture_id: FID, goals: 1, assists: 2 }];
     table.session_player_statistics = [{ user_id: ME, rating_avg: '8.20', rating_eligible: true, goals: 2, motm: false }];
+    table.player_achievements = [{ user_id: people[2].id, achievement_code: 'goals_l3' }, { user_id: ME, achievement_code: 'apps_l2' }];
     await page.goto(base + `/session/${SID}`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
     if (!/And the Man of the Match is/.test(await page.locator('body').innerText())) failures.push(`${vpName}: MOTM announcement missing`);
@@ -621,7 +622,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     await page.getByRole('button', { name: 'Nice' }).click();
     await page.waitForTimeout(400);
     const rt = await page.locator('body').innerText();
-    if (!rt.includes('Share match report') || !rt.includes('matchdayapp.org') || !/8\.2 rating · 2 goals · 1 assist/.test(rt)) failures.push(`${vpName}: match report card incomplete`);
+    if (!rt.includes('Send to the group chat') || !rt.includes('matchdayapp.org') || !/8\.2 rating · 2 goals · 1 assist/.test(rt) || !/Unlocked tonight[\s\S]*Jordan · Goals Gold/.test(rt) || !/Top rated: Sam 8\.2/.test(rt)) failures.push(`${vpName}: match report card incomplete`);
     await page.getByText('matchdayapp.org').first().locator('xpath=../../..').screenshot({ path: join(OUT, `auth-${vpName}-match-report.png`) }).catch(() => undefined);
     // goals page: team totals for the host, and correcting a tally includes assists
     table.goal_submissions = [{ id: 's-2', session_id: SID, user_id: people[2].id, goals: 3, assists: 0, approved_goals: 3, approved_assists: 0, status: 'approved', fixture_breakdown: null, note: null, is_late: false, submitted_at: ago(0.2) }];
