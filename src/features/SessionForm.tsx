@@ -101,6 +101,8 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
   // the star: keep these settings as a preset to start from next time (Create → Presets)
   const [savePreset, setSavePreset] = useState(false);
   const [notesOpen, setNotesOpen] = useState(!!initial?.description);
+  // less to read first time: who can join and notes live under "More options" (opened when already set)
+  const [moreOpen, setMoreOpen] = useState(!!editing || !!initial?.description || (!!initial?.visibility && initial.visibility !== (initial.group_id ? 'group' : 'private')));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
 
@@ -273,10 +275,6 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         )}
       </Spot>
 
-      <Spot id="form.join" style={{ gap: space.xs }}>
-        <SwipeSelect label="Who can join" value={visibility} onChange={setVisibility} options={visibilityOptions} />
-        {!!errors.visibility && <Text variant="caption" tone="danger">{errors.visibility}</Text>}
-      </Spot>
 
       <Spot id="form.invite" style={{ gap: space.sm }}>
         <SectionTitle title={`Invite players${invitees.size ? ` · ${invitees.size}` : ''}`} action={people.length ? (invitees.size === people.length ? 'Clear' : 'Select all') : undefined}
@@ -289,13 +287,33 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
         />
       </Spot>
 
-      <Spot id="form.notes">
-      {notesOpen ? (
-        <Input label="Notes" value={description} onChangeText={setDescription} multiline placeholder="e.g. Bring both bibs. Astro boots only." maxLength={1000} />
+      <Spot id="form.more">
+      {moreOpen || errors.visibility ? (
+        <>
+          <Spot id="form.join" style={{ gap: space.xs }}>
+            <SwipeSelect label="Who can join" value={visibility} onChange={setVisibility} options={visibilityOptions} />
+            {!!errors.visibility && <Text variant="caption" tone="danger">{errors.visibility}</Text>}
+          </Spot>
+          <Spot id="form.notes">
+          {notesOpen ? (
+            <Input label="Notes" value={description} onChangeText={setDescription} multiline placeholder="e.g. Bring both bibs. Astro boots only." maxLength={1000} />
+          ) : (
+            <Pressable onPress={() => setNotesOpen(true)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs }}>
+              <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+              <Text variant="bodyStrong" tone="primary">Add notes</Text>
+            </Pressable>
+          )}
+          </Spot>
+        </>
       ) : (
-        <Pressable onPress={() => setNotesOpen(true)} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs }}>
-          <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-          <Text variant="bodyStrong" tone="primary">Add notes</Text>
+        <Pressable onPress={() => setMoreOpen(true)} accessibilityRole="button" accessibilityLabel="More options: who can join and notes"
+          style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs }}>
+          <Ionicons name="options-outline" size={20} color={colors.primary} />
+          <View style={{ flex: 1 }}>
+            <Text variant="bodyStrong" tone="primary">More options</Text>
+            <Text variant="caption" tone="muted">{visibilityOptions.find((o) => o.value === visibility)?.label ?? 'Invite only'} · notes</Text>
+          </View>
+          <Ionicons name="chevron-down" size={16} color={colors.textFaint} />
         </Pressable>
       )}
       </Spot>

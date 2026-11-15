@@ -54,9 +54,8 @@ export const SCREEN_TOURS = {
     { target: t('form.format'), emoji: '🔁', title: 'Format & length', body: '5-a-side means up to 10 players. Anyone else joins the waiting list.' },
     { target: t('form.venue'), emoji: '📍', title: 'Venue & postcode', body: 'The postcode gives players directions, the forecast and lets people nearby find it.' },
     { target: t('form.payment'), emoji: '💷', title: 'Payment', body: 'Free, pay upfront (card held, charged after) or pay after the game.' },
-    { target: t('form.join'), emoji: '🔐', title: 'Who can join', body: 'Invite only, your group, or public so anyone nearby can find it.' },
+    { target: t('form.more'), emoji: '🔐', title: 'More options', body: 'Who can join (invite only, your group, or public so anyone nearby can find it) and notes like “bring bibs”.' },
     { target: t('form.invite'), emoji: '📨', title: 'Invite players', body: 'Tick friends and group members, or Select all.' },
-    { target: t('form.notes'), emoji: '📝', title: 'Notes', body: 'Anything else: bring bibs, astro boots only…' },
     { target: t('form.star'), emoji: '⭐', title: 'Save as a preset', body: 'Tap the star to reuse these settings next week.' },
   ]),
   friends: tour('friends', 'Friends', { emoji: '🤝', title: 'Friends', body: 'Play together, compare stats and invite each other to games.' }, [

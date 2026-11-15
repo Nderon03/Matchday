@@ -181,7 +181,7 @@ export default function GroupScreen() {
             </Pressable>
           </Row>
           {!!myRole && <View ref={createRef} collapsable={false}><Button title="Create a game for this group" icon="add" onPress={() => router.push({ pathname: '/session/new', params: { groupId: id } })} /></View>}
-          {!!myRole && <SeasonRace groupId={id} userId={userId} top={3} onSeeAll={() => setTab('tables')} />}
+          {!!myRole && <SeasonRace groupId={id} userId={userId} top={3} hideUntilPlayed onSeeAll={() => setTab('tables')} />}
           {finesHint.due && (
             <Card variant="alt">
               <Row gap={space.sm}>

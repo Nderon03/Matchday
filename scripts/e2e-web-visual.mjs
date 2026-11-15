@@ -346,7 +346,12 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await page.waitForTimeout(250);
       if (!(await page.locator('body').innerText()).includes('6-a-side')) failures.push(`${vpName}: format did not change`);
       // only the essentials: no MOTM, deadline or repeat options; a star saves it as a preset
-      if (/Can’t-make-it deadline|Every game|Every week|More options/.test(ft)) failures.push(`${vpName}: session form still has removed options`);
+      if (/Can’t-make-it deadline|Every game|Every week/.test(ft)) failures.push(`${vpName}: session form still has removed options`);
+      // who can join and notes are tucked under More options until opened
+      if (/Who can join/.test(ft) || !ft.includes('More options')) failures.push(`${vpName}: More options not collapsed`);
+      await page.getByRole('button', { name: /^More options/ }).click();
+      await page.waitForTimeout(250);
+      if (!(await page.locator('body').innerText()).includes('Who can join')) failures.push(`${vpName}: More options didn't open`);
       await page.getByRole('checkbox', { name: 'Save as a preset' }).click();
       await page.waitForTimeout(200);
       if (!/Saved as a preset too/.test(await page.locator('body').innerText())) failures.push(`${vpName}: preset star did not toggle`);
@@ -622,7 +627,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     await page.getByRole('button', { name: 'Nice' }).click();
     await page.waitForTimeout(400);
     const rt = await page.locator('body').innerText();
-    if (!rt.includes('Send to the group chat') || !rt.includes('matchdayapp.org') || !/8\.2 rating · 2 goals · 1 assist/.test(rt) || !/Unlocked tonight[\s\S]*Jordan · Goals Gold/.test(rt) || !/Top rated: Sam 8\.2/.test(rt)) failures.push(`${vpName}: match report card incomplete`);
+    if (!rt.includes('Send to the group chat') || !rt.includes('matchdayapp.org') || !/8\.2 rating · 2 goals · 1 assist/.test(rt) || !/Unlocked tonight[\s\S]*Jordan · Goals Gold/i.test(rt) || !/Top rated: Sam 8\.2/.test(rt)) failures.push(`${vpName}: match report card incomplete`);
     await page.getByText('matchdayapp.org').first().locator('xpath=../../..').screenshot({ path: join(OUT, `auth-${vpName}-match-report.png`) }).catch(() => undefined);
     // goals page: team totals for the host, and correcting a tally includes assists
     table.goal_submissions = [{ id: 's-2', session_id: SID, user_id: people[2].id, goals: 3, assists: 0, approved_goals: 3, approved_assists: 0, status: 'approved', fixture_breakdown: null, note: null, is_late: false, submitted_at: ago(0.2) }];

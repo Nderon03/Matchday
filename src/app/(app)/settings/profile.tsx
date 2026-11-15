@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
 import { router, usePreventRemove } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button, Card, Divider, Header, Input, ListItem, Screen, SwipeSelect, Text, useConfirm, useToast } from '@/components/ui';

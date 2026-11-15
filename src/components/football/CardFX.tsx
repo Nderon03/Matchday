@@ -1,6 +1,5 @@
 import React, { useEffect, useId, useState } from 'react';
 import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
-import Ionicons from '@/components/ui/Ionicons';
 import Svg, { Circle, Defs, Ellipse, G, Line, LinearGradient, Mask, Path, Pattern, RadialGradient, Rect, Stop } from 'react-native-svg';
 import type { CardStyle } from '@/domain/achievements';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -80,12 +79,10 @@ export function CardFX({ st, radius, still: frozen }: { st: CardStyle; radius: n
   if (st.base || !['bronze', 'silver', 'gold', 'platinum', 'diamond', 'hall_of_fame'].includes(tier)) return null;
   const { w, h } = size;
   const id = (n: string) => `${n}${uid}`;
-  const big = Math.max(w, h) * 1.6;
   // the photo sits roughly here on the card (gold's sunburst and diamond's halo centre on it)
   const cx = w * 0.4;
   const cy = h * 0.32;
   const pulse = (lo: number) => (still ? (lo + 1) / 2 : glow.interpolate({ inputRange: [0, 1], outputRange: [lo, 1] }));
-  const rotate = () => (still ? '20deg' : spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }));
   const band = Math.max(60, w * 0.22);
 
   const frame = (inset: number, colour: string, width = 1) => (

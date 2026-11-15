@@ -110,7 +110,7 @@ export const ResultCard = forwardRef<HostInstance, { data: ResultCardData }>(fun
         {!!me && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, borderRadius: radius.md, backgroundColor: 'rgba(34,197,94,0.12)' }}>
             <Text variant="overline" color={GREEN}>My game</Text>
-            <Text variant="bodyStrong" color={WHITE} style={{ flex: 1 }} numberOfLines={1}>
+            <Text variant="bodyStrong" color={WHITE} style={{ flex: 1 }} numberOfLines={2}>
               {[me.rating !== null ? `${me.rating.toFixed(1)} rating` : null, me.goals ? `${me.goals} ${me.goals === 1 ? 'goal' : 'goals'}` : null,
                 me.assists ? `${me.assists} ${me.assists === 1 ? 'assist' : 'assists'}` : null, me.motm ? (data.award && data.award !== 'Man of the Match' ? data.award : 'MOTM') : null].filter(Boolean).join(' · ') || 'Played'}
             </Text>

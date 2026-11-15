@@ -177,7 +177,8 @@ export default function Home() {
                 <StatTile label="MOTM" value={career?.motm ?? 0} compact />
               </Row>
               <NearlyThere data={mine.data} />
-              {!!seasons.data && <SeasonCard data={seasons.data} />}
+              {/* seasons matter once you're in a group */}
+              {!!seasons.data?.groups.length && <SeasonCard data={seasons.data} />}
             </View>
           </View>
 

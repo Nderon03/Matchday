@@ -82,13 +82,15 @@ const PODIUM = ['#F5C542', '#CDD5DF', '#E39A5B'];
  * The race for Player of the Season: this season's live table, like a ranked ladder.
  * `top` shows only the leaders (plus you, if you're further down) with a link to the full race.
  */
-export function SeasonRace({ groupId, userId, top, onSeeAll }: { groupId: string; userId?: string | null; top?: number; onSeeAll?: () => void }) {
+export function SeasonRace({ groupId, userId, top, onSeeAll, hideUntilPlayed }: { groupId: string; userId?: string | null; top?: number; onSeeAll?: () => void; hideUntilPlayed?: boolean }) {
   const { colors } = useTheme();
   const now = useNow(60_000);
   const race = useSeasonRace(groupId);
   const pips = useCardSeasons((race.data?.rows ?? []).map((r) => r.user_id));
   const d = race.data;
   if (!d) return null;
+  // on a group's overview the race appears once the season's first game is in (it's always in Tables)
+  if (hideUntilPlayed && d.rows.length === 0) return null;
   const daysLeft = Math.max(0, Math.ceil((new Date(`${d.ends_on}T23:59:59`).getTime() - now) / 86400_000));
   const ranked = d.rows.filter((r) => r.rank !== null);
   const chasing = d.rows.filter((r) => r.rank === null);

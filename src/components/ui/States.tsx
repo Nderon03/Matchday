@@ -88,7 +88,6 @@ export function EmptyState({ icon = 'football-outline', title, message, action }
   message?: string;
   action?: { label: string; onPress: () => void };
 }) {
-  const { colors } = useTheme();
   return (
     <View style={{ alignItems: 'center', padding: space.xxl, gap: space.sm }}>
       <PitchArt icon={icon} />

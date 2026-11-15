@@ -36,7 +36,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
  * then LIVE while it's being played, then FULL TIME.
  */
 export function MatchdayHero({ game, onPress, children }: { game: MatchdayGame; onPress?: () => void; children?: React.ReactNode }) {
-  const { colors, reduceMotion } = useTheme();
+  const { reduceMotion } = useTheme();
   const now = useNow(1000);
   const [w, setW] = useState(0);
   const [pulse] = useState(() => new Animated.Value(0));
