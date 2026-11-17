@@ -3,11 +3,11 @@
  * profile: null, including in data saved on the phone by an older version. Screens must get a
  * neutral "Player" instead of crashing.
  */
+import { safeGroupDetail, safeSessionDetail } from '../queries'; // jest.mock calls below are hoisted above this
 jest.mock('@/lib/supabase', () => ({ supabase: {} }));
 jest.mock('@/lib/api', () => ({ q: jest.fn(), rpc: jest.fn() }));
 jest.mock('@/providers/AuthProvider', () => ({ useAuth: () => ({}) }));
 jest.mock('../useRealtime', () => ({ useRealtimeInvalidate: jest.fn() }));
-import { safeGroupDetail, safeSessionDetail } from '../queries';
 
 const me = { id: 'a', username: 'sam', display_name: 'Sam', avatar_url: null, position: 'MID' };
 

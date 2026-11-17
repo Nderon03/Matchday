@@ -2,6 +2,9 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { q, rpc } from '@/lib/api';
+import { AppError } from '@/lib/errors';
+
+const friendlyNotFound = 'We couldn’t find that. It may have been removed.';
 import { useAuth } from '@/providers/AuthProvider';
 import { useRealtimeInvalidate } from './useRealtime';
 import type {
@@ -67,6 +70,8 @@ export function useNotifications() {
   return useQuery({
     queryKey: keys.notifications,
     enabled: !!userId,
+    // a notification's details can be missing: screens always get an object (incl. saved older data)
+    select: (rows: Notification[]) => (rows ?? []).map((n) => (n.data ? n : { ...n, data: {} })),
     queryFn: () => q<Notification[]>(supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(100)),
   });
 }
@@ -139,6 +144,7 @@ export function useSessionDetail(id: string) {
     select: safeSessionDetail,
     queryFn: async (): Promise<SessionDetail> => {
       const session = await q<Session>(supabase.from('sessions').select('*').eq('id', id).single());
+      if (!session) throw new AppError('not_found', friendlyNotFound);
       const [attendance0, invites, fixtures, hosts, submissions, goals, payments, motm, stats, isManager, group, host, guests, videos] = await Promise.all([
         q<any[]>(supabase.from('session_attendance').select(`*, profile:profiles!session_attendance_user_id_fkey(${PROFILE_COLS})`).eq('session_id', id)),
         q<any[]>(supabase.from('session_invitations').select(`profile:profiles!session_invitations_user_id_fkey(${PROFILE_COLS})`).eq('session_id', id)),
@@ -256,7 +262,15 @@ export function safeGroupDetail(d: GroupDetail): GroupDetail {
   return { ...d, members, joinRequests: withProfile(d.joinRequests ?? []), removals: (d.removals ?? []).filter((r: any) => r.profile) };
 }
 export function safeSessionDetail(d: SessionDetail): SessionDetail {
-  return { ...d, attendance: withProfile(d.attendance ?? []), invited: (d.invited ?? []).filter(Boolean) };
+  return {
+    ...d,
+    attendance: withProfile(d.attendance ?? []),
+    invited: (d.invited ?? []).filter(Boolean),
+    // every game has a list of teams and every team a list of players, even if empty
+    fixtures: (d.fixtures ?? []).map((f) => ({ ...f, teams: (f.teams ?? []).map((t) => ({ ...t, players: t.players ?? [] })) })),
+    guests: d.guests ?? [], motm: d.motm ?? [], stats: d.stats ?? [], payments: d.payments ?? [], videos: d.videos ?? [],
+    approvedGoals: d.approvedGoals ?? [], goalsByFixture: d.goalsByFixture ?? [], submissions: d.submissions ?? [], coHostIds: d.coHostIds ?? [],
+  };
 }
 
 export function useGroup(id: string) {
@@ -275,6 +289,8 @@ export function useGroup(id: string) {
         q<any[]>(supabase.from('group_join_requests').select(`id, user_id, message, created_at, profile:profiles!group_join_requests_user_id_fkey(${PROFILE_COLS})`).eq('group_id', id).eq('status', 'pending')),
         q<any[]>(supabase.from('group_removals').select(`user_id, reason, removed_at, profile:profiles!group_removals_user_id_fkey(${PROFILE_COLS})`).eq('group_id', id).order('removed_at', { ascending: false })),
       ]);
+      // a deleted group, or one you can no longer see
+      if (!group) throw new AppError('not_found', friendlyNotFound);
       const members = members0;
       const requests = requests0;
       const mine = removals.find((r) => r.user_id === userId);

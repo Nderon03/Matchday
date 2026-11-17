@@ -60,3 +60,28 @@ describe('match report nudge', () => {
     expect(n).toEqual([{ title: 'Your match report is ready', body: expect.stringMatching(/^Score, (Man of the Match|Player of the Night|Player of the Day), scorers/), sid }]);
   });
 });
+
+describe('one-tap join edge cases (audit)', () => {
+  it('a full game puts the new player on the waiting list, never over capacity', async () => {
+    const host = await db.createUser(uniq('fh'));
+    const sid = await db.rpc<string>(host, 'create_session', { p: { name: 'Full FC', starts_at: new Date(Date.now() + 48 * 3600_000).toISOString(), format_size: 5, max_attendance: 2, visibility: 'public' } });
+    const code = await db.rpc<string>(host, 'create_invite_link', { p_kind: 'session', p_target: sid });
+    const a = await db.createUser(uniq('fa'));
+    const b = await db.createUser(uniq('fb'));
+    expect((await db.rpc<any>(a, 'join_via_invite', { p_code: code })).status).toBe('confirmed');
+    expect((await db.rpc<any>(b, 'join_via_invite', { p_code: code })).status).toBe('waitlisted');
+    const [n] = await db.admin(`select count(*)::int c from session_attendance where session_id = $1 and status = 'confirmed'`, [sid]);
+    expect(n.c).toBe(2);
+  });
+
+  it('a cancelled game refuses, and leaves nothing half-done (no invite, no group membership)', async () => {
+    const { host, groupId, sid } = await groupGame('invite_only');
+    const code = await db.rpc<string>(host, 'create_invite_link', { p_kind: 'session', p_target: sid });
+    await db.admin(`update sessions set status = 'cancelled' where id = $1`, [sid]);
+    const p = await db.createUser(uniq('fc'));
+    await expect(db.rpc(p, 'join_via_invite', { p_code: code })).rejects.toBeTruthy();
+    const [x] = await db.admin(`select (select count(*)::int from session_invitations where session_id = $1 and user_id = $3) inv,
+      (select count(*)::int from group_members where group_id = $2 and user_id = $3) mem`, [sid, groupId, p]);
+    expect(x).toEqual({ inv: 0, mem: 0 });
+  });
+});

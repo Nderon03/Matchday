@@ -70,3 +70,6 @@ export function nameList(names: string[], max = 3) {
   const rest = names.length - (max - 1);
   return `${names.slice(0, max - 1).join(', ')} and ${plural(rest, 'other')}`;
 }
+
+/** Someone's first name for friendly copy ("Jordan"), safe when the name is missing. */
+export const firstName = (name?: string | null, fallback = 'Player') => (name ?? '').trim().split(/\s+/)[0] || fallback;

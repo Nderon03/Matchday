@@ -39,6 +39,8 @@ export function pickTeamOfMonth(candidates: MonthCandidate[]): TeamOfMonth | nul
   SLOTS.forEach((slot, i) => { chosen[i] = take((c) => PREFERRED[slot].includes(c.position)); });
   // then any empty slot gets the best player left (ANY or out of position)
   SLOTS.forEach((_, i) => { if (!chosen[i]) chosen[i] = take(() => true); });
+  // couldn't fill all five (e.g. odd data): no Dream Team rather than a half-built one
+  if (chosen.some((p) => !p)) return null;
   const players = chosen.map((p, i) => ({ slot: SLOTS[i], player: p!, rating: score(p!) }));
   const captain = [...players].sort((a, b) => better(a.player, b.player))[0].player;
   return { players, captain };

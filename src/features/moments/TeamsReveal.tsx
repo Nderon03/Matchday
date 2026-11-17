@@ -6,6 +6,7 @@ import type { SessionDetail } from '@/hooks/queries';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { useOnce } from './useOnce';
+import { firstName } from '@/domain/format';
 
 const native = Platform.OS !== 'web';
 
@@ -81,7 +82,7 @@ function Reveal({ teams, mine, mineColour, onClose }: { teams: { id: string; nam
                     opacity: vals[ti][i], transform: [{ translateY: vals[ti][i].interpolate({ inputRange: [0, 1], outputRange: [-24, 0] }) }, { scale: vals[ti][i].interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }],
                   }}>
                     <Avatar uri={p.avatar} name={p.name} size={26} ring={p.me ? t.colour : undefined} />
-                    <Text variant="small" numberOfLines={1} style={{ flex: 1, fontWeight: p.me ? '700' : '400' }}>{p.me ? 'You' : p.name.split(' ')[0]}{p.guest ? ' (guest)' : ''}{p.keeper ? ' 🧤' : ''}</Text>
+                    <Text variant="small" numberOfLines={1} style={{ flex: 1, fontWeight: p.me ? '700' : '400' }}>{p.me ? 'You' : firstName(p.name)}{p.guest ? ' (guest)' : ''}{p.keeper ? ' 🧤' : ''}</Text>
                   </Animated.View>
                 ))}
               </View>

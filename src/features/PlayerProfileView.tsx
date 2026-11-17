@@ -203,7 +203,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
         </>
       )}
 
-      {!!d.can_view_stats && !!links.data && (!!links.data.partner || !!links.data.nemesis) && <ConnectionsCard c={links.data} self={!!d.is_self} name={p.display_name} userId={userId} />}
+      {!!d.can_view_stats && !!links.data && (!!links.data.partner?.player || !!links.data.nemesis?.player) && <ConnectionsCard c={links.data} self={!!d.is_self} name={p.display_name} userId={userId} />}
 
       {!!d.can_view_stats && !!bests.data && <PersonalBestsCard b={bests.data} linkable={!!d.is_self} />}
 
@@ -271,14 +271,14 @@ interface Connections { partner: Linked | null; nemesis: Linked | null }
 /** Who this player wins most with, and who keeps beating them. */
 function ConnectionsCard({ c, self, name, userId }: { c: Connections; self: boolean; name: string; userId: string }) {
   const { colors } = useTheme();
-  const first = name.split(' ')[0];
+  const first = (name ?? '').split(' ')[0] || 'They';
   const rows = [
-    c.partner && {
+    c.partner?.player && {
       key: 'partner', icon: 'people' as const, colour: colors.primary, title: 'Best partner', who: c.partner.player,
       line: `${self ? 'You win' : `${first} wins`} ${c.partner.win_pct}% of games together (${c.partner.games} played)`,
       onPress: () => router.push(`/player/${c.partner!.player.id}`),
     },
-    c.nemesis && {
+    c.nemesis?.player && {
       key: 'nemesis', icon: 'flame' as const, colour: colors.danger, title: 'Nemesis', who: c.nemesis.player,
       line: `${self ? 'Beat you' : `Beat ${first}`} ${plural(c.nemesis.losses ?? 0, 'time')} in ${plural(c.nemesis.games, 'game')}`,
       onPress: () => router.push({ pathname: '/compare', params: { a: userId, b: c.nemesis!.player.id } }),

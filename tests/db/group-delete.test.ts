@@ -62,3 +62,16 @@ describe('host hand-over', () => {
     expect((await db.admin(`select host_id from sessions where id = $1`, [sid]))[0].host_id).toBe(host);
   });
 });
+
+describe('host hand-over edge cases (audit)', () => {
+  it('no hand-over once the game has started', async () => {
+    const host = await db.createUser(uniq('hs'));
+    const p = await db.createUser(uniq('hsp'));
+    await db.befriend(host, p);
+    const sid = await db.rpc<string>(host, 'create_session', { p: { name: 'Live', starts_at: new Date(Date.now() + 48 * 3600_000).toISOString(), format_size: 5, visibility: 'private', invitee_ids: [p] } });
+    await db.rpc(p, 'respond_to_session', { p_session: sid, p_response: 'confirmed' });
+    await db.admin(`update sessions set status = 'in_progress' where id = $1`, [sid]);
+    await db.admin(`update session_attendance set status = 'withdrawn' where session_id = $1 and user_id = $2`, [sid, host]);
+    expect((await db.admin(`select host_id from sessions where id = $1`, [sid]))[0].host_id).toBe(host);
+  });
+});

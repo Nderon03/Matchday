@@ -45,7 +45,7 @@ export function SeasonCard({ data }: { data: MySeasons }) {
       <View style={{ gap: space.sm }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
           <Ionicons name="trophy-outline" size={18} color={GOLD} />
-          <Text style={{ fontFamily: fonts.score, fontSize: 16, letterSpacing: 2, color: colors.text, flex: 1 }}>{data.current.label ? `${data.current.label.toUpperCase()} · ` : ''}{data.current.name.toUpperCase()}</Text>
+          <Text style={{ fontFamily: fonts.score, fontSize: 16, letterSpacing: 2, color: colors.text, flex: 1 }}>{data.current.label ? `${data.current.label.toUpperCase()} · ` : ''}{(data.current.name ?? '').toUpperCase()}</Text>
           <Text variant="smallStrong" color={daysLeft <= 7 ? GOLD : colors.textMuted}>{daysLeft === 0 ? 'Ends today' : `${plural(daysLeft, 'day')} left`}</Text>
         </View>
         <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.surfaceAlt, overflow: 'hidden' }}>

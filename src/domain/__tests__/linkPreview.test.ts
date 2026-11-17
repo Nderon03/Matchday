@@ -42,3 +42,28 @@ describe('what Google reads on the homepage', () => {
     expect(html).not.toContain('application/ld+json');
   });
 });
+
+describe('invite previews are safe from injected HTML (audit)', () => {
+  const shell = '<html><head><title>MATCHDAY</title></head><body><div id="root"></div></body></html>';
+  const evil = '"><script>alert(1)</script><img src=x onerror=alert(2)>';
+  const run = async (preview: unknown) => {
+    (globalThis as any).Netlify = { env: { get: (k: string) => (k === 'EXPO_PUBLIC_SUPABASE_URL' ? 'https://example.supabase.co' : 'anon') } };
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async () => new Response(JSON.stringify(preview), { status: 200, headers: { 'content-type': 'application/json' } })) as any;
+    try {
+      const res = await edge(new Request('https://matchdayapp.org/invite/Ab12Cd34'), { next: async () => new Response(shell, { headers: { 'content-type': 'text/html' } }) });
+      return res.text();
+    } finally { globalThis.fetch = realFetch; }
+  };
+  it.each([
+    ['game', { kind: 'session', name: evil, format_size: 5, places_left: 2, price_pence: 0, venue: evil, area: evil }],
+    ['group', { kind: 'group', name: evil, members: 3, area: evil }],
+    ['friend', { kind: 'friend', name: evil, username: evil, card_image: evil }],
+  ])('%s names can’t inject tags or scripts', async (_k, preview) => {
+    const html = await run(preview);
+    expect(html).not.toContain('<script>alert');
+    expect(html).not.toContain('<img src=x');
+    expect(html).not.toMatch(/content="[^"]*"><script/);
+    expect(html).toContain('&lt;script&gt;');
+  });
+});

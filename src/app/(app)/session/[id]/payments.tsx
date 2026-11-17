@@ -107,7 +107,7 @@ export default function PaymentsScreen() {
               </View>
               <Text variant="h2">{formatPence(quote.data?.total_pence ?? p?.amount_pence ?? s.price_pence)}</Text>
             </Row>
-            {!!quote.data && quote.data.lines.length > 1 && (
+            {!!quote.data?.lines && quote.data.lines.length > 1 && (
               <View style={{ gap: 4, padding: space.md, borderRadius: radius.md, backgroundColor: colors.surfaceAlt }}>
                 {quote.data.lines.map((l, i) => (
                   <Row key={i} style={{ justifyContent: 'space-between' }}>
@@ -119,7 +119,7 @@ export default function PaymentsScreen() {
                   <Text variant="smallStrong">Total</Text>
                   <Text variant="smallStrong">{formatPence(quote.data.total_pence)}</Text>
                 </Row>
-                {quote.data.booking_fee_pence > 0 && <Text variant="caption" tone="faint">The booking fee covers card processing, so the host receives the full amount.</Text>}
+                {(quote.data.booking_fee_pence ?? 0) > 0 && <Text variant="caption" tone="faint">The booking fee covers card processing, so the host receives the full amount.</Text>}
               </View>
             )}
             {!!(p?.failure_reason) && p.status === 'failed' && <Text variant="small" tone="danger">{p.failure_reason}</Text>}
@@ -194,7 +194,7 @@ export default function PaymentsScreen() {
               )}
               {!!s.host_confirmed_at && <Text variant="caption" tone="primary">You confirmed this session on {formatKickoff(s.host_confirmed_at)}.</Text>}
               <Card padded={false}>
-                {summary.data.players.map((pl: any, i: number) => (
+                {(summary.data.players ?? []).map((pl: any, i: number) => (
                   <Row key={pl.user_id} gap={space.md} style={{ padding: space.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}>
                     <Avatar uri={pl.avatar_url} name={pl.display_name} size={32} />
                     <View style={{ flex: 1 }}>
@@ -216,7 +216,7 @@ export default function PaymentsScreen() {
                     )}
                   </Row>
                 ))}
-                {!summary.data.players.length && <Text tone="muted" style={{ padding: space.lg }}>No players to collect from yet.</Text>}
+                {!summary.data.players?.length && <Text tone="muted" style={{ padding: space.lg }}>No players to collect from yet.</Text>}
               </Card>
               <Button title="Copy payment link for the group chat" icon="link-outline" variant="secondary" onPress={async () => {
                 await Clipboard.setStringAsync(appLink(`/session/${id}/payments`));

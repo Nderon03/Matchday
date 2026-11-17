@@ -31,3 +31,9 @@ describe('team of the month', () => {
     expect(monthStart(-1, new Date(2026, 0, 5))).toBe('2025-12-01');
   });
 });
+
+it('returns no team rather than a half-built one when five can’t be filled', () => {
+  const c = (id: string | null, rating: number) => ({ user_id: id as string, display_name: `P${id}`, username: 'p', avatar_url: null, position: 'ANY', rated: 3, rating, goals: 0, assists: 0, motm: 0, apps: 3 });
+  // two candidates share an id: only four distinct players
+  expect(pickTeamOfMonth([c('a', 8), c('a', 7.9), c('b', 7), c('c', 6), c('d', 6)])).toBeNull();
+});

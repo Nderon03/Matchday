@@ -1,7 +1,7 @@
 import React from 'react';
 import { Switch, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, Card, Divider, Header, Loading, Row, Screen, SectionTitle, Text, useToast } from '@/components/ui';
+import { Button, Card, Divider, ErrorState, Header, Loading, Row, Screen, SectionTitle, Text, useToast } from '@/components/ui';
 import { keys, usePreferences } from '@/hooks/queries';
 import { supabase } from '@/lib/supabase';
 import { registerForPush } from '@/lib/notifications';
@@ -39,8 +39,9 @@ export default function NotificationSettings() {
   const prefs = usePreferences();
   const qc = useQueryClient();
   const toast = useToast();
+  if (prefs.error) return <Screen><Header title="Notifications" /><ErrorState error={prefs.error} onRetry={prefs.refetch} /></Screen>;
   if (!prefs.data) return <Screen><Header title="Notifications" /><Loading /></Screen>;
-  const p = prefs.data;
+  const p = { ...prefs.data, notification_prefs: prefs.data.notification_prefs ?? {} };
   const update = async (patch: Record<string, unknown>) => {
     const { error } = await supabase.from('user_preferences').update(patch).eq('user_id', userId!);
     if (error) toast.error(error);

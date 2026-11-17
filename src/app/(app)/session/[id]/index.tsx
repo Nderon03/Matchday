@@ -21,7 +21,7 @@ import { q, rpc } from '@/lib/api';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
-import { formatKickoff, formatPence, nameList, rating, timeUntil, plural } from '@/domain/format';
+import { formatKickoff, formatPence, nameList, rating, timeUntil, plural, firstName } from '@/domain/format';
 import { tonightTable } from '@/domain/tonight';
 import { motmTitle } from '@/domain/motm';
 import { GoalsAssists } from '@/components/football/GoalsAssists';
@@ -134,7 +134,7 @@ export default function SessionScreen() {
   const waitPos = me?.status === 'waitlisted' ? groups.waitlisted.findIndex((w) => w.user_id === userId) + 1 : 0;
   // a place offered to me from the waiting list (last 24 hours before kick-off)
   const offerUntil = me?.status === 'waitlisted' && me.offer_expires_at && new Date(me.offer_expires_at).getTime() > now ? me.offer_expires_at : null;
-  const hostName = d.host?.display_name.split(' ')[0] ?? 'the host';
+  const hostName = d.host ? firstName(d.host.display_name, 'the host') : 'the host';
   const showJustIn = me?.status === 'confirmed' && justIn > 0 && now - justIn < 60_000;
 
   const calendarEvent: CalendarEvent = {
@@ -494,7 +494,7 @@ export default function SessionScreen() {
               topScorers: [...d.approvedGoals].filter((g) => g.goals > 0).sort((a, b) => b.goals - a.goals).slice(0, 4).map((g) => ({ name: nameOf(g.user_id), goals: g.goals })),
               topAssists: [...d.approvedGoals].filter((g) => g.assists > 0).sort((a, b) => b.assists - a.assists).slice(0, 3).map((g) => ({ name: nameOf(g.user_id), assists: g.assists })),
               topRated: [...d.stats].filter((x) => x.rating_eligible && x.rating_avg !== null).sort((a, b) => Number(b.rating_avg) - Number(a.rating_avg)).slice(0, 3)
-                .map((x) => ({ name: nameOf(x.user_id).split(' ')[0], rating: Number(x.rating_avg) })),
+                .map((x) => ({ name: firstName(nameOf(x.user_id)), rating: Number(x.rating_avg) })),
               unlocks: reportUnlocks(unlocks.data ?? [], nameOf),
               me: (() => {
                 const st = d.stats.find((x: any) => x.user_id === userId);
@@ -632,7 +632,7 @@ export default function SessionScreen() {
                     ))}
                 </View>
                 <Text variant="small" tone="muted" numberOfLines={2}>
-                  {nameList([...groups.confirmed.map((a) => a.profile.display_name.split(' ')[0]), ...guestsIn.map((g) => `${g.name} (guest)`)], 4)}
+                  {nameList([...groups.confirmed.map((a) => firstName(a.profile.display_name)), ...guestsIn.map((g) => `${g.name} (guest)`)], 4)}
                 </Text>
               </View>
             )}

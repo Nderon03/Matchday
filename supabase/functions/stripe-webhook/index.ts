@@ -21,8 +21,11 @@ Deno.serve(async (req) => {
 
   const { error: dupErr } = await admin.from('payment_events').insert({ stripe_event_id: event.id, type: event.type, payload: event });
   if (dupErr) {
-    if (dupErr.code === '23505') return json({ received: true, duplicate: true });
-    throw dupErr;
+    if (dupErr.code !== '23505') throw dupErr;
+    // seen before: skip it only if it was fully processed. If an earlier attempt failed halfway
+    // (Stripe retries after an error), process it now, or the payment would never be updated.
+    const { data: prev } = await admin.from('payment_events').select('processed_at').eq('stripe_event_id', event.id).maybeSingle();
+    if (prev?.processed_at) return json({ received: true, duplicate: true });
   }
 
   const flags = accountFlagsFromEvent(event);
@@ -45,15 +48,24 @@ Deno.serve(async (req) => {
       paymentId = payment.id;
       const update: Record<string, unknown> = { ...(patch.fields ?? {}) };
       if (patch.status && shouldTransition(payment.status as PaymentStatus, patch.status)) update.status = patch.status;
-      if (Object.keys(update).length) await admin.from('payments').update(update).eq('id', payment.id);
+      if (Object.keys(update).length) {
+        const { error: upErr } = await admin.from('payments').update(update).eq('id', payment.id);
+        if (upErr) throw upErr; // Stripe retries; the event is processed again (see above)
+      }
       if (patch.refund) {
-        await admin.from('refunds').upsert(
+        const { error: refundErr } = await admin.from('refunds').upsert(
           { payment_id: payment.id, stripe_refund_id: patch.refund.stripeRefundId, amount_pence: patch.refund.amountPence, status: patch.refund.status },
           { onConflict: 'stripe_refund_id' },
         );
+        if (refundErr) throw refundErr;
       }
-      if (update.status === 'paid' && payment.payee_id) {
-        await admin.from('payout_records').insert({ payment_id: payment.id, host_id: payment.payee_id, amount_pence: payment.amount_pence - (payment.application_fee_pence ?? 0), stripe_reference: patch.lookup.paymentIntentId ?? null });
+      // one payout record per paid payment (safe to repeat when an event is reprocessed)
+      if ((update.status ?? payment.status) === 'paid' && payment.payee_id) {
+        const { error: payoutErr } = await admin.from('payout_records').upsert(
+          { payment_id: payment.id, host_id: payment.payee_id, amount_pence: payment.amount_pence - (payment.application_fee_pence ?? 0), stripe_reference: patch.lookup.paymentIntentId ?? null },
+          { onConflict: 'payment_id', ignoreDuplicates: true },
+        );
+        if (payoutErr) throw payoutErr;
       }
     }
   }

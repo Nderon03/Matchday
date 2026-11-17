@@ -9,6 +9,7 @@ import { MIN_RATED_GAMES, monthLabel, monthStart, pickTeamOfMonth, type MonthCan
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { ShareFrame } from '@/components/football/ShareFrame';
+import { firstName } from '@/domain/format';
 
 const native = Platform.OS !== 'web';
 // where each slot sits on the pitch (% across, % down): keeper at the bottom, attackers at the top
@@ -91,7 +92,7 @@ function Token({ p, index, captain, spot }: { p: Picked; index: number; captain:
           </View>
         )}
       </View>
-      <Text variant="smallStrong" color="#F4F6F8" numberOfLines={1}>{p.player.display_name.split(' ')[0]}</Text>
+      <Text variant="smallStrong" color="#F4F6F8" numberOfLines={1}>{firstName(p.player.display_name)}</Text>
       <View style={{ paddingHorizontal: 6, borderRadius: 6, backgroundColor: captain ? '#F5B014' : 'rgba(0,0,0,0.35)' }}>
         <Text variant="caption" color={captain ? '#111' : '#F4F6F8'} style={{ fontWeight: '700' }}>{p.rating.toFixed(1)}</Text>
       </View>

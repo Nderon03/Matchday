@@ -40,7 +40,7 @@ it('finds public upcoming games by venue/area and filters', async () => {
   await db.rpc(me, 'block_user', { p_user: host });
   expect(await db.as(me, `select id from public.search_public_sessions($1)`, [tag])).toHaveLength(0);
   // signed-out visitors see nothing
-  expect(await db.as(null, `select id from public.search_public_sessions($1)`, [tag])).toHaveLength(0);
+  await expect(db.as(null, `select id from public.search_public_sessions($1)`, [tag])).rejects.toThrow(/permission denied/);
 });
 
 it('discovers public groups by words in any order', async () => {

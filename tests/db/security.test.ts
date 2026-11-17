@@ -51,7 +51,11 @@ describe('profiles & identity', () => {
 
   it('anonymous users cannot read data', async () => {
     await expect(db.as(null, `select * from profiles limit 1`)).resolves.toHaveLength(0);
-    await expectAppError(db.rpc(null, 'create_group', { p_name: 'Nope' }), 'not_authenticated');
+    // signed-out callers can't run app functions at all (only the two the signed-out website needs)
+    await expect(db.rpc(null, 'create_group', { p_name: 'Nope' })).rejects.toThrow(/permission denied/);
+    await expect(db.rpc(null, 'finalise_season', { p_season: '00000000-0000-0000-0000-000000000000' })).rejects.toThrow(/permission denied/);
+    await expect(db.rpc(null, 'create_session_from_template', { p_template: '00000000-0000-0000-0000-000000000000', p_date: '2027-01-01', p_actor: '00000000-0000-0000-0000-000000000001' })).rejects.toThrow(/permission denied/);
+    expect(await db.rpc(null, 'is_username_available', { p_username: 'someone_new' })).toBe(true);
   });
 
   it('blocking hides users from each other and prevents requests', async () => {
@@ -356,5 +360,23 @@ describe('line-up visibility', () => {
     await db.rpc(host, 'save_lineup', { p_fixture: f.id, p_teams: { A: { players: [{ user_id: host }, { user_id: p2 }] }, B: { players: [{ user_id: p1 }] } }, p_confirm: true });
     const updated = await db.admin(`select count(*)::int n from notifications where title = 'Line-ups updated' and data->>'fixture_id' = $1`, [f.id]);
     expect(updated[0].n).toBe(2);
+  });
+});
+
+describe('server-only paths (audit)', () => {
+  it("a signed-in player can't finish a season or create a game as someone else", async () => {
+    const owner = await db.createUser(uniq('so'));
+    const other = await db.createUser(uniq('sx'));
+    const groupId = await db.rpc<string>(owner, 'create_group', { p_name: 'Sec FC', p_join_policy: 'open', p_visibility: 'private' });
+    await db.admin(`insert into group_members (group_id, user_id) values ($1, $2)`, [groupId, other]);
+    const [{ id: seasonId }] = await db.admin(`select public.ensure_group_season($1, current_date) id`, [groupId]);
+    await expectAppError(db.rpc(other, 'finalise_season', { p_season: seasonId }), 'forbidden');
+    const [{ id: tpl }] = await db.admin(`insert into session_templates (owner_id, name, start_time, duration_minutes, format_size, visibility, postcode)
+      values ($1, 'Tpl', '19:00', 60, 5, 'private', 'NW7 2EU') returning id`, [owner]);
+    // passing the owner as "actor" doesn't let someone else use it
+    await expectAppError(db.rpc(other, 'create_session_from_template', { p_template: tpl, p_date: '2027-01-05', p_actor: owner }), 'not_found');
+    // the scheduler (no API request) still can
+    const [{ id: sid }] = await db.admin(`select public.create_session_from_template($1, '2027-01-05', $2) id`, [tpl, owner]);
+    expect(sid).toBeTruthy();
   });
 });

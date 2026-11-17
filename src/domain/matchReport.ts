@@ -1,4 +1,5 @@
 import { SEASON_CHAMPION, TRACKS, levelInfo, parseCode } from './achievements';
+import { firstName } from './format';
 
 /**
  * The "Unlocked tonight" lines on the match report: each player's best medal or level won in this
@@ -18,5 +19,5 @@ export function reportUnlocks(rows: { user_id: string; achievement_code: string 
   return [...best.entries()]
     .sort((a, b) => b[1].level - a[1].level)
     .slice(0, max)
-    .map(([id, u]) => ({ name: nameOf(id).split(' ')[0], medal: u.medal, colour: u.colour }));
+    .map(([id, u]) => ({ name: firstName(nameOf(id)), medal: u.medal, colour: u.colour }));
 }

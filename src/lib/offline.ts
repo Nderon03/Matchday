@@ -11,6 +11,7 @@ import { rpc } from './api';
  */
 // bump when saved data changes shape, so a new version never starts from an old version's data
 const CACHE_KEY = 'matchday.offlineCache.v2';
+const OLD_CACHE_KEYS = ['matchday.offlineCache.v1'];
 const CHECKINS_KEY = 'matchday.pendingCheckins';
 const KEEP = new Set(['profile', 'home', 'sessions', 'session', 'groups', 'group', 'player', 'achievements', 'friends', 'prefs', 'notifications']);
 const MAX_AGE = 7 * 86400_000;
@@ -19,6 +20,8 @@ const keep = (q: Query) => q.state.status === 'success' && KEEP.has(String(q.que
 
 /** Put back what was saved last time (before the app renders, so it can show straight away). */
 export async function restoreOfflineCache() {
+  // data saved by older versions (different shape) is never used: remove it from the device
+  AsyncStorage.multiRemove(OLD_CACHE_KEYS).catch(() => undefined);
   try {
     const raw = await AsyncStorage.getItem(CACHE_KEY);
     if (!raw) return;
@@ -47,7 +50,7 @@ export function startOfflineCache() {
 
 /** Signing out forgets everything saved on the phone. */
 export async function clearOfflineCache() {
-  await AsyncStorage.multiRemove([CACHE_KEY, CHECKINS_KEY]).catch(() => undefined);
+  await AsyncStorage.multiRemove([CACHE_KEY, CHECKINS_KEY, ...OLD_CACHE_KEYS]).catch(() => undefined);
 }
 
 // ---- connection state, from how requests are going ----
