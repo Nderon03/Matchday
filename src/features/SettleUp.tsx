@@ -46,7 +46,7 @@ export function SettleUpCard({ bills }: { bills: OutstandingBill[] }) {
   const { colors } = useTheme();
   const total = bills.reduce((a, b) => a + b.amount_pence, 0);
   return (
-    <Card style={{ borderColor: colors.warning, backgroundColor: colors.warningMuted }}>
+    <Card variant="warning">
       <View style={{ gap: space.md }}>
         <Row gap={space.md} style={{ alignItems: 'flex-start' }}>
           <Ionicons name="wallet-outline" size={24} color={colors.warning} />

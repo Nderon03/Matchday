@@ -62,7 +62,7 @@ const measure = (ref: RefObject<HostInstance | null>) => new Promise<Rect | null
 function TipIcon({ emoji, size }: { emoji: string; size: number }) {
   const { colors } = useTheme();
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.primaryMuted, borderWidth: 1, borderColor: `${colors.primary}55`, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.primaryMuted, borderWidth: 1, borderColor: colors.primaryBorder, alignItems: 'center', justifyContent: 'center' }}>
       <Ionicons name={tourIcon(emoji)} size={Math.round(size * 0.52)} color={colors.primary} />
     </View>
   );

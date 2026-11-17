@@ -18,6 +18,8 @@ export interface ThemeColors {
   elevated: string;
   border: string;
   borderStrong: string;
+  /** a card's top edge, a touch lighter: surfaces look lit from above (depth without extra size) */
+  borderTop: string;
   text: string;
   textMuted: string;
   textFaint: string;
@@ -28,6 +30,13 @@ export interface ThemeColors {
   success: string;
   warning: string;
   warningMuted: string;
+  /** soft edges and washes for emphasised cards: calmer than full-strength outlines */
+  primaryBorder: string;
+  primarySurface: string;
+  warningBorder: string;
+  warningSurface: string;
+  dangerBorder: string;
+  dangerSurface: string;
   danger: string;
   dangerMuted: string;
   gold: string;
@@ -42,15 +51,16 @@ export interface ThemeColors {
 }
 
 export const dark: ThemeColors = {
-  bg: '#0A0C0F',
-  surface: '#12161B',
-  surfaceAlt: '#181D24',
-  elevated: '#1E242C',
-  border: '#232A33',
-  borderStrong: '#323B47',
-  text: '#F4F6F8',
-  textMuted: '#97A1AE',
-  textFaint: '#5F6976',
+  bg: '#08090C',
+  surface: '#111418',
+  surfaceAlt: '#171B21',
+  elevated: '#1D2229',
+  border: 'rgba(255,255,255,0.075)',
+  borderStrong: 'rgba(255,255,255,0.14)',
+  borderTop: 'rgba(255,255,255,0.12)',
+  text: '#F2F4F7',
+  textMuted: '#98A2B3',
+  textFaint: '#667085',
   primary: palette.green500,
   primaryPressed: palette.green600,
   primaryMuted: 'rgba(34,197,94,0.14)',
@@ -58,6 +68,12 @@ export const dark: ThemeColors = {
   success: palette.green500,
   warning: palette.amber,
   warningMuted: 'rgba(245,165,36,0.14)',
+  primaryBorder: 'rgba(34,197,94,0.36)',
+  primarySurface: '#0F1A14',
+  warningBorder: 'rgba(245,165,36,0.34)',
+  warningSurface: '#1A160E',
+  dangerBorder: 'rgba(239,68,68,0.36)',
+  dangerSurface: '#1B1012',
   danger: palette.red,
   dangerMuted: 'rgba(239,68,68,0.14)',
   gold: palette.gold,
@@ -72,15 +88,16 @@ export const dark: ThemeColors = {
 };
 
 export const light: ThemeColors = {
-  bg: '#F4F6F8',
+  bg: '#F5F6F8',
   surface: '#FFFFFF',
-  surfaceAlt: '#EEF1F4',
+  surfaceAlt: '#F0F2F5',
   elevated: '#FFFFFF',
-  border: '#E1E6EB',
-  borderStrong: '#CBD2DA',
+  border: 'rgba(16,24,40,0.09)',
+  borderStrong: 'rgba(16,24,40,0.17)',
+  borderTop: 'rgba(16,24,40,0.06)',
   text: '#0B0F14',
-  textMuted: '#5A6472',
-  textFaint: '#8C96A3',
+  textMuted: '#556070',
+  textFaint: '#8A94A3',
   primary: palette.green600,
   primaryPressed: palette.green700,
   primaryMuted: 'rgba(22,163,74,0.12)',
@@ -88,6 +105,12 @@ export const light: ThemeColors = {
   success: palette.green600,
   warning: '#D97706',
   warningMuted: 'rgba(217,119,6,0.12)',
+  primaryBorder: 'rgba(22,163,74,0.38)',
+  primarySurface: '#F3FBF6',
+  warningBorder: 'rgba(217,119,6,0.36)',
+  warningSurface: '#FFF9F0',
+  dangerBorder: 'rgba(220,38,38,0.34)',
+  dangerSurface: '#FFF5F5',
   danger: '#DC2626',
   dangerMuted: 'rgba(220,38,38,0.1)',
   gold: '#C9A01E',
@@ -102,7 +125,7 @@ export const light: ThemeColors = {
 };
 
 export const space = { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32, huge: 48 } as const;
-export const radius = { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 } as const;
+export const radius = { sm: 7, md: 10, lg: 14, xl: 18, pill: 999 } as const;
 
 export const fonts = {
   regular: 'Inter_400Regular',
@@ -117,17 +140,23 @@ export const fonts = {
 
 export const type = {
   display: { fontFamily: fonts.scoreHeavy, fontSize: 40, lineHeight: 44, letterSpacing: 0 },
-  h1: { fontFamily: fonts.bold, fontSize: 26, lineHeight: 32, letterSpacing: -0.5 },
-  h2: { fontFamily: fonts.bold, fontSize: 20, lineHeight: 26, letterSpacing: -0.3 },
-  h3: { fontFamily: fonts.semibold, fontSize: 17, lineHeight: 22, letterSpacing: -0.2 },
+  h1: { fontFamily: fonts.bold, fontSize: 25, lineHeight: 30, letterSpacing: -0.6 },
+  h2: { fontFamily: fonts.bold, fontSize: 19, lineHeight: 24, letterSpacing: -0.35 },
+  h3: { fontFamily: fonts.semibold, fontSize: 16, lineHeight: 21, letterSpacing: -0.2 },
   body: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 22 },
   bodyStrong: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 22 },
   small: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18 },
   smallStrong: { fontFamily: fonts.semibold, fontSize: 13, lineHeight: 18 },
-  caption: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 16, letterSpacing: 0.2 },
-  overline: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 14, letterSpacing: 1.1, textTransform: 'uppercase' as const },
+  caption: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 16, letterSpacing: 0.1 },
+  overline: { fontFamily: fonts.semibold, fontSize: 11, lineHeight: 14, letterSpacing: 0.8, textTransform: 'uppercase' as const },
   stat: { fontFamily: fonts.scoreHeavy, fontSize: 32, lineHeight: 36, letterSpacing: 0.2, fontVariant: ['tabular-nums' as const] },
   statSmall: { fontFamily: fonts.score, fontSize: 21, lineHeight: 24, letterSpacing: 0.2, fontVariant: ['tabular-nums' as const] },
 };
 
 export type TypeVariant = keyof typeof type;
+
+/** Soft shadows for things that float (sheets, toasts, menus). Cards stay flat: depth comes from the lit top edge. */
+export const shadow = {
+  float: { shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+  raise: { shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+} as const;

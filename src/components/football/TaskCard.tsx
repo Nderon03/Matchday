@@ -23,7 +23,7 @@ export function TaskCard({ task }: { task: Task }) {
   const m = META[task.kind] ?? META.rsvp;
   const tint = m.tone === 'primary' ? colors.primary : m.tone === 'danger' ? colors.danger : colors.warning;
   return (
-    <Card onPress={() => router.push(m.route(task.session_id) as any)} accessibilityLabel={`${task.subtitle}: ${task.title}`} style={{ borderColor: `${tint}55` }}>
+    <Card onPress={() => router.push(m.route(task.session_id) as any)} accessibilityLabel={`${task.subtitle}: ${task.title}`}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
         <View style={{ width: 40, height: 40, borderRadius: radius.md, backgroundColor: `${tint}22`, alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name={m.icon} size={20} color={tint} />

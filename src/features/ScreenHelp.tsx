@@ -38,12 +38,12 @@ export function HelpButton({ onPress, fresh, label = 'How this screen works', si
     <Pressable onPress={onPress} hitSlop={8} accessibilityRole="button" accessibilityLabel={label}
       style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.92 : 1 }] })}>
       <Animated.View style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center',
-        backgroundColor: colors.primaryMuted, borderWidth: 1, borderColor: `${colors.primary}55`,
+        backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
         transform: [
           { translateY: bob.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) },
           { rotate: bob.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-8deg'] }) },
         ] }}>
-        <Ionicons name="help" size={size * 0.55} color={colors.primary} />
+        <Ionicons name="help" size={size * 0.55} color={colors.textMuted} />
         {!!fresh && (
           <View style={{ position: 'absolute', top: -3, right: -3 }}>
             <Ionicons name="sparkles" size={13} color={colors.warning} />

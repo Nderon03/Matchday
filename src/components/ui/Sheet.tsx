@@ -2,7 +2,7 @@ import React from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme/ThemeProvider';
-import { radius, space } from '@/theme/tokens';
+import { radius, space, shadow } from '@/theme/tokens';
 import { Text } from './Text';
 import { IconButton } from './Button';
 
@@ -19,7 +19,7 @@ export function Sheet({ visible, onClose, title, children, scroll = true }: { vi
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} onPress={onClose} accessibilityLabel="Close" />
         <View style={styles.positioner} pointerEvents="box-none">
-          <View style={[styles.sheet, { backgroundColor: colors.surface, borderColor: colors.border, paddingBottom: insets.bottom + space.lg }]} accessibilityViewIsModal>
+          <View style={[styles.sheet, { backgroundColor: colors.surface, borderColor: colors.border, borderTopColor: colors.borderStrong, ...shadow.float, paddingBottom: insets.bottom + space.lg }]} accessibilityViewIsModal>
             <View style={styles.head}>
               <Text variant="h3" style={{ flex: 1 }} accessibilityRole="header">{title}</Text>
               <IconButton icon="close" label="Close" size={34} onPress={onClose} />

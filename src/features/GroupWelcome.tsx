@@ -92,7 +92,7 @@ function Welcome({ group, number, total, squad, nextGame, onClose }: {
       {!reduceMotion && <Confetti colour="#22C55E" />}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.centre, { flex: undefined, flexGrow: 1 }]} bounces={false} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Animated.View accessibilityViewIsModal style={[styles.card, {
-          backgroundColor: colors.surface, borderColor: `${colors.primary}55`,
+          backgroundColor: colors.surface, borderColor: colors.primaryBorder,
           opacity: card, transform: [{ scale: card.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }],
         }]}>
           <View style={{ height: 128, alignItems: 'center', justifyContent: 'center' }}>

@@ -135,7 +135,7 @@ export default function GroupScreen() {
       {!!g.cover_url && <Image source={{ uri: g.cover_url }} style={{ height: 140, borderRadius: radius.lg }} contentFit="cover" />}
 
       {!myRole && !!group.data.myRemoval && (
-        <Card style={{ borderColor: colors.danger, backgroundColor: colors.dangerMuted }}>
+        <Card variant="danger">
           <Row gap={space.md} style={{ alignItems: 'flex-start' }}>
             <Ionicons name="person-remove" size={24} color={colors.danger} />
             <View style={{ flex: 1, gap: 4 }}>

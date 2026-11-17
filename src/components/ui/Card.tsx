@@ -6,18 +6,25 @@ import { radius, space } from '@/theme/tokens';
 export interface CardProps extends ViewProps {
   onPress?: () => void;
   padded?: boolean;
-  variant?: 'default' | 'alt' | 'highlight';
+  /** highlight / warning / danger: a soft tinted edge and wash, for the one thing on a screen that needs attention */
+  variant?: 'default' | 'alt' | 'highlight' | 'warning' | 'danger';
   style?: ViewStyle | ViewStyle[];
   accessibilityLabel?: string;
 }
 
 export function Card({ onPress, padded = true, variant = 'default', style, children, accessibilityLabel, ...rest }: CardProps) {
   const { colors } = useTheme();
+  const tone = variant === 'highlight' ? { bg: colors.primarySurface, edge: colors.primaryBorder }
+    : variant === 'warning' ? { bg: colors.warningSurface, edge: colors.warningBorder }
+    : variant === 'danger' ? { bg: colors.dangerSurface, edge: colors.dangerBorder }
+    : null;
   const base: ViewStyle = {
-    backgroundColor: variant === 'alt' ? colors.surfaceAlt : colors.surface,
+    backgroundColor: tone?.bg ?? (variant === 'alt' ? colors.surfaceAlt : colors.surface),
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: variant === 'highlight' ? colors.primary : colors.border,
+    borderColor: tone?.edge ?? colors.border,
+    // lit from above: a slightly brighter top edge gives depth without making anything bigger
+    borderTopColor: tone?.edge ?? colors.borderTop,
     padding: padded ? space.lg : 0,
     overflow: 'hidden',
   };
@@ -29,7 +36,7 @@ export function Card({ onPress, padded = true, variant = 'default', style, child
         accessibilityRole={Platform.OS === 'web' ? undefined : 'button'}
         accessibilityLabel={accessibilityLabel}
         onPress={onPress}
-        style={({ pressed }) => [base, { opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }, style as ViewStyle]}
+        style={({ pressed }) => [base, { opacity: pressed ? 0.92 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] }, style as ViewStyle]}
         {...rest}
       >
         {children}

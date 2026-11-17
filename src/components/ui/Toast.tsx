@@ -3,7 +3,7 @@ import { Animated, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@/components/ui/Ionicons';
 import { useTheme } from '@/theme/ThemeProvider';
-import { radius, space } from '@/theme/tokens';
+import { radius, space, shadow } from '@/theme/tokens';
 import { errorMessage } from '@/lib/errors';
 import { Text } from './Text';
 
@@ -40,7 +40,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       {!!toast && (
         <Animated.View pointerEvents="none" style={[styles.wrap, { opacity, bottom: insets.bottom + 90 }]}>
-          <View accessibilityLiveRegion="polite" accessibilityRole="alert" style={[styles.toast, { backgroundColor: colors.elevated, borderColor: colors.borderStrong }]}>
+          <View accessibilityLiveRegion="polite" accessibilityRole="alert" style={[styles.toast, { backgroundColor: colors.elevated, borderColor: colors.border, borderTopColor: colors.borderStrong, ...shadow.float }]}>
             <Ionicons name={icon} size={20} color={tint} />
             <Text variant="smallStrong" style={{ flexShrink: 1 }}>{toast.message}</Text>
           </View>

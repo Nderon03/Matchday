@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useTheme } from '@/theme/ThemeProvider';
-import { radius, space } from '@/theme/tokens';
+import { radius, space, shadow } from '@/theme/tokens';
 import { Text } from './Text';
 
 export function Segmented<T extends string>({ options, value, onChange, scroll }: {
@@ -19,7 +19,7 @@ export function Segmented<T extends string>({ options, value, onChange, scroll }
         accessibilityRole="tab"
         accessibilityState={{ selected: active }}
         onPress={() => onChange(o.value)}
-        style={[styles.item, scroll ? { paddingHorizontal: space.lg } : { flex: 1 }, active && { backgroundColor: colors.elevated, borderColor: colors.borderStrong }]}
+        style={({ pressed }) => [styles.item, scroll ? { paddingHorizontal: space.lg } : { flex: 1 }, active ? { backgroundColor: colors.elevated, borderColor: colors.border, borderTopColor: colors.borderTop, ...shadow.raise } : pressed ? { backgroundColor: colors.surface } : null]}
       >
         <Text variant="smallStrong" tone={active ? 'default' : 'muted'} numberOfLines={1}>{o.label}</Text>
       </Pressable>
@@ -42,7 +42,7 @@ export function Chip({ label, selected, onPress, icon }: { label: string; select
       accessibilityRole="button"
       accessibilityState={{ selected: !!selected }}
       onPress={onPress}
-      style={[styles.chip, { borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? colors.primaryMuted : colors.surface }]}
+      style={({ pressed }) => [styles.chip, { borderColor: selected ? colors.primaryBorder : colors.border, backgroundColor: selected ? colors.primaryMuted : pressed ? colors.surfaceAlt : colors.surface }]}
     >
       {icon}
       <Text variant="smallStrong" tone={selected ? 'primary' : 'muted'}>{label}</Text>
@@ -52,6 +52,6 @@ export function Chip({ label, selected, onPress, icon }: { label: string; select
 
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', padding: 3, borderRadius: radius.md, gap: 2 },
-  item: { height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: radius.sm, borderWidth: 1, borderColor: 'transparent' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1 },
+  item: { height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: radius.sm, borderWidth: 1, borderColor: 'transparent' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1 },
 });

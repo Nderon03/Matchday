@@ -28,7 +28,7 @@ export function NearlyThere({ data }: { data: MyAchievements | undefined }) {
   if (!n) return null;
   const colour = levelInfo(n.level).colour;
   return (
-    <Card onPress={() => router.push('/achievements')} accessibilityLabel={`${n.label}. See achievements`} style={{ borderColor: `${colour}66` }}>
+    <Card onPress={() => router.push('/achievements')} accessibilityLabel={`${n.label}. See achievements`}>
       <Row gap={space.md}>
         <Animated.View style={{ transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.08] }) }] }}>
           <AchievementBadge icon={n.icon} level={n.level - 1} progress={n.progress} target={n.target} size={46} animate={false} />

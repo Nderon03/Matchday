@@ -20,15 +20,17 @@ export const Input = forwardRef<TextInputInstance, InputProps>(function Input({ 
   const [hidden, setHidden] = useState(!!secure);
   return (
     <View style={{ gap: space.xs }}>
-      {!!label && <Text variant="smallStrong" tone="muted">{label}</Text>}
+      {!!label && <Text variant="smallStrong" tone="muted" style={{ letterSpacing: -0.05 }}>{label}</Text>}
       <View
         style={[
           styles.box,
           {
-            backgroundColor: colors.surfaceAlt,
+            backgroundColor: focused ? colors.surface : colors.surfaceAlt,
             borderColor: error ? colors.danger : focused ? colors.primary : colors.border,
-            minHeight: multiline ? 96 : 48,
+            minHeight: multiline ? 92 : 44,
             alignItems: multiline ? 'flex-start' : 'center',
+            // focus: the green edge plus a soft ring on the web (outside the box, so nothing moves)
+            ...(Platform.OS === 'web' && focused && !error ? ({ boxShadow: `0 0 0 3px ${colors.primaryMuted}` } as object) : null),
           },
         ]}
       >
@@ -71,6 +73,6 @@ const webNoOutline = { outlineStyle: 'none', outlineWidth: 0 } as object;
 const styles = StyleSheet.create({
   box: { flexDirection: 'row', gap: space.sm, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space.md },
   input: { flex: 1, fontSize: 15, includeFontPadding: false, paddingHorizontal: 0, margin: 0 },
-  single: { height: 46, paddingVertical: 0, textAlignVertical: 'center' },
-  multi: { minHeight: 94, paddingTop: 12, paddingBottom: 12, lineHeight: 21, textAlignVertical: 'top' },
+  single: { height: 42, paddingVertical: 0, textAlignVertical: 'center' },
+  multi: { minHeight: 90, paddingTop: 12, paddingBottom: 12, lineHeight: 21, textAlignVertical: 'top' },
 });

@@ -306,7 +306,7 @@ export default function SessionScreen() {
       </Card></Spot>
 
       {!!blocked && (
-        <Card style={{ borderColor: colors.danger, backgroundColor: colors.dangerMuted }}>
+        <Card variant="danger">
           <Row gap={space.md} style={{ alignItems: 'flex-start' }}>
             <Ionicons name="person-remove" size={24} color={colors.danger} />
             <View style={{ flex: 1, gap: 4 }}>

@@ -11,7 +11,7 @@ export function StatTile({ label, value, sub, accent, compact }: { label: string
     <View
       accessible
       accessibilityLabel={`${label}: ${value}${sub ? `, ${sub}` : ''}`}
-      style={{ flex: 1, minWidth: 0, padding: compact ? space.md : space.lg, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, gap: 2 }}
+      style={{ flex: 1, minWidth: 0, padding: (compact ? space.md : space.lg) - 1, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, gap: 2 }}
     >
       <Text variant={compact ? 'statSmall' : 'stat'} tone={accent ? 'primary' : 'default'}>{value}</Text>
       <Text variant="caption" tone="muted" numberOfLines={2}>{label}</Text>
