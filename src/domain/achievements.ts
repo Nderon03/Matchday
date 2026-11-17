@@ -87,7 +87,7 @@ export const CARD_STYLES: CardStyle[] = [
   { id: 'bronze', name: 'Bronze', points: 4, fx: 1, icon: 'shield', from: '#4A2A12', to: '#140904', accent: '#E39A5B', muted: '#C9A585', border: '#B8722F' },
   { id: 'silver', name: 'Silver', points: 8, fx: 2, icon: 'shield-checkmark', from: '#5A6573', to: '#13171C', accent: '#F1F5F9', muted: '#B8C2CE', border: '#DDE3EA' },
   { id: 'gold', name: 'Gold', points: 16, fx: 3, icon: 'star', from: '#2E2006', to: '#080602', accent: '#FFD45C', muted: '#D9C08A', border: '#C9961A' },
-  { id: 'platinum', name: 'Platinum', points: 26, fx: 4, icon: 'flash', from: '#22566A', to: '#04131A', accent: '#A5F3FC', muted: '#A9D3DC', border: '#D9FBFF' },
+  { id: 'platinum', name: 'Platinum', points: 26, fx: 4, icon: 'flash', from: '#3E5A68', to: '#081116', accent: '#BDF4FF', muted: '#A9D3DC', border: '#D9FBFF' },
   { id: 'diamond', name: 'Diamond', points: 33, fx: 5, icon: 'diamond', from: '#0E3A78', to: '#020A1C', accent: '#E0F2FE', muted: '#9FC3E6', border: '#BAE6FD' },
   { id: 'hall_of_fame', name: 'Hall of Fame', points: MAX_POINTS, fx: 6, icon: 'trophy', from: '#4C1D95', to: '#12041F', accent: '#F5C542', muted: '#D4B8F0', border: '#F5C542', label: 'HALL OF FAME' },
 ];
