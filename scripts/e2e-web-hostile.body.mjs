@@ -1,4 +1,6 @@
-// Body of the hostile-data check (see e2e-web-hostile.sh); appended to the visual test's fake-server setup.
+// Body of the hostile-data check (see e2e-web-hostile.sh); appended to the visual test's fake-server setup,
+// which defines these:
+/* global table, rpcs, openPage, FIT_ROUTES, base, browser */
 const mode = process.env.MODE;
 const keep = { profiles: table.profiles }; // still signed in as someone
 if (mode === 'empty') {

@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase';
 import { q, rpc } from '@/lib/api';
 import { AppError } from '@/lib/errors';
 
-const friendlyNotFound = 'We couldn’t find that. It may have been removed.';
 import { useAuth } from '@/providers/AuthProvider';
 import { useRealtimeInvalidate } from './useRealtime';
 import type {
@@ -12,6 +11,8 @@ import type {
   Notification, Payment, PaymentStatus, Profile, Season, Session, TeamPlayer, UserPreferences,
 } from '@/types/db';
 import type { LeaderboardCategory } from '@/domain/leaderboard';
+
+const friendlyNotFound = 'We couldn’t find that. It may have been removed.';
 
 export const keys = {
   home: ['home'] as const,
