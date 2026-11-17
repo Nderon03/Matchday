@@ -4,7 +4,8 @@
 # Uses the visual test's fake server. Needs a web build in dist/ first.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-gen=scripts/.hostile.generated.mjs
+mkdir -p node_modules/.cache
+gen=node_modules/.cache/matchday-hostile.mjs  # inside an ignored folder (no .gitignore change: Expo counts .gitignore in the native fingerprint)
 n=$(grep -n "^for (const \[vpName, vp\]" scripts/e2e-web-visual.mjs | cut -d: -f1)
 head -n $((n-1)) scripts/e2e-web-visual.mjs > $gen
 sed -n '/^const FIT_ROUTES = \[/,/^\];/p' scripts/e2e-web-visual.mjs >> $gen
