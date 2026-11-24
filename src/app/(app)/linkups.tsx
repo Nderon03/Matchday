@@ -9,7 +9,7 @@ import { useMyGroups } from '@/hooks/queries';
 import { firstName, plural } from '@/domain/format';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
-import { Lift, type LinkUps } from '@/features/LinkUps';
+import { Lift, safeLinkUps, type LinkUps } from '@/features/LinkUps';
 
 /** Every teammate a player has shared at least 3 games with, ranked by how often they win together. */
 export default function LinkUpsScreen() {
@@ -24,6 +24,7 @@ export default function LinkUpsScreen() {
     queryKey: ['player', user, 'linkups', group ?? 'all'],
     enabled: !!user,
     queryFn: () => rpc<LinkUps | null>('get_player_linkups', { p_user: user, p_group: group ?? null }),
+    select: safeLinkUps,
   });
   const who = self ? 'You' : firstName(name, 'They');
 

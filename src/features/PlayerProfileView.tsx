@@ -23,7 +23,7 @@ import { Spot } from '@/features/ScreenHelp';
 import { useSeasonBadges } from '@/features/CardStylePicker';
 import { SeasonEmblem } from '@/components/football/SeasonBadge';
 import { parseSeasonBadge } from '@/domain/seasonBadges';
-import { LinkUpsRow, type LinkUps } from '@/features/LinkUps';
+import { LinkUpsRow, safeLinkUps, type LinkUps } from '@/features/LinkUps';
 
 export function PlayerProfileView({ userId }: { userId: string }) {
   const { colors } = useTheme();
@@ -39,7 +39,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   const reliability = useReliability([userId]);
   const seasonBadges = useSeasonBadges(userId);
   const links = useQuery({ queryKey: ['player', userId, 'connections'], queryFn: () => rpc<Connections | null>('get_player_connections', { p_user: userId }) });
-  const linkups = useQuery({ queryKey: ['player', userId, 'linkups', 'all'], queryFn: () => rpc<LinkUps | null>('get_player_linkups', { p_user: userId, p_group: null }) });
+  const linkups = useQuery({ queryKey: ['player', userId, 'linkups', 'all'], queryFn: () => rpc<LinkUps | null>('get_player_linkups', { p_user: userId, p_group: null }), select: safeLinkUps });
   const bests = useQuery({ queryKey: ['player', userId, 'bests'], queryFn: () => rpc<PersonalBests | null>('get_personal_bests', { p_user: userId }) });
   // card style, flag and club live on the profile row (readable by everyone signed in)
   const style = useQuery({ queryKey: ['player', userId, 'card'], queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null; card_medals: string[]; card_title: string | null } | null>(supabase.from('profiles').select('card_style, nationality, supported_club, card_medals, card_title').eq('id', userId).maybeSingle()) });

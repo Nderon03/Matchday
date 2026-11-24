@@ -15,6 +15,18 @@ export interface LinkUp {
 }
 export interface LinkUps { games: number; win_pct: number; linkups: LinkUp[] }
 
+/** Server data made safe to draw: entries without a player (e.g. a deleted account) are dropped, numbers default to 0. */
+export function safeLinkUps(d: LinkUps | null | undefined): LinkUps | null {
+  if (!d) return null;
+  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  return {
+    games: n(d.games), win_pct: n(d.win_pct),
+    linkups: (Array.isArray(d.linkups) ? d.linkups : []).filter((l) => l?.player?.id).map((l) => ({
+      ...l, games: n(l.games), wins: n(l.wins), draws: n(l.draws), losses: n(l.losses), win_pct: n(l.win_pct), lift: n(l.lift),
+    })),
+  };
+}
+
 /** The lift chip: how much more (or less) often you win with this teammate than usual. */
 export function Lift({ value }: { value: number }) {
   const { colors } = useTheme();
