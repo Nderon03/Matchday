@@ -27,6 +27,7 @@ import { Coachmarks, type CoachStep } from '@/features/Coachmarks';
 import { useGroupBalances } from '@/features/SettleUp';
 import { useAuth } from '@/providers/AuthProvider';
 import { useTheme } from '@/theme/ThemeProvider';
+import { GroupDuos } from '@/features/LinkUps';
 import { radius, space } from '@/theme/tokens';
 import { TeamOfMonth } from '@/features/TeamOfMonth';
 import { ReliabilityChip, useReliability } from '@/features/Reliability';
@@ -257,6 +258,7 @@ export default function GroupScreen() {
 
       {tab === 'tables' && !!myRole && <SeasonRace groupId={id} userId={userId} />}
       {tab === 'tables' && <Leaderboard scope="group" groupId={id} seasons={seasons} minAppearances={settings?.leaderboard_min_appearances} />}
+      {tab === 'tables' && <GroupDuos groupId={id} />}
 
       {tab === 'members' && (
         <View style={{ gap: space.md }}>

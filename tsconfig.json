@@ -20,6 +20,7 @@
   "exclude": [
     "node_modules",
     "supabase/functions",
-    "netlify/edge-functions"
+    "netlify/edge-functions",
+    "tests/payments-e2e"
   ]
 }

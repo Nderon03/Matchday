@@ -128,6 +128,21 @@ const rpcs = {
     partner: { player: people[1], games: 18, wins: 13, win_pct: 72 },
     nemesis: { player: people[3], games: 8, wins: 2, losses: 6 },
   },
+  get_player_linkups: {
+    games: 96, win_pct: 53,
+    linkups: [
+      { player: people[1], games: 18, wins: 13, draws: 2, losses: 3, win_pct: 72, lift: 19 },
+      { player: people[4], games: 11, wins: 7, draws: 1, losses: 3, win_pct: 64, lift: 11 },
+      { player: people[2], games: 23, wins: 12, draws: 4, losses: 7, win_pct: 52, lift: -1 },
+      { player: people[6], games: 6, wins: 3, draws: 0, losses: 3, win_pct: 50, lift: -3 },
+      { player: people[3], games: 9, wins: 2, draws: 1, losses: 6, win_pct: 22, lift: -31 },
+    ],
+  },
+  get_group_duos: [
+    { a: people[0], b: people[1], games: 12, wins: 9, draws: 1, losses: 2, win_pct: 75 },
+    { a: people[2], b: people[4], games: 8, wins: 5, draws: 2, losses: 1, win_pct: 63 },
+    { a: people[3], b: people[5], games: 10, wins: 5, draws: 0, losses: 5, win_pct: 50 },
+  ],
   get_personal_bests: {
     best_rating: { value: '8.60', session_id: SID, name: 'Tuesday 6-a-side', played_at: ago(40) },
     most_goals: { value: 4, session_id: SID, name: 'Wednesday Football', played_at: ago(12) },
@@ -946,7 +961,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
 // pokes out sideways (a horizontal page scroll, or a visible element past the screen edge that
 // isn't inside something meant to scroll sideways or clip).
 const FIT_ROUTES = [
-  '/', '/matches', '/leagues', '/profile', '/create', '/achievements', '/compare', '/friends', '/notifications', '/payments', '/wrapped',
+  '/', '/matches', '/leagues', '/profile', '/create', '/achievements', '/compare', '/linkups', '/friends', '/notifications', '/payments', '/wrapped',
   `/player/${people[1].id}`, `/group/${GID}`, `/group/${GID}/settings`, '/group/discover', '/group/new',
   `/session/${SID}`, `/session/${SID}/lineup`, `/session/${SID}/attendance`, `/session/${SID}/results`, `/session/${SID}/goals`,
   `/session/${SID}/vote`, `/session/${SID}/invite`, `/session/${SID}/payments`, `/session/${SID}/edit`, '/session/new', '/session/find',

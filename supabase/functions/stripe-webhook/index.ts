@@ -1,7 +1,10 @@
 // Stripe webhook receiver. The ONLY place payment status changes to paid/authorised/refunded.
 // Signatures are verified server-side; events are stored once (idempotent by Stripe event id).
 import { adminClient, json } from '../_shared/http.ts';
-import { accountFlagsFromEvent, patchFromEvent, shouldTransition, verifyStripeSignature, type StripeEventLike, type PaymentStatus } from '../_shared/payments-core.ts';
+import { accountFlagsFromEvent, applicationFee, patchFromEvent, shouldTransition, verifyStripeSignature, type StripeEventLike, type PaymentStatus } from '../_shared/payments-core.ts';
+
+// the platform's own cut of the host's price, if any (same setting as payments-checkout)
+const HOST_FEE_BPS = Number(Deno.env.get('PLATFORM_FEE_BPS') ?? '0');
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -59,10 +62,12 @@ Deno.serve(async (req) => {
         );
         if (refundErr) throw refundErr;
       }
-      // one payout record per paid payment (safe to repeat when an event is reprocessed)
+      // one payout record per paid payment (safe to repeat when an event is reprocessed). The host gets
+      // their full price: the booking fee is paid by the player on top, so only a platform cut of the
+      // price (none by default) comes off it.
       if ((update.status ?? payment.status) === 'paid' && payment.payee_id) {
         const { error: payoutErr } = await admin.from('payout_records').upsert(
-          { payment_id: payment.id, host_id: payment.payee_id, amount_pence: payment.amount_pence - (payment.application_fee_pence ?? 0), stripe_reference: patch.lookup.paymentIntentId ?? null },
+          { payment_id: payment.id, host_id: payment.payee_id, amount_pence: payment.amount_pence - applicationFee(payment.amount_pence, HOST_FEE_BPS), stripe_reference: patch.lookup.paymentIntentId ?? null },
           { onConflict: 'payment_id', ignoreDuplicates: true },
         );
         if (payoutErr) throw payoutErr;

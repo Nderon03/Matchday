@@ -23,6 +23,7 @@ import { Spot } from '@/features/ScreenHelp';
 import { useSeasonBadges } from '@/features/CardStylePicker';
 import { SeasonEmblem } from '@/components/football/SeasonBadge';
 import { parseSeasonBadge } from '@/domain/seasonBadges';
+import { LinkUpsRow, type LinkUps } from '@/features/LinkUps';
 
 export function PlayerProfileView({ userId }: { userId: string }) {
   const { colors } = useTheme();
@@ -38,6 +39,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
   const reliability = useReliability([userId]);
   const seasonBadges = useSeasonBadges(userId);
   const links = useQuery({ queryKey: ['player', userId, 'connections'], queryFn: () => rpc<Connections | null>('get_player_connections', { p_user: userId }) });
+  const linkups = useQuery({ queryKey: ['player', userId, 'linkups', 'all'], queryFn: () => rpc<LinkUps | null>('get_player_linkups', { p_user: userId, p_group: null }) });
   const bests = useQuery({ queryKey: ['player', userId, 'bests'], queryFn: () => rpc<PersonalBests | null>('get_personal_bests', { p_user: userId }) });
   // card style, flag and club live on the profile row (readable by everyone signed in)
   const style = useQuery({ queryKey: ['player', userId, 'card'], queryFn: () => q<{ card_style: string; nationality: string | null; supported_club: string | null; card_medals: string[]; card_title: string | null } | null>(supabase.from('profiles').select('card_style, nationality, supported_club, card_medals, card_title').eq('id', userId).maybeSingle()) });
@@ -203,7 +205,9 @@ export function PlayerProfileView({ userId }: { userId: string }) {
         </>
       )}
 
-      {!!d.can_view_stats && !!links.data && (!!links.data.partner?.player || !!links.data.nemesis?.player) && <ConnectionsCard c={links.data} self={!!d.is_self} name={p.display_name} userId={userId} />}
+      {!!d.can_view_stats && (!!links.data?.partner?.player || !!links.data?.nemesis?.player || !!linkups.data?.linkups?.length) && (
+        <ConnectionsCard c={links.data ?? { partner: null, nemesis: null }} linkups={linkups.data?.linkups?.length ? linkups.data : null} self={!!d.is_self} name={p.display_name} userId={userId} />
+      )}
 
       {!!d.can_view_stats && !!bests.data && <PersonalBestsCard b={bests.data} linkable={!!d.is_self} />}
 
@@ -269,7 +273,7 @@ interface Linked { player: { id: string; username: string; display_name: string;
 interface Connections { partner: Linked | null; nemesis: Linked | null }
 
 /** Who this player wins most with, and who keeps beating them. */
-function ConnectionsCard({ c, self, name, userId }: { c: Connections; self: boolean; name: string; userId: string }) {
+function ConnectionsCard({ c, linkups, self, name, userId }: { c: Connections; linkups: LinkUps | null; self: boolean; name: string; userId: string }) {
   const { colors } = useTheme();
   const first = (name ?? '').split(' ')[0] || 'They';
   const rows = [
@@ -286,7 +290,7 @@ function ConnectionsCard({ c, self, name, userId }: { c: Connections; self: bool
   ].filter(Boolean) as { key: string; icon: 'people' | 'flame'; colour: string; title: string; who: Linked['player']; line: string; onPress: () => void }[];
   return (
     <>
-      <SectionTitle title="Partners & rivals" />
+      <SectionTitle title="Link-ups & rivals" />
       <Card padded={false}>
         {rows.map((r, i) => (
           <Pressable key={r.key} onPress={r.onPress} accessibilityRole="button" accessibilityLabel={`${r.title}: ${r.who.display_name}. ${r.line}`}
@@ -307,6 +311,7 @@ function ConnectionsCard({ c, self, name, userId }: { c: Connections; self: bool
             </Row>
           </Pressable>
         ))}
+        {!!linkups && <LinkUpsRow data={linkups} self={self} name={name} userId={userId} first={!rows.length} />}
       </Card>
     </>
   );
