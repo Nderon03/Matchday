@@ -10,6 +10,8 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radius, space } from '@/theme/tokens';
 import { ScreenHelp } from '@/features/ScreenHelp';
 import { haptics } from '@/lib/haptics';
+import { useReadable } from '@/theme/useReadable';
+import { adjustable, touchOnly } from '@/components/ui/adjustable';
 
 export default function ResultsScreen() {
   const { id, correct } = useLocalSearchParams<{ id: string; correct?: string }>();
@@ -168,12 +170,13 @@ export default function ResultsScreen() {
 /** One team's score: name, the number in the scoreboard font, and − / + buttons below it. */
 function ScoreBox({ name, color, value, onChange }: { name: string; color?: string; value: number; onChange: (v: number) => void }) {
   const { colors } = useTheme();
+  const readable = useReadable();
   const change = (d: number) => {
     const next = Math.min(99, Math.max(0, value + d));
     if (next !== value) { haptics.tap(); onChange(next); }
   };
   const btn = (d: number, icon: 'remove' | 'add', disabled: boolean) => (
-    <Pressable onPress={() => change(d)} disabled={disabled} hitSlop={6} accessibilityRole="button" accessibilityLabel={`${d > 0 ? 'Add a goal for' : 'Take a goal off'} ${name}`}
+    <Pressable onPress={() => change(d)} disabled={disabled} hitSlop={6} {...touchOnly}
       style={({ pressed }) => ({ width: 46, height: 46, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center',
         backgroundColor: d > 0 ? colors.primaryMuted : colors.elevated, opacity: disabled ? 0.4 : pressed ? 0.8 : 1 })}>
       <Ionicons name={icon} size={22} color={d > 0 ? colors.primary : colors.text} />
@@ -181,9 +184,8 @@ function ScoreBox({ name, color, value, onChange }: { name: string; color?: stri
   );
   return (
     <View style={{ flex: 1, alignItems: 'center', gap: space.xs, minWidth: 0 }}
-      accessible accessibilityRole="adjustable" accessibilityLabel={`${name} score`} accessibilityValue={{ min: 0, max: 99, now: value }}
-      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]} onAccessibilityAction={(e) => change(e.nativeEvent.actionName === 'increment' ? 1 : -1)}>
-      <Text variant="bodyStrong" numberOfLines={1} color={color} style={{ maxWidth: '100%' }}>{name}</Text>
+      {...adjustable({ label: `${name} score`, now: value, min: 0, max: 99, step: change })}>
+      <Text variant="bodyStrong" numberOfLines={1} color={color ? readable(color) : undefined} style={{ maxWidth: '100%' }}>{name}</Text>
       <Text style={{ fontFamily: fonts.scoreHeavy, fontSize: 56, lineHeight: 60, color: colors.text, fontVariant: ['tabular-nums'] }}>{value}</Text>
       <View style={{ flexDirection: 'row', gap: space.sm }}>
         {btn(-1, 'remove', value <= 0)}

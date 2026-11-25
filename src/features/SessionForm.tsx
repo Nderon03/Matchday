@@ -325,7 +325,7 @@ export function SessionForm({ initial, editing }: { initial?: SessionFormInitial
       <Row gap={space.sm} style={{ alignItems: 'stretch' }}>
         {!editing && !initial?.template_id && (
           <Spot id="form.star" style={{ flexDirection: 'row' }}>
-          <Pressable onPress={() => setSavePreset((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: savePreset }}
+          <Pressable onPress={() => setSavePreset((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: savePreset }} aria-checked={savePreset}
             accessibilityLabel="Save as a preset"
             style={({ pressed }) => ({ width: 56, borderRadius: radius.md, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
               borderColor: savePreset ? colors.warning : colors.border, backgroundColor: pressed ? colors.elevated : savePreset ? `${colors.warning}22` : colors.surfaceAlt })}>

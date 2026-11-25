@@ -28,11 +28,11 @@ export function Segmented<T extends string>({ options, value, onChange, scroll }
   if (scroll) {
     return (
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.wrap, { backgroundColor: colors.surfaceAlt }]}>
-        {content}
+        <View accessibilityRole="tablist" style={{ flexDirection: 'row', gap: styles.wrap.gap }}>{content}</View>
       </ScrollView>
     );
   }
-  return <View style={[styles.wrap, { backgroundColor: colors.surfaceAlt }]}>{content}</View>;
+  return <View accessibilityRole="tablist" style={[styles.wrap, { backgroundColor: colors.surfaceAlt }]}>{content}</View>;
 }
 
 export function Chip({ label, selected, onPress, icon }: { label: string; selected?: boolean; onPress?: () => void; icon?: React.ReactNode }) {

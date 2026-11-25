@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, View } from 'react-native';
+import { adjustable, touchOnly } from './adjustable';
 import Ionicons from '@/components/ui/Ionicons';
 import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -47,8 +48,9 @@ export function SwipeSelect<T extends string | number | null>({ label, options, 
   const arrow = (dir: 1 | -1) => {
     const disabled = dir < 0 ? index === 0 : index === options.length - 1;
     return (
-      <Pressable onPress={() => go(dir)} disabled={disabled} hitSlop={10} accessibilityRole="button"
-        accessibilityLabel={dir < 0 ? 'Previous option' : 'Next option'}
+      // the whole control is one adjustable element (swipe, arrow keys, or a screen reader's up/down),
+      // so its arrows are for touch and mouse only and stay out of the keyboard/screen-reader order
+      <Pressable onPress={() => go(dir)} disabled={disabled} hitSlop={10} {...touchOnly}
         style={({ pressed }) => ({ width: compact ? 30 : 36, height: compact ? 30 : 36, borderRadius: 999, alignItems: 'center', justifyContent: 'center',
           backgroundColor: pressed ? colors.elevated : 'transparent', opacity: disabled ? 0.25 : 1 })}>
         <Ionicons name={dir < 0 ? 'chevron-back' : 'chevron-forward'} size={compact ? 18 : 20} color={colors.text} />
@@ -69,9 +71,7 @@ export function SwipeSelect<T extends string | number | null>({ label, options, 
           const dy = e.nativeEvent.pageY - start.y;
           if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
         }}
-        accessible accessibilityRole="adjustable" accessibilityLabel={accessibilityLabel ?? label} accessibilityValue={{ text: current?.label }}
-        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-        onAccessibilityAction={(e) => go(e.nativeEvent.actionName === 'increment' ? 1 : -1)}
+        {...adjustable({ label: accessibilityLabel ?? label ?? 'Choose', now: Math.max(0, index), min: 0, max: Math.max(0, options.length - 1), text: current?.label, step: go })}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: compact ? 46 : 52, paddingHorizontal: 6,
           borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceAlt }}>
         {arrow(-1)}

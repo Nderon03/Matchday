@@ -11,6 +11,7 @@ import { formatKickoff } from '@/domain/format';
 import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space, fonts } from '@/theme/tokens';
+import { useReadable } from '@/theme/useReadable';
 
 const native = Platform.OS !== 'web';
 
@@ -24,6 +25,7 @@ const ICON: Record<Highlight['kind'], keyof typeof Ionicons.glyphMap> = {
  */
 export function MatchRevealCard({ r, onDone }: { r: MatchReveal; onDone: () => void }) {
   const { colors, reduceMotion } = useTheme();
+  const readable = useReadable();
   const highlights = matchHighlights(r);
   const special = highlights.length > 0;
   const rating = r.rating_eligible && r.rating_avg !== null ? Number(r.rating_avg) : null;
@@ -90,7 +92,7 @@ export function MatchRevealCard({ r, onDone }: { r: MatchReveal; onDone: () => v
                 <View style={{ flexDirection: 'row', gap: 6 }}>
                   {result.map((x) => (
                     <View key={x.label} style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.pill, backgroundColor: `${x.colour}22` }}>
-                      <Text variant="smallStrong" style={{ color: x.colour }}>{x.label}</Text>
+                      <Text variant="smallStrong" style={{ color: readable(x.colour) }}>{x.label}</Text>
                     </View>
                   ))}
                 </View>

@@ -2,6 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { useTheme } from '@/theme/ThemeProvider';
+import { over, readableOn } from '@/theme/contrast';
 import { Text } from './Text';
 
 const TINTS = ['#22C55E', '#38BDF8', '#F5A524', '#A78BFA', '#F472B6', '#2DD4BF', '#FB923C'];
@@ -13,8 +14,11 @@ function initials(name?: string | null) {
 }
 
 export function Avatar({ uri, name, size = 40, ring }: { uri?: string | null; name?: string | null; size?: number; ring?: string }) {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const tint = TINTS[(name ?? '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % TINTS.length];
+  // initials in the person's colour, darkened on the light theme so they stay readable on the tint
+  // (with a little headroom: avatars sit on cards, the page and tinted rows alike)
+  const ink = scheme === 'light' ? readableOn(tint, over(tint, 0.15, colors.surfaceAlt), 5) : tint;
   return (
     <View
       accessibilityRole="image"
@@ -27,7 +31,7 @@ export function Avatar({ uri, name, size = 40, ring }: { uri?: string | null; na
       {uri ? (
         <Image source={{ uri }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={150} />
       ) : (
-        <Text variant="bodyStrong" color={tint} style={{ fontSize: size * 0.38, lineHeight: size * 0.46 }}>{initials(name)}</Text>
+        <Text variant="bodyStrong" color={ink} style={{ fontSize: size * 0.38, lineHeight: size * 0.46 }}>{initials(name)}</Text>
       )}
     </View>
   );

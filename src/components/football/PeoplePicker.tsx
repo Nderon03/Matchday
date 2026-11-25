@@ -29,7 +29,7 @@ export function PeoplePicker({ people, selected, onToggle, disabledIds, emptyTex
           const on = selected.has(p.id);
           const disabled = disabledIds?.has(p.id);
           return (
-            <Pressable key={p.id} disabled={disabled} onPress={() => onToggle(p.id)} accessibilityRole="checkbox" accessibilityState={{ checked: on, disabled }}
+            <Pressable key={p.id} disabled={disabled} onPress={() => onToggle(p.id)} accessibilityRole="checkbox" accessibilityState={{ checked: on, disabled }} aria-checked={!!on}
               style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.sm, borderRadius: radius.md, backgroundColor: on ? colors.primaryMuted : pressed ? colors.surfaceAlt : 'transparent', opacity: disabled ? 0.5 : 1 })}>
               <Avatar uri={p.avatar_url} name={p.display_name} size={36} />
               <View style={{ flex: 1 }}>

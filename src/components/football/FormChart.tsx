@@ -19,7 +19,7 @@ export function RatingChart({ points, height = 140 }: { points: { rating: number
   const y = (v: number) => pad / 2 + ((max - v) * (height - pad)) / Math.max(1, max - min);
   const d = points.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p.rating)}`).join(' ');
   return (
-    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} accessible accessibilityLabel={`Rating history: ${points.map((p) => p.rating.toFixed(1)).join(', ')}`}>
+    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} accessible accessibilityRole="image" accessibilityLabel={`Rating history: ${points.map((p) => p.rating.toFixed(1)).join(', ')}`}>
       {width > 0 && (
         <Svg width={width} height={height}>
           {[min, (min + max) / 2, max].map((v) => (

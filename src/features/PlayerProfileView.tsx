@@ -24,9 +24,11 @@ import { useSeasonBadges } from '@/features/CardStylePicker';
 import { SeasonEmblem } from '@/components/football/SeasonBadge';
 import { parseSeasonBadge } from '@/domain/seasonBadges';
 import { LinkUpsRow, safeLinkUps, type LinkUps } from '@/features/LinkUps';
+import { useReadable } from '@/theme/useReadable';
 
 export function PlayerProfileView({ userId }: { userId: string }) {
   const { colors } = useTheme();
+  const readable = useReadable();
   const toast = useToast();
   const qc = useQueryClient();
   const [groupId, setGroupId] = useState<string | null>(null);
@@ -122,7 +124,7 @@ export function PlayerProfileView({ userId }: { userId: string }) {
               return (
                 <View key={b.code} style={{ alignItems: 'center', gap: 4, width: 64 }} accessible accessibilityLabel={info?.label}>
                   <SeasonEmblem code={b.code} size={40} />
-                  <Text variant="caption" color={info?.info.colour} numberOfLines={1} style={{ fontWeight: '700' }}>{info?.tier === 'preseason' ? 'Pre-season' : info?.info.name}</Text>
+                  <Text variant="caption" color={info?.info.colour ? readable(info.info.colour, colors.bg) : undefined} numberOfLines={1} style={{ fontWeight: '700' }}>{info?.tier === 'preseason' ? 'Pre-season' : info?.info.name}</Text>
                 </View>
               );
             })}

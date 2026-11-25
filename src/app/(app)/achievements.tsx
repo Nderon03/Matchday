@@ -13,6 +13,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
 import { ScreenHelp, Spot } from '@/features/ScreenHelp';
 import { router } from 'expo-router';
+import { useReadable } from '@/theme/useReadable';
 
 const native = Platform.OS !== 'web';
 
@@ -85,6 +86,7 @@ export default function Achievements() {
 
 function TrackTile({ t, index, width, onPress }: { t: TrackState; index: number; width: string; onPress: () => void }) {
   const { colors, reduceMotion } = useTheme();
+  const readable = useReadable();
   const [enter] = useState(() => new Animated.Value(reduceMotion ? 1 : 0));
   useEffect(() => {
     if (reduceMotion) return;
@@ -99,7 +101,7 @@ function TrackTile({ t, index, width, onPress }: { t: TrackState; index: number;
         <View style={{ alignItems: 'center', gap: 6 }}>
           <AchievementBadge icon={t.def.icon} level={t.level} progress={into} target={span} size={54} />
           <Text variant="smallStrong" align="center" numberOfLines={2}>{t.def.name}</Text>
-          <Text variant="caption" align="center" style={{ color: info ? info.colour : colors.textFaint }}>{info ? info.label : 'Not started'}</Text>
+          <Text variant="caption" align="center" style={{ color: info ? readable(info.colour) : colors.textFaint }}>{info ? info.label : 'Not started'}</Text>
           <View style={{ flexDirection: 'row', gap: 3 }}>
             {[1, 2, 3, 4, 5].map((l) => (
               <View key={l} style={{ width: 14, height: 4, borderRadius: 2, backgroundColor: l <= t.level ? levelInfo(l).colour : colors.surfaceAlt }} />

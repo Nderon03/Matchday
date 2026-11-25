@@ -4,6 +4,8 @@ import Ionicons from '@/components/ui/Ionicons';
 import { Text } from '@/components/ui';
 import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
+import { useReadable } from '@/theme/useReadable';
+import { over } from '@/theme/contrast';
 
 const native = Platform.OS !== 'web';
 
@@ -13,6 +15,7 @@ const native = Platform.OS !== 'web';
  */
 export function SquadMeter({ confirmed, max, label }: { confirmed: number; max: number; label: string }) {
   const { colors, reduceMotion } = useTheme();
+  const readable = useReadable();
   const full = confirmed >= max;
   const pct = Math.min(1, max ? confirmed / max : 0);
   const [fill] = useState(() => new Animated.Value(reduceMotion ? pct : 0));
@@ -43,7 +46,7 @@ export function SquadMeter({ confirmed, max, label }: { confirmed: number; max: 
           flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: `${colors.gold}22` }}
           accessibilityElementsHidden={!full}>
           <Ionicons name="sparkles" size={12} color={colors.gold} />
-          <Text variant="caption" style={{ color: colors.gold, fontWeight: '700' }}>Squad complete</Text>
+          <Text variant="caption" style={{ color: readable(colors.gold, over(colors.gold, 0.14, colors.surface)), fontWeight: '700' }}>Squad complete</Text>
         </Animated.View>
       </View>
       <View style={{ height: 6, borderRadius: 3, backgroundColor: colors.surfaceAlt, overflow: 'hidden', marginLeft: 25 }}>

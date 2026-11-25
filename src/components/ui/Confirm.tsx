@@ -54,7 +54,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         {!!(opts?.message) && <Text tone="muted">{opts.message}</Text>}
         {!!(opts?.reasonLabel) && <Input label={opts.reasonLabel} value={reason} onChangeText={setReason} maxLength={200} />}
         {!!(opts?.checkboxLabel) && (
-          <Pressable onPress={() => setChecked((c) => !c)} accessibilityRole="checkbox" accessibilityState={{ checked }}
+          <Pressable onPress={() => setChecked((c) => !c)} accessibilityRole="checkbox" accessibilityState={{ checked }} aria-checked={checked}
             style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.xs }}>
             <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={22} color={checked ? colors.primary : colors.textMuted} />
             <Text style={{ flex: 1 }}>{opts.checkboxLabel}</Text>

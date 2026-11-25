@@ -13,6 +13,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { haptics } from '@/lib/haptics';
 import { shareText } from '@/lib/share';
 import { radius, space } from '@/theme/tokens';
+import { useReadable } from '@/theme/useReadable';
 
 const native = Platform.OS !== 'web';
 const seenKey = (uid: string) => `matchday.achievementsSeen.${uid}`;
@@ -80,6 +81,7 @@ export function AchievementCelebration() {
 
 function Celebration({ item, more, players, newStyle, onDone }: { item: MyAchievement; more: number; players: number; newStyle: CardStyle | null; onDone: (i: MyAchievement) => void }) {
   const { colors, reduceMotion } = useTheme();
+  const readable = useReadable();
   const isChampion = item.code === SEASON_CHAMPION.code;
   const level = isChampion ? 5 : item.level ?? 1;
   const tier = levelInfo(level);
@@ -122,7 +124,7 @@ function Celebration({ item, more, players, newStyle, onDone }: { item: MyAchiev
             </Animated.View>
           </View>
           <Animated.View style={{ alignItems: 'center', gap: space.xs, opacity: text, transform: [{ translateY: text.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }}>
-            <Text variant="overline" style={{ color: tier.colour }}>{headline}</Text>
+            <Text variant="overline" style={{ color: readable(tier.colour) }}>{headline}</Text>
             <Text variant="h2" align="center" accessibilityRole="header">{item.name}</Text>
             <Text tone="muted" align="center">{item.description}</Text>
             {!!rarity && <Text variant="caption" tone="faint" align="center">{rarity} have this</Text>}

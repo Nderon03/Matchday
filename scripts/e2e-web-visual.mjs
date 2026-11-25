@@ -370,9 +370,17 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       // format and length are single swipe controls; no max-players or area fields
       const ft = await page.locator('body').innerText();
       if (!ft.includes('5-a-side') || !ft.includes('1 hour') || /Maximum players|Area \/ address/.test(ft)) failures.push(`${vpName}: session form layout unexpected`);
-      await page.getByRole('button', { name: 'Next option' }).nth(1).click();
+      // one control: the keyboard's arrow keys step it, and a tap on its visible arrow does too
+      const format = page.getByRole('slider', { name: 'Format' });
+      await format.focus();
+      await page.keyboard.press('ArrowRight');
       await page.waitForTimeout(250);
-      if (!(await page.locator('body').innerText()).includes('6-a-side')) failures.push(`${vpName}: format did not change`);
+      if (!(await page.locator('body').innerText()).includes('6-a-side')) failures.push(`${vpName}: format did not change with the arrow key`);
+      if ((await format.getAttribute('aria-valuetext')) !== '6-a-side') failures.push(`${vpName}: format value not announced`);
+      const fb = await format.boundingBox();
+      await page.mouse.click(fb.x + fb.width - 18, fb.y + fb.height / 2);
+      await page.waitForTimeout(250);
+      if (!(await page.locator('body').innerText()).includes('7-a-side')) failures.push(`${vpName}: format did not change with a tap on the arrow`);
       // only the essentials: no MOTM, deadline or repeat options; a star saves it as a preset
       if (/Can’t-make-it deadline|Every game|Every week/.test(ft)) failures.push(`${vpName}: session form still has removed options`);
       // who can join and notes are tucked under More options until opened

@@ -39,7 +39,7 @@ export function InviteQr({ kind, targetId, message, pitch, pitchLabel = 'Message
 
   const qr = (
     <View style={{ alignItems: 'center', gap: space.sm }}>
-      <View style={{ padding: space.md, backgroundColor: '#fff', borderRadius: radius.md }} accessible accessibilityLabel="Invite QR code">
+      <View style={{ padding: space.md, backgroundColor: '#fff', borderRadius: radius.md }} accessible accessibilityRole="image" accessibilityLabel="Invite QR code">
         <QRCode value={url} size={text ? 140 : 168} color="#0A0C0F" backgroundColor="#fff" />
       </View>
       <Text variant="caption" tone="faint" style={{ color: colors.textFaint }}>Scan with a phone camera to open MATCHDAY.</Text>

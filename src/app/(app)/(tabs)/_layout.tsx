@@ -35,7 +35,7 @@ function BottomBar() {
         const active = isActive(pathname, t.href);
         if (t.name === 'create') {
           return (
-            <Pressable key={t.name} ref={tourRef('tab-create')} nativeID="spot-tab-create" onPress={() => router.navigate('/create')} accessibilityRole="button" accessibilityLabel="Create" style={styles.tab}>
+            <Pressable key={t.name} ref={tourRef('tab-create')} nativeID="spot-tab-create" onPress={() => router.navigate('/create')} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel="Create" style={styles.tab}>
               <View style={[styles.create, { backgroundColor: colors.primary, shadowColor: colors.primary }]}>
                 <Ionicons name="add" size={30} color={colors.onPrimary} />
               </View>

@@ -98,11 +98,11 @@ export const light: ThemeColors = {
   text: '#0B0F14',
   textMuted: '#556070',
   textFaint: '#656C77', // ≥4.5:1 on every light surface
-  primary: '#117E39', // green text and white-on-green buttons both ≥4.5:1 on light
-  primaryPressed: '#0E6B30',
-  primaryMuted: 'rgba(22,163,74,0.12)',
+  primary: '#107536', // green text and white-on-green buttons both ≥4.5:1 on light
+  primaryPressed: '#0C5E2A',
+  primaryMuted: 'rgba(22,163,74,0.08)',
   onPrimary: '#FFFFFF',
-  success: '#117E39',
+  success: '#107536',
   warning: '#A55A05',
   warningMuted: 'rgba(217,119,6,0.12)',
   primaryBorder: 'rgba(22,163,74,0.38)',
@@ -120,7 +120,7 @@ export const light: ThemeColors = {
   pitchStripe: '#23854C',
   pitchLine: 'rgba(255,255,255,0.55)',
   overlay: 'rgba(10,12,15,0.45)',
-  teamA: palette.green600,
+  teamA: '#107536',
   teamB: '#1F2933',
 };
 

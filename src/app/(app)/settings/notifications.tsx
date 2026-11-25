@@ -57,7 +57,7 @@ export default function NotificationSettings() {
         <View style={{ gap: space.md }}>
           <Row style={{ justifyContent: 'space-between' }}>
             <View style={{ flex: 1 }}><Text variant="bodyStrong">Push notifications</Text><Text variant="caption" tone="muted">On this device</Text></View>
-            <Switch value={p.push_enabled} onValueChange={(v) => update({ push_enabled: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} />
+            <Switch value={p.push_enabled} onValueChange={(v) => update({ push_enabled: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Push notifications" />
           </Row>
           <Button title="Re-register this device" size="sm" variant="ghost" onPress={async () => {
             const r = await registerForPush().catch(() => 'denied' as const);
@@ -66,7 +66,7 @@ export default function NotificationSettings() {
           <Divider />
           <Row style={{ justifyContent: 'space-between' }}>
             <View style={{ flex: 1 }}><Text variant="bodyStrong">Email</Text><Text variant="caption" tone="muted">Invites and payments only</Text></View>
-            <Switch value={p.email_enabled} onValueChange={(v) => update({ email_enabled: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} />
+            <Switch value={p.email_enabled} onValueChange={(v) => update({ email_enabled: v })} trackColor={{ true: colors.primary, false: colors.borderStrong }} accessibilityLabel="Email" />
           </Row>
         </View>
       </Card>

@@ -8,12 +8,14 @@ import { levelInfo, nearlyThere } from '@/domain/achievements';
 import type { MyAchievements } from '@/hooks/queries';
 import { useTheme } from '@/theme/ThemeProvider';
 import { space } from '@/theme/tokens';
+import { useReadable } from '@/theme/useReadable';
 
 const native = Platform.OS !== 'web';
 
 /** "1 goal from Gold in Goals": a gentle nudge on Home when a medal is one step away. */
 export function NearlyThere({ data }: { data: MyAchievements | undefined }) {
   const { colors, reduceMotion } = useTheme();
+  const readable = useReadable();
   const n = data ? nearlyThere(data.items) : null;
   const [pulse] = useState(() => new Animated.Value(0));
   useEffect(() => {
@@ -34,7 +36,7 @@ export function NearlyThere({ data }: { data: MyAchievements | undefined }) {
           <AchievementBadge icon={n.icon} level={n.level - 1} progress={n.progress} target={n.target} size={46} animate={false} />
         </Animated.View>
         <View style={{ flex: 1 }}>
-          <Text variant="caption" style={{ color: colour, fontWeight: '700' }}>Nearly there</Text>
+          <Text variant="caption" style={{ color: readable(colour), fontWeight: '700' }}>Nearly there</Text>
           <Text variant="bodyStrong">{n.label}</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />

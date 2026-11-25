@@ -17,6 +17,7 @@ import { useNow } from '@/hooks/useNow';
 import { plural } from '@/domain/format';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radius, space } from '@/theme/tokens';
+import { useReadable } from '@/theme/useReadable';
 
 const native = Platform.OS !== 'web';
 const GOLD = '#F5C542';
@@ -84,6 +85,7 @@ const PODIUM = ['#F5C542', '#CDD5DF', '#E39A5B'];
  */
 export function SeasonRace({ groupId, userId, top, onSeeAll, hideUntilPlayed }: { groupId: string; userId?: string | null; top?: number; onSeeAll?: () => void; hideUntilPlayed?: boolean }) {
   const { colors } = useTheme();
+  const readable = useReadable();
   const now = useNow(60_000);
   const race = useSeasonRace(groupId);
   const pips = useCardSeasons((race.data?.rows ?? []).map((r) => r.user_id));
@@ -107,7 +109,7 @@ export function SeasonRace({ groupId, userId, top, onSeeAll, hideUntilPlayed }: 
           backgroundColor: mine ? colors.primaryMuted : 'transparent' }}>
         <View style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center',
           backgroundColor: medal ? `${medal}26` : 'transparent', borderWidth: medal ? 1 : 0, borderColor: medal ?? undefined }}>
-          <Text variant="smallStrong" color={medal ?? colors.textMuted}>{r.rank ?? '–'}</Text>
+          <Text variant="smallStrong" color={medal ? readable(medal) : colors.textMuted}>{r.rank ?? '–'}</Text>
         </View>
         <View><Avatar uri={r.avatar_url} name={r.name} size={32} /><SeasonPip code={pips[r.user_id]} avatar={32} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -118,7 +120,7 @@ export function SeasonRace({ groupId, userId, top, onSeeAll, hideUntilPlayed }: 
           </Text>
         </View>
         {r.score !== null && r.eligible && (
-          <Text style={{ fontFamily: fonts.score, fontSize: 18, color: medal ?? colors.text }}>{Number(r.score).toFixed(2)}</Text>
+          <Text style={{ fontFamily: fonts.score, fontSize: 18, color: medal ? readable(medal) : colors.text }}>{Number(r.score).toFixed(2)}</Text>
         )}
       </View>
     );

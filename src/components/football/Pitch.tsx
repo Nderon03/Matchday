@@ -15,6 +15,7 @@ import type { PlayerPosition, PaymentStatus } from '@/types/db';
 import { PaymentBadge } from './PaymentBadge';
 import { SeasonPip } from './SeasonBadge';
 import { arrangeOutfield, type Slot, type LineupState, type Zone } from '@/domain/lineup';
+import { contrastRatio } from '@/theme/contrast';
 
 export type { Slot, LineupState, Zone } from '@/domain/lineup';
 
@@ -111,7 +112,7 @@ function Token({ player, slot, colour, payment, showPayment, season, selected, e
         <SeasonPip code={season} avatar={size} />
         {!!(slot?.is_goalkeeper) && (
           <View style={{ position: 'absolute', top: -4, left: -4, backgroundColor: colors.warning, borderRadius: 8, paddingHorizontal: 4 }}>
-            <Text variant="caption" color="#111" style={{ fontSize: 9, lineHeight: 13 }}>GK</Text>
+            <Text variant="caption" color={contrastRatio('#111111', colors.warning) >= 4.5 ? '#111111' : '#FFFFFF'} style={{ fontSize: 9, lineHeight: 13 }}>GK</Text>
           </View>
         )}
         {!!showPayment && (

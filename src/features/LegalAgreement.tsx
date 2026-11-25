@@ -14,7 +14,7 @@ export function TermsCheckbox({ checked, onChange }: { checked: boolean; onChang
   const { colors } = useTheme();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: space.sm }}>
-      <Pressable onPress={() => onChange(!checked)} accessibilityRole="checkbox" accessibilityState={{ checked }} accessibilityLabel="I agree to the Terms of Use and Privacy Policy" hitSlop={8}>
+      <Pressable onPress={() => onChange(!checked)} accessibilityRole="checkbox" accessibilityState={{ checked }} aria-checked={checked} accessibilityLabel="I agree to the Terms of Use and Privacy Policy" hitSlop={8}>
         <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={24} color={checked ? colors.primary : colors.textMuted} />
       </Pressable>
       <Text variant="small" style={{ flex: 1 }} onPress={() => onChange(!checked)}>

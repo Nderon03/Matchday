@@ -11,7 +11,7 @@ export function Flag({ code, height = 16 }: { code: string | null | undefined; h
   if (!c) return null;
   const width = Math.round(height * 1.5);
   return (
-    <View accessible accessibilityLabel={c.name} style={{ width, height, borderRadius: 2, overflow: 'hidden', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.25)' }}>
+    <View accessible accessibilityRole="image" accessibilityLabel={c.name} style={{ width, height, borderRadius: 2, overflow: 'hidden', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.25)' }}>
       <SvgXml xml={c.svg} width={width} height={height} preserveAspectRatio="xMidYMid slice" />
     </View>
   );

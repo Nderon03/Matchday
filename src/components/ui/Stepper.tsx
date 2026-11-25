@@ -5,6 +5,7 @@ import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { Text } from './Text';
+import { adjustable, touchOnly } from './adjustable';
 
 /** Large +/- control for quick score and goal entry. */
 export function Stepper({ value, onChange, min = 0, max = 99, label, size = 'md' }: {
@@ -22,18 +23,13 @@ export function Stepper({ value, onChange, min = 0, max = 99, label, size = 'md'
   return (
     <View
       style={{ flexDirection: 'row', alignItems: 'center', gap: size === 'sm' ? space.sm : space.md }}
-      accessible
-      accessibilityRole="adjustable"
-      accessibilityLabel={label}
-      accessibilityValue={{ min, max, now: value }}
-      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
-      onAccessibilityAction={(e) => change(e.nativeEvent.actionName === 'increment' ? 1 : -1)}
+      {...adjustable({ label, now: value, min, max, step: change })}
     >
-      <Pressable onPress={() => change(-1)} disabled={value <= min} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Fewer: ${label}`} style={{ width: btn, height: btn, borderRadius: radius.md, backgroundColor: colors.elevated, alignItems: 'center', justifyContent: 'center', opacity: value <= min ? 0.4 : 1 }}>
+      <Pressable onPress={() => change(-1)} disabled={value <= min} hitSlop={6} {...touchOnly} style={{ width: btn, height: btn, borderRadius: radius.md, backgroundColor: colors.elevated, alignItems: 'center', justifyContent: 'center', opacity: value <= min ? 0.4 : 1 }}>
         <Ionicons name="remove" size={size === 'sm' ? 16 : 22} color={colors.text} />
       </Pressable>
       <Text variant={size === 'lg' ? 'display' : size === 'sm' ? 'bodyStrong' : 'stat'} style={{ minWidth: size === 'lg' ? 56 : size === 'sm' ? 24 : 40, textAlign: 'center' }}>{value}</Text>
-      <Pressable onPress={() => change(1)} disabled={value >= max} hitSlop={6} accessibilityRole="button" accessibilityLabel={`More: ${label}`} style={{ width: btn, height: btn, borderRadius: radius.md, backgroundColor: colors.primaryMuted, alignItems: 'center', justifyContent: 'center', opacity: value >= max ? 0.4 : 1 }}>
+      <Pressable onPress={() => change(1)} disabled={value >= max} hitSlop={6} {...touchOnly} style={{ width: btn, height: btn, borderRadius: radius.md, backgroundColor: colors.primaryMuted, alignItems: 'center', justifyContent: 'center', opacity: value >= max ? 0.4 : 1 }}>
         <Ionicons name="add" size={size === 'sm' ? 16 : 22} color={colors.primary} />
       </Pressable>
     </View>
