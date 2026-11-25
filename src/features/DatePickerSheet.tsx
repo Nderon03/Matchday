@@ -4,6 +4,7 @@ import { IconButton, Row, Sheet, Text } from '@/components/ui';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius } from '@/theme/tokens';
 import { monthGrid, sameDay } from './sessionDates';
+import { dayLong, monthYear } from '@/domain/dates';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTHS_AHEAD = 12;
@@ -22,7 +23,7 @@ export function DatePickerSheet({ visible, value, onClose, onPick }: {
   const shift = (by: number) => setView(({ y, m }) => { const d = new Date(y, m + by, 1); return { y: d.getFullYear(), m: d.getMonth() }; });
   const last = new Date(today.getFullYear(), today.getMonth() + MONTHS_AHEAD + 1, 0);
   const cells = monthGrid(view.y, view.m);
-  const title = new Date(view.y, view.m, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const title = monthYear(new Date(view.y, view.m, 1));
 
   return (
     <Sheet visible={visible} onClose={onClose} title="Pick a date">
@@ -47,7 +48,7 @@ export function DatePickerSheet({ visible, value, onClose, onPick }: {
                 onPress={() => { onPick(d); onClose(); }}
                 accessibilityRole="button"
                 accessibilityState={{ selected, disabled }}
-                accessibilityLabel={d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+                accessibilityLabel={dayLong(d)}
                 style={{
                   flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md,
                   backgroundColor: selected ? colors.primary : 'transparent',

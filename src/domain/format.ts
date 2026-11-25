@@ -1,3 +1,5 @@
+import { clock, dateShort, dayShort, weekday } from './dates';
+
 export function formatPence(pence: number, currency = 'gbp'): string {
   const symbol = currency.toLowerCase() === 'gbp' ? '£' : currency.toLowerCase() === 'eur' ? '€' : '$';
   // under £1 reads naturally as pence: "50p"
@@ -16,18 +18,18 @@ const DAY = 86400_000;
 
 export function formatKickoff(iso: string, now = new Date()): string {
   const d = new Date(iso);
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const time = clock(d);
   const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const days = Math.round((startOf(d) - startOf(now)) / DAY);
   if (days === 0) return `Today, ${time}`;
   if (days === 1) return `Tomorrow, ${time}`;
   if (days === -1) return `Yesterday, ${time}`;
-  if (days > 1 && days < 7) return `${d.toLocaleDateString('en-GB', { weekday: 'long' })}, ${time}`;
-  return `${d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}, ${time}`;
+  if (days > 1 && days < 7) return `${weekday(d)}, ${time}`;
+  return `${dayShort(d)}, ${time}`;
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return dateShort(new Date(iso));
 }
 
 export function timeAgo(iso: string, now = Date.now()): string {

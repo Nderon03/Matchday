@@ -1,3 +1,4 @@
+import { ukHour } from './dates';
 /** MOTM decision rules (mirrors public.decide_motm). Never invents a winner. */
 export interface MotmVote {
   voterId: string;
@@ -36,6 +37,6 @@ export function decideMotm(votes: MotmVote[], eligibleVoters: Set<string>, tiebr
  */
 export function motmTitle(games: number, startsAt?: string | null) {
   if (games <= 1) return 'Man of the Match';
-  const hour = startsAt ? Number(new Date(startsAt).toLocaleString('en-GB', { hour: '2-digit', hour12: false, timeZone: 'Europe/London' })) : 19;
+  const hour = startsAt ? ukHour(new Date(startsAt)) : 19;
   return hour < 17 ? 'Player of the Day' : 'Player of the Night';
 }

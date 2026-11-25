@@ -1,3 +1,4 @@
+import { dayShort } from '@/domain/dates';
 /** Helpers for the cross-platform date/time chips used in session forms. */
 export function nextDays(n = 21, from = new Date()) {
   return Array.from({ length: n }, (_, i) => {
@@ -19,7 +20,7 @@ export function dayLabel(d: Date, today = new Date()) {
   const diff = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()) / 86400000);
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Tomorrow';
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  return dayShort(d);
 }
 
 /** Days for a month calendar (Monday first), always 6 weeks (42 cells) so the calendar never changes size. */

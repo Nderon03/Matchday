@@ -1,3 +1,4 @@
+import { clock, dayLongMonthShort } from './dates';
 // Ready-made messages a host can drop into the group chat: the starter kit for moving a
 // weekly game onto MATCHDAY. Short, scannable on WhatsApp, link on its own line.
 
@@ -27,8 +28,8 @@ export interface GameInviteInfo {
 
 export function gameInviteMessage(g: GameInviteInfo, url: string) {
   const d = new Date(g.starts_at);
-  const day = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const day = dayLongMonthShort(d);
+  const time = clock(d);
   const bits = [
     g.format_size ? `${g.format_size}-a-side` : null,
     g.places_left == null ? null : g.places_left <= 0 ? 'full, join the waiting list' : `${g.places_left} place${g.places_left === 1 ? '' : 's'} left`,
@@ -45,8 +46,8 @@ export function gameInviteMessage(g: GameInviteInfo, url: string) {
 /** A player bringing a mate: personal, says how many places are left. */
 export function mateInviteMessage(g: GameInviteInfo, url: string) {
   const d = new Date(g.starts_at);
-  const day = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const day = dayLongMonthShort(d);
+  const time = clock(d);
   const left = g.places_left ?? 0;
   return [
     `⚽ I'm playing ${g.name} on ${day}, ${time}${g.venue ? ` at ${g.venue}` : ''}.`,

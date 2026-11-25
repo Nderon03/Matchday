@@ -1,3 +1,4 @@
+import { monthYear } from './dates';
 /** Team of the Month: best five from a group's month, in a 1-2-2 shape, by average rating. */
 export interface MonthCandidate {
   user_id: string;
@@ -47,7 +48,7 @@ export function pickTeamOfMonth(candidates: MonthCandidate[]): TeamOfMonth | nul
 }
 
 export function monthLabel(d: Date) {
-  return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  return monthYear(d);
 }
 /** First day of a month as YYYY-MM-DD (offset 0 = this month, -1 = last month). */
 export function monthStart(offset: number, now = new Date()) {

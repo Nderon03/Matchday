@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@/components/ui/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, EmptyState, ErrorState, Header, Screen, SkeletonList, Text, Row } from '@/components/ui';
+import { Button, EmptyState, ErrorState, Header, Screen, SkeletonList, Text, Row, useShowMore } from '@/components/ui';
 import { keys, useNotifications } from '@/hooks/queries';
 import { rpc } from '@/lib/api';
 import { routeForNotification } from '@/lib/notifications';
@@ -25,6 +25,7 @@ export default function Notifications() {
   const qc = useQueryClient();
   const n = useNotifications();
   const unread = n.data?.filter((x) => !x.read_at).length ?? 0;
+  const { visible: shown, footer: more } = useShowMore(n.data ?? [], 30);
   const markAll = async () => {
     await rpc('mark_notifications_read', { p_ids: null }).catch(() => undefined);
     qc.invalidateQueries({ queryKey: keys.notifications });
@@ -45,7 +46,7 @@ export default function Notifications() {
       {!!n.error && <ErrorState error={n.error} onRetry={n.refetch} />}
       {n.data?.length === 0 && <EmptyState icon="notifications-outline" title="You’re all caught up" message="Invites, results, votes and payments will appear here." />}
       <View style={{ gap: 2 }}>
-        {n.data?.map((item) => {
+        {shown.map((item) => {
           const route = routeForNotification({ ...item.data, type: item.type });
           return (
             <Pressable key={item.id} onPress={() => route && router.push(route as any)} accessibilityRole="button"
@@ -61,6 +62,7 @@ export default function Notifications() {
             </Pressable>
           );
         })}
+        {more}
       </View>
     </Screen>
   );

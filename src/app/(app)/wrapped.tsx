@@ -13,6 +13,7 @@ import { fonts, radius, space } from '@/theme/tokens';
 import { ScreenHelp } from '@/features/ScreenHelp';
 import { ShareFrame } from '@/components/football/ShareFrame';
 import { SeasonEmblem } from '@/components/football/SeasonBadge';
+import { monthYear } from '@/domain/dates';
 
 const QUARTER_NAMES = ['Winter', 'Spring', 'Summer', 'Autumn'];
 /** The first season there is: Pre-season (Autumn 2026). */
@@ -36,7 +37,7 @@ function periods(): Period[] {
   for (let i = 0; i < 6; i++) {
     const from = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const to = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-    list.push({ key: `m${i}`, label: from.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }), from, to });
+    list.push({ key: `m${i}`, label: monthYear(from), from, to });
   }
   list.push({ key: 'y0', label: `${now.getFullYear()}`, from: new Date(now.getFullYear(), 0, 1), to: new Date(now.getFullYear() + 1, 0, 1) });
   list.push({ key: 'y1', label: `${now.getFullYear() - 1}`, from: new Date(now.getFullYear() - 1, 0, 1), to: new Date(now.getFullYear(), 0, 1) });

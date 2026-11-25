@@ -21,13 +21,14 @@ import { CalendarSyncSheet } from '@/features/CalendarSync';
 import { ScreenHelp, Spot, TIPS_KEY, tourKey } from '@/features/ScreenHelp';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SCREEN_TOURS } from '@/features/screenTours';
+import { clock, dayMonth } from '@/domain/dates';
 
 /** Version line: app version plus which over-the-air update is running (handy when checking an update arrived). */
 function versionLabel() {
   const version = Constants.expoConfig?.version ?? '1.0.0';
   if (Platform.OS === 'web') return `MATCHDAY v${version} · web`;
   if (!Updates.isEnabled || Updates.isEmbeddedLaunch || !Updates.updateId) return `MATCHDAY v${version} · ${Platform.OS} · original build`;
-  const when = Updates.createdAt ? ` · ${Updates.createdAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${Updates.createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : '';
+  const when = Updates.createdAt ? ` · ${dayMonth(Updates.createdAt)} ${clock(Updates.createdAt)}` : '';
   return `MATCHDAY v${version} · ${Platform.OS} · update ${Updates.updateId.slice(0, 8)}${when}`;
 }
 

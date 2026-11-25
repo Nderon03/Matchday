@@ -6,6 +6,7 @@ import { Text } from '@/components/ui';
 import { useNow } from '@/hooks/useNow';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radius, space } from '@/theme/tokens';
+import { clock } from '@/domain/dates';
 
 const native = Platform.OS !== 'web';
 const PITCH = '#22C55E';
@@ -58,7 +59,7 @@ export function MatchdayHero({ game, onPress, children }: { game: MatchdayGame; 
   const h = Math.floor(left / 3600_000);
   const m = Math.floor((left % 3600_000) / 60_000);
   const s = Math.floor((left % 60_000) / 1000);
-  const kick = new Date(game.starts_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const kick = clock(new Date(game.starts_at));
   const minutesIn = Math.floor((now - start) / 60_000);
   const place = [game.venue, game.location].filter(Boolean).join(' · ');
   const label = phase === 'pre' ? `Matchday. ${game.name} kicks off at ${kick}, in ${h} hours ${m} minutes.`

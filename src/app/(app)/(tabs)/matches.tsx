@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { Button, EmptyState, ErrorState, Row, Screen, Segmented, SkeletonList, Text } from '@/components/ui';
+import { Button, EmptyState, ErrorState, Row, Screen, Segmented, SkeletonList, Text, useShowMore } from '@/components/ui';
 import { SessionCard } from '@/components/football/SessionCard';
 import { useMySessions } from '@/hooks/queries';
 import { space } from '@/theme/tokens';
@@ -19,6 +19,7 @@ export default function Matches() {
     };
   }, [sessions.data]);
   const list = tab === 'upcoming' ? upcoming : past;
+  const { visible, footer } = useShowMore(list, 20, tab);
 
   return (
     <Screen onRefresh={sessions.refetch} refreshing={sessions.isRefetching}>
@@ -41,10 +42,11 @@ export default function Matches() {
         />
       )}
       <View style={{ gap: space.md }}>
-        {list.map((s, i) => {
+        {visible.map((s, i) => {
           const card = <SessionCard key={s.id} session={s} myStatus={s.my_status} confirmed={s.confirmed_count} groupName={s.group?.name} />;
           return i === 0 ? <Spot key={s.id} id="matches.first">{card}</Spot> : card;
         })}
+        {footer}
       </View>
     </Screen>
   );

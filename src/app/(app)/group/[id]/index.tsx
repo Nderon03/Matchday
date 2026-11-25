@@ -6,6 +6,7 @@ import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
 import {
   Avatar, Badge, Button, Card, EmptyState, ErrorState, Header, IconButton, Loading, Row, Screen, SectionTitle, Segmented, Sheet, StatTile, Text, useConfirm,
+  useShowMore,
 } from '@/components/ui';
 import { SessionCard } from '@/components/football/SessionCard';
 import { Leaderboard } from '@/components/football/Leaderboard';
@@ -105,6 +106,7 @@ export default function GroupScreen() {
   };
 
   const memberSeasons = useCardSeasons(group.data?.members.map((m) => m.user_id) ?? []);
+  const { visible: shownResults, footer: moreResults } = useShowMore((sessions.data ?? []).filter((s) => ['completed', 'finalised'].includes(s.status)), 20);
   if (group.isLoading) return <Screen><Header title="Group" /><Loading /></Screen>;
   if (!group.data) return <Screen><Header title="Group" /><ErrorState error={group.error} onRetry={group.refetch} /></Screen>;
   const { group: g, members, seasons, myRole, joinRequests, settings } = group.data;
@@ -236,7 +238,7 @@ export default function GroupScreen() {
         <View style={{ gap: space.md }}>
           <SectionTitle title="Results" />
           {results.length === 0 && <EmptyState icon="football-outline" title="No results yet" />}
-          {results.map((s) => (
+          {shownResults.map((s) => (
             <Card key={s.id} onPress={() => router.push(`/session/${s.id}`)}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <View style={{ flex: 1 }}>
@@ -253,6 +255,7 @@ export default function GroupScreen() {
               </Row>
             </Card>
           ))}
+          {moreResults}
         </View>
       )}
 
