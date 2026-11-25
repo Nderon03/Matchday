@@ -134,4 +134,4 @@ Data processed ephemerally? **No** for all of the above.
 ## Graphics
 - **App icon (512×512):** `assets/store/play-icon-512.png`
 - **Feature graphic (1024×500):** `assets/store/feature-graphic-1024x500.png`
-- **Phone screenshots (1080×1920):** `assets/store/screenshots/01-home.png` … `07-payments.png` (upload all 7) (regenerate with `STORE_SHOTS=1 node scripts/e2e-web-visual.mjs` then `node scripts/generate-store-screenshots.mjs <raw dir>`).
+- **Phone screenshots (1080×1920):** `assets/store/screenshots/01-home.png` … `08-payments.png` (upload all 8, in order) (regenerate with `STORE_SHOTS=1 node scripts/e2e-web-visual.mjs` then `node scripts/generate-store-screenshots.mjs <raw dir>`).
