@@ -480,6 +480,8 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
       await mkdir(join(OUT, 'store-raw'), { recursive: true });
       await page.evaluate(() => window.scrollTo(0, 0));
       // the group shot shows the Dream Team
+      // the group screen remembers its last tab: the Dream Team is on Overview
+      if (name === 'group') { await page.getByRole('tab', { name: 'Overview' }).click(); await page.waitForTimeout(800); }
       if (name === 'group') await page.getByText(/Dream Team/).first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
       await page.waitForTimeout(name === 'group' ? 1200 : 200);
       await page.screenshot({ path: join(OUT, 'store-raw', `${name}.png`) });
