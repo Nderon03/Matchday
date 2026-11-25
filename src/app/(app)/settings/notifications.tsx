@@ -17,6 +17,7 @@ const TYPES: [string, string, string][] = [
   ['players_needed', 'Games needing players', 'When a game near you or a friend’s game is short'],
   ['waitlist_offer', 'Last-minute places', 'On the day: a place is yours if you take it within 30 minutes'],
   ['spot_open', 'Unfilled places (hosts)', 'When nobody on the waiting list takes a free place'],
+  ['week_recap', 'Your week', 'Sunday evening: your results, rating, best link-up and next game'],
   ['host_summary', 'Weekly summary (hosts)', 'Monday morning: who’s in, who hasn’t replied, what’s unpaid'],
   ['dropout_request', 'Drop-outs (hosts)', 'When a player can’t make it after the 24-hour cut-off'],
   ['voting_open', 'Voting open', 'After full time'],

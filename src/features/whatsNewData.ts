@@ -11,6 +11,7 @@ export const RELEASES: { id: string; date: string; items: WhatsNewItem[] }[] = [
     date: '2026-11-25',
     items: [
       { icon: 'people', title: 'Link-ups', body: 'See who you win most with, and how much better you do together. On your profile under Link-ups & rivals.', route: '/linkups' },
+      { icon: 'stats-chart', title: 'Your week', body: 'Every Sunday evening: your results, rating, best link-up and next game. You can switch it off in notification settings.' },
       { icon: 'trophy', title: 'Best duos', body: 'Every group’s Tables tab now shows the pairs who win most when they’re on the same team.' },
       { icon: 'sparkles', title: 'Card makeover', body: 'A cleaner Platinum card, and Gold and Hall of Fame now have their own animations.', route: '/profile' },
       { icon: 'color-palette', title: 'A fresh look', body: 'Calmer colours, tidier buttons and more on screen at once, everywhere in the app.' },

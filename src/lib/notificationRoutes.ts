@@ -1,6 +1,7 @@
 /** Where tapping a notification takes you (shared by the phone app and the website). */
 export function routeForNotification(data: Record<string, any> | undefined): string | null {
   if (!data) return null;
+  if (data.recap) return '/profile';
   if (data.session_id) {
     switch (data.type) {
       case 'voting_open':
