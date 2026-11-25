@@ -964,6 +964,10 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
 // isn't inside something meant to scroll sideways or clip).
 // What's new: shown once after an update, only after any other pop-up has finished
 {
+  // its own data: a fresh (unread) removal notice, and no match reveal, whatever ran before
+  const savedNotes = table.notifications; const savedReveals = rpcs.get_match_reveals;
+  table.notifications = [{ id: 'n-wn', type: 'session_removed', title: 'Removed from Sunday Kickabout', body: '', data: { session_id: SID, session_name: 'Sunday Kickabout', reason: 'Too many no-shows' }, read_at: null, created_at: kickoff }];
+  rpcs.get_match_reveals = [];
   const { page, errors } = await openPage({ width: 390, height: 844 }, { whatsNew: true });
   await page.goto(base + '/', { waitUntil: 'networkidle' });
   await page.waitForTimeout(1800);
@@ -982,6 +986,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
   if ((await page.locator('body').innerText()).includes('What’s new')) failures.push('whats-new: shown again after Got it');
   if (errors.length) failures.push(`whats-new: page errors ${errors.join(' | ')}`);
   await page.close();
+  table.notifications = savedNotes; rpcs.get_match_reveals = savedReveals;
 }
 
 const FIT_ROUTES = [
