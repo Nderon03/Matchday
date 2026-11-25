@@ -237,6 +237,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     ['edit-profile', '/settings/profile', 'Club you support'],
     ['group-settings', `/group/${GID}/settings`, 'Members ·'],
     ['invite', `/session/${SID}/invite`, 'Message for your group chat'],
+    ['linkups', '/linkups', 'Who you win most with'],
   ]) {
     await page.goto(base + path, { waitUntil: 'networkidle' });
     await page.waitForTimeout(600);
@@ -475,7 +476,7 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     if (nested) failures.push(`${vpName} ${path}: ${nested} interactive element(s) nested inside a button (invalid HTML)`);
     const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
     if (scrollW > vp.width + 1) failures.push(`${vpName} ${path}: horizontal overflow (${scrollW}px)`);
-    if (store && ['home', 'session', 'lineup', 'achievements', 'profile', 'group', 'payments'].includes(name)) {
+    if (store && ['home', 'session', 'lineup', 'achievements', 'profile', 'linkups', 'group', 'payments'].includes(name)) {
       await mkdir(join(OUT, 'store-raw'), { recursive: true });
       await page.evaluate(() => window.scrollTo(0, 0));
       // the group shot shows the Dream Team

@@ -14,6 +14,7 @@ const SHOTS = [
   ['lineup', 'Fair teams', 'IN SECONDS', 'Balanced from ratings and form. Drag to tweak'],
   ['profile', 'Your player card', 'LEVELS UP', 'Ratings, stats, titles, medals and reliability'],
   ['achievements', 'Bronze to', 'HALL OF FAME', 'Medals, new card styles and head-to-heads'],
+  ['linkups', 'Best link-ups', 'WHO YOU WIN WITH', 'Your best teammates, ranked by wins together'],
   ['group', 'Dream Team', 'OF THE MONTH', 'The best five in your group, ready to share'],
   ['payments', 'Settle up', 'NO CHASING', 'Card, Apple Pay & Google Pay via Stripe'],
 ];
