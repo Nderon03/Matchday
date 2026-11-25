@@ -7,6 +7,7 @@ import { useRealtimeInvalidate } from '@/hooks/useRealtime';
 import { pendingReveals, type MatchReveal } from '@/domain/matchReveal';
 import { MatchRevealCard } from './MatchRevealCard';
 import { AchievementCelebration } from './AchievementCelebration';
+import { useHoldSpotlight } from '@/lib/spotlight';
 
 const seenKey = (uid: string) => `matchday.revealed.${uid}`;
 
@@ -38,6 +39,7 @@ export function PostMatchMoments() {
     AsyncStorage.setItem(seenKey(userId), JSON.stringify(next)).catch(() => undefined);
   };
 
+  useHoldSpotlight('match-reveal', !!pending?.show.length);
   if (!userId) return null;
   if (reveals.isError) return <AchievementCelebration />;
   if (!pending) return null;

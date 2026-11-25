@@ -17,6 +17,7 @@ import { isRecovering } from '@/lib/recovery';
 import { useLiveRefresh } from '@/hooks/useLiveRefresh';
 import { flushCheckins } from '@/lib/offline';
 import { OfflineBanner } from '@/features/OfflineBanner';
+import { WhatsNew } from '@/features/WhatsNew';
 
 export default function AppLayout() {
   const { session, initialising, profile, profileLoading } = useAuth();
@@ -56,6 +57,7 @@ export default function AppLayout() {
       {!!(profile?.onboarded) && <KickedNotice />}
       {!!(profile?.onboarded) && <PostMatchMoments />}
       {!!(profile?.onboarded) && <FriendAcceptedWatcher />}
+      {!!(profile?.onboarded) && <WhatsNew />}
       <TermsUpdatePrompt />
       <OfflineBanner />
     </>

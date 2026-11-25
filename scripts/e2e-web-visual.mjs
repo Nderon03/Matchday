@@ -22,6 +22,7 @@ await mkdir(OUT, { recursive: true });
 
 const ME = '11111111-1111-4111-8111-111111111111';
 const LEGAL_VERSION = (await readFile(join(process.cwd(), 'src/legal/content.ts'), 'utf8')).match(/LEGAL_VERSION = '([^']+)'/)[1];
+const WHATS_NEW_IDS = [...(await readFile(join(process.cwd(), 'src/features/whatsNewData.ts'), 'utf8')).matchAll(/^\s+id: '([^']+)'/gm)].map((m) => m[1]);
 const names = ['Sam Carter', 'Alex Reid', 'Jordan Pike', 'Chris Obi', 'Danny Shaw', 'Leo Marsh', 'Ravi Patel', 'Tom Wells', 'Nico Ferri', 'Ben Hale'];
 const people = names.map((n, i) => ({ id: i === 0 ? ME : `2222222${i}-2222-4222-8222-22222222222${i}`, username: n.split(' ')[0].toLowerCase(), display_name: n, avatar_url: null, position: ['GK', 'DEF', 'MID', 'FWD', 'ANY'][i % 5] }));
 const SID = '33333333-3333-4333-8333-333333333333';
@@ -176,7 +177,7 @@ const failures = [];
 const consoleProblems = new Set();
 const cardUploads = [];
 const calls = [];
-async function openPage(vp, { dpr = 1, theme = 'dark', appTour = false, tips = false } = {}) {
+async function openPage(vp, { dpr = 1, theme = 'dark', appTour = false, tips = false, whatsNew = false } = {}) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: dpr });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -188,15 +189,16 @@ async function openPage(vp, { dpr = 1, theme = 'dark', appTour = false, tips = f
     if (/example\.supabase\.co|ERR_TUNNEL|ERR_PROXY|Failed to load resource|ERR_CONNECTION|ERR_NAME_NOT_RESOLVED|net::ERR_/.test(t)) return;
     consoleProblems.add(t.replace(/\s+/g, ' ').slice(0, 200));
   });
-  await page.addInitScript(([uid, th, tour, tipsOn]) => {
+  await page.addInitScript(([uid, th, tour, tipsOn, news, newsIds]) => {
     localStorage.setItem('matchday.theme', th);
+    if (!news) for (const id of newsIds) localStorage.setItem(`matchday.whatsNew.${id}.${uid}`, '1');
     if (!tipsOn) localStorage.setItem('matchday.tips', 'off');
     if (!tour) localStorage.setItem(`matchday.appTour.${uid}`, '1');
     const exp = Math.floor(Date.now() / 1000) + 3600 * 24;
     const b64 = (o) => btoa(JSON.stringify(o)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
     const token = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: uid, role: 'authenticated', exp, aud: 'authenticated', email: 'sam@example.com' })}.sig`;
     localStorage.setItem('sb-example-auth-token', JSON.stringify({ access_token: token, refresh_token: 'r', token_type: 'bearer', expires_in: 86400, expires_at: exp, user: { id: uid, email: 'sam@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' } }));
-  }, [ME, theme, appTour, tips]);
+  }, [ME, theme, appTour, tips, whatsNew, WHATS_NEW_IDS]);
   await page.route(/example\.supabase\.co/, async (route) => {
     const url = new URL(route.request().url());
     const single = (route.request().headers()['accept'] ?? '').includes('vnd.pgrst.object');
@@ -960,6 +962,28 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
 // Fit pass: every screen at small phone → desktop widths, dark and light. Flags anything that
 // pokes out sideways (a horizontal page scroll, or a visible element past the screen edge that
 // isn't inside something meant to scroll sideways or clip).
+// What's new: shown once after an update, only after any other pop-up has finished
+{
+  const { page, errors } = await openPage({ width: 390, height: 844 }, { whatsNew: true });
+  await page.goto(base + '/', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1800);
+  let t = await page.locator('body').innerText();
+  if (!t.includes('The host removed you from')) failures.push('whats-new: expected the removal notice first');
+  if (t.includes('What’s new')) failures.push('whats-new: shown on top of another pop-up');
+  await page.getByRole('button', { name: 'OK' }).last().click();
+  await page.waitForTimeout(1800);
+  t = await page.locator('body').innerText();
+  if (!t.includes('What’s new') || !t.includes('Link-ups')) failures.push('whats-new: not shown after the other pop-up closed');
+  await page.screenshot({ path: join(OUT, 'whats-new.png') });
+  await page.getByRole('button', { name: 'Got it' }).click();
+  await page.waitForTimeout(400);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(2500);
+  if ((await page.locator('body').innerText()).includes('What’s new')) failures.push('whats-new: shown again after Got it');
+  if (errors.length) failures.push(`whats-new: page errors ${errors.join(' | ')}`);
+  await page.close();
+}
+
 const FIT_ROUTES = [
   '/', '/matches', '/leagues', '/profile', '/create', '/achievements', '/compare', '/linkups', '/friends', '/notifications', '/payments', '/wrapped',
   `/player/${people[1].id}`, `/group/${GID}`, `/group/${GID}/settings`, '/group/discover', '/group/new',

@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import Ionicons from '@/components/ui/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button, Sheet, Text } from '@/components/ui';
+import { useHoldSpotlight } from '@/lib/spotlight';
 import { keys, useNotifications } from '@/hooks/queries';
 import { rpc } from '@/lib/api';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -20,6 +21,7 @@ export function KickedNotice() {
   const notifications = useNotifications();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const notice = notifications.data?.find((n) => (n.type === 'session_removed' || n.type === 'group_removed') && !n.read_at && !dismissed.has(n.id));
+  useHoldSpotlight('kicked-notice', !!notice);
   if (!notice) return null;
   const isGroup = notice.type === 'group_removed';
 
