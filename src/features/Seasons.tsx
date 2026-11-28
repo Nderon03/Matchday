@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@/components/ui/Ionicons';
@@ -18,6 +18,7 @@ import { plural } from '@/domain/format';
 import { useTheme } from '@/theme/ThemeProvider';
 import { fonts, radius, space } from '@/theme/tokens';
 import { useReadable } from '@/theme/useReadable';
+import { useSeenFlags } from '@/lib/seenMoments';
 
 const native = Platform.OS !== 'web';
 const GOLD = '#F5C542';
@@ -177,6 +178,8 @@ export function SeasonRace({ groupId, userId, top, onSeeAll, hideUntilPlayed }: 
 /** The big moment when a season ends: "Autumn 2026 is over…" then the Player of the Season, in the Hall of Fame colours. */
 export function SeasonReveal({ data, userId }: { data: MySeasons; userId: string }) {
   const [seen, setSeen] = useState<Record<string, true> | null>(null);
+  // seen on this device or anywhere else on the account (copied up once from this device)
+  const account = useSeenFlags(useMemo(() => (seen ? Object.keys(seen).map((id) => `season:${id}`) : null), [seen]));
   useEffect(() => {
     let alive = true;
     Promise.all(data.results.map((r) => AsyncStorage.getItem(`matchday.seasonSeen.${r.season_id}`).then((v) => [r.season_id, !!v] as const)))
@@ -184,11 +187,12 @@ export function SeasonReveal({ data, userId }: { data: MySeasons; userId: string
       .catch(() => alive && setSeen({}));
     return () => { alive = false; };
   }, [data.results]);
-  if (!seen) return null;
-  const next = data.results.find((r) => !seen[r.season_id]);
+  if (!seen || !account.ready) return null;
+  const next = data.results.find((r) => !seen[r.season_id] && !account.isSeen(`season:${r.season_id}`));
   if (!next) return null;
   const close = () => {
     AsyncStorage.setItem(`matchday.seasonSeen.${next.season_id}`, '1').catch(() => undefined);
+    account.markSeen([`season:${next.season_id}`]);
     setSeen({ ...seen, [next.season_id]: true });
   };
   return <Reveal key={next.season_id} r={next} isMe={next.winners.some((w) => w.user_id === userId)} newSeason={data.current.label && data.current.label !== 'Pre-season' ? `${data.current.label} (${data.current.name})` : data.current.name} onClose={close} />;

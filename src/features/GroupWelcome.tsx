@@ -9,6 +9,7 @@ import { formatKickoff, plural, firstName } from '@/domain/format';
 import { haptics } from '@/lib/haptics';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
+import { useSeenFlags } from '@/lib/seenMoments';
 
 const native = Platform.OS !== 'web';
 const seenKey = (uid: string, gid: string) => `matchday.groupWelcome.${uid}.${gid}`;
@@ -30,21 +31,31 @@ export function GroupWelcome({ userId, group, members, nextGame }: {
   const me = members.find((m) => m.user_id === userId);
   const [now] = useState(() => Date.now());
   const eligible = !!me && me.role !== 'owner' && now - new Date(me.joined_at).getTime() < RECENT_MS;
-  const [show, setShow] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [localUnseen, setLocalUnseen] = useState(false);
+  const { isSeen, markSeen } = useSeenFlags();
 
   useEffect(() => {
     if (!eligible) return;
     let alive = true;
     AsyncStorage.getItem(seenKey(userId, group.id))
-      .then((v) => { if (alive && !v) setShow(true); })
+      .then((v) => {
+        if (!alive) return;
+        // seen on this device: make sure the account knows too
+        if (v) markSeen([`group-welcome:${group.id}`]);
+        else setLocalUnseen(true);
+      })
       .catch(() => undefined);
     return () => { alive = false; };
-  }, [eligible, userId, group.id]);
+  }, [eligible, userId, group.id, markSeen]);
+  // seen on another device (e.g. the website) counts too
+  const show = !dismissed && localUnseen && isSeen(`group-welcome:${group.id}`) === false;
 
   if (!show || !me) return null;
   const close = () => {
-    setShow(false);
+    setDismissed(true);
     AsyncStorage.setItem(seenKey(userId, group.id), '1').catch(() => undefined);
+    markSeen([`group-welcome:${group.id}`]);
   };
   // which number player you are, by when people joined
   const order = [...members].sort((a, b) => a.joined_at.localeCompare(b.joined_at));

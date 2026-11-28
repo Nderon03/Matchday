@@ -13,7 +13,7 @@ import { rpc } from './api';
 const CACHE_KEY = 'matchday.offlineCache.v2';
 const OLD_CACHE_KEYS = ['matchday.offlineCache.v1'];
 const CHECKINS_KEY = 'matchday.pendingCheckins';
-const KEEP = new Set(['profile', 'home', 'sessions', 'session', 'groups', 'group', 'player', 'achievements', 'friends', 'prefs', 'notifications']);
+const KEEP = new Set(['profile', 'home', 'sessions', 'session', 'groups', 'group', 'player', 'achievements', 'friends', 'prefs', 'notifications', 'seen-moments']);
 const MAX_AGE = 7 * 86400_000;
 
 const keep = (q: Query) => q.state.status === 'success' && KEEP.has(String(q.queryKey[0]));

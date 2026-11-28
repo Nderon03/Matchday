@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button, Text } from '@/components/ui';
 import { AchievementBadge } from '@/components/football/AchievementBadge';
 import { happyMoment } from '@/lib/review';
@@ -14,6 +13,7 @@ import { haptics } from '@/lib/haptics';
 import { shareText } from '@/lib/share';
 import { radius, space } from '@/theme/tokens';
 import { useReadable } from '@/theme/useReadable';
+import { useSeenSince } from '@/lib/seenMoments';
 
 const native = Platform.OS !== 'web';
 const seenKey = (uid: string) => `matchday.achievementsSeen.${uid}`;
@@ -26,23 +26,8 @@ const seenKey = (uid: string) => `matchday.achievementsSeen.${uid}`;
 export function AchievementCelebration() {
   const { userId } = useAuth();
   const mine = useMyAchievements();
-  const [seen, setSeen] = useState<string | null>(null);
+  const { since: seen, advance } = useSeenSince('achievements', seenKey);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (!userId) return;
-    let alive = true;
-    AsyncStorage.getItem(seenKey(userId))
-      .then((v) => {
-        if (!alive) return;
-        if (v) return setSeen(v);
-        const now = new Date().toISOString();
-        setSeen(now);
-        AsyncStorage.setItem(seenKey(userId), now).catch(() => undefined);
-      })
-      .catch(() => alive && setSeen(new Date().toISOString()));
-    return () => { alive = false; };
-  }, [userId]);
 
   const fresh = useMemo(() => (seen && mine.data ? mine.data.items.filter((i) => i.unlocked_at && i.unlocked_at > seen) : []), [seen, mine.data]);
   // one celebration per medal: several levels at once show as the highest
@@ -68,10 +53,8 @@ export function AchievementCelebration() {
     fresh.filter((i) => i.track === item.track).forEach((i) => next.add(i.code));
     setDismissed(next);
     if (fresh.every((i) => next.has(i.code))) {
-      const latest = fresh.reduce((m, i) => (i.unlocked_at! > m ? i.unlocked_at! : m), seen!);
-      setSeen(latest);
+      advance(fresh.reduce((m, i) => (i.unlocked_at! > m ? i.unlocked_at! : m), seen!));
       setDismissed(new Set());
-      AsyncStorage.setItem(seenKey(userId), latest).catch(() => undefined);
       happyMoment();
     }
   };

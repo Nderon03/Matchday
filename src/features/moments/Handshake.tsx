@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Animated, Easing, Modal, Platform, Pressable, StyleSheet, View, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from '@tanstack/react-query';
 import { Avatar, Button, Text } from '@/components/ui';
 import { Confetti } from '@/components/football/Confetti';
@@ -14,6 +13,7 @@ import Ionicons from '@/components/ui/Ionicons';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, space } from '@/theme/tokens';
 import { nameList } from '@/domain/format';
+import { useSeenSince } from '@/lib/seenMoments';
 
 const native = Platform.OS !== 'web';
 const first = (name?: string | null) => (name ?? '').split(' ')[0] || 'them';
@@ -104,19 +104,7 @@ const seenKey = (uid: string) => `matchday.friendsCelebrated.${uid}`;
 export function FriendAcceptedWatcher() {
   const { userId } = useAuth();
   const notifications = useNotifications();
-  const [seen, setSeen] = useState<string | null>(null);
-  useEffect(() => {
-    if (!userId) return;
-    let alive = true;
-    AsyncStorage.getItem(seenKey(userId)).then((v) => {
-      if (!alive) return;
-      if (v) return setSeen(v);
-      const now = new Date().toISOString();
-      setSeen(now);
-      AsyncStorage.setItem(seenKey(userId), now).catch(() => undefined);
-    }).catch(() => alive && setSeen(new Date().toISOString()));
-    return () => { alive = false; };
-  }, [userId]);
+  const { since: seen, advance } = useSeenSince('friends', seenKey);
   const pending = useMemo(() => (seen ? (notifications.data ?? [])
     .filter((n) => n.type === 'friend_accepted' && n.created_at > seen && (n.data as any)?.user_id) : []), [notifications.data, seen]);
   const ids = useMemo(() => [...new Set(pending.map((n) => (n.data as any).user_id as string))].sort(), [pending]);
@@ -127,9 +115,7 @@ export function FriendAcceptedWatcher() {
   });
   if (!userId || !ids.length || !people.data?.length) return null;
   const done = () => {
-    const latest = pending.reduce((m, n) => (n.created_at > m ? n.created_at : m), seen!);
-    setSeen(latest);
-    AsyncStorage.setItem(seenKey(userId), latest).catch(() => undefined);
+    advance(pending.reduce((m, n) => (n.created_at > m ? n.created_at : m), seen!));
   };
   if (people.data.length === 1) return <HandshakeModal them={people.data[0]} onClose={done} />;
   return <NewFriendsModal friends={people.data} onClose={done} />;

@@ -62,7 +62,7 @@ const table = {
                    { id: 'g2222222-2222-4222-8222-222222222222', session_id: SID, name: 'Marco', added_by: people[2].id, status: 'pending', created_at: kickoff }],
   sessions: [session], session_attendance: attendance, session_invitations: [], fixtures, session_hosts: [], goal_submissions: [], player_goals: [],
   motm_awards: [], session_player_statistics: [],
-  notifications: [{ id: 'n1', type: 'session_removed', title: 'Removed from Sunday Kickabout', body: '', data: { session_id: SID, session_name: 'Sunday Kickabout', reason: 'Too many no-shows' }, read_at: null, created_at: kickoff }], activity_feed: [],
+  seen_moments: [], notifications: [{ id: 'n1', type: 'session_removed', title: 'Removed from Sunday Kickabout', body: '', data: { session_id: SID, session_name: 'Sunday Kickabout', reason: 'Too many no-shows' }, read_at: null, created_at: kickoff }], activity_feed: [],
   group_members: [{ role: 'owner', user_id: ME, joined_at: '2026-01-01T00:00:00Z', profile: people[0], group: { id: GID, name: 'Wednesday Football', logo_url: null, location: 'Hackney', group_members: [{ count: 14 }] } },
     // a member whose profile you can't see (blocked, or a deleted account): screens must cope
     { role: 'member', user_id: '99999999-9999-4999-8999-999999999999', joined_at: '2026-02-01T00:00:00Z', profile: null, group: null }],
@@ -206,6 +206,14 @@ async function openPage(vp, { dpr = 1, theme = 'dark', appTour = false, tips = f
     if (url.pathname.includes('/storage/v1/object/share-cards/')) cardUploads.push({ path: url.pathname, bytes: route.request().postDataBuffer()?.length ?? 0 });
     const m = url.pathname.match(/\/rest\/v1\/(rpc\/)?([a-z_]+)/);
     if (m && m[1] && m[2] === 'mark_notifications_read') table.notifications.forEach((n) => { n.read_at = new Date().toISOString(); });
+    // "seen" markers kept on the account (shared by every device that signs in)
+    if (m && m[1] && m[2] === 'mark_moments_seen') {
+      for (const [key, value] of Object.entries(route.request().postDataJSON()?.p ?? {})) {
+        const row = table.seen_moments.find((x) => x.key === key);
+        if (!row) table.seen_moments.push({ key, value });
+        else if (value > row.value) row.value = value;
+      }
+    }
     if (url.pathname.endsWith('/functions/v1/session-weather')) body = { weather: { at: kickoff, temp_c: 10, wind_mph: 11, precip_mm: 0.6, symbol: 'lightrain', summary: 'Light rain', icon: 'rainy-outline' } };
     if (m && m[1]) calls.push(m[2]);
     if (m && m[1]) body = rpcs[m[2]] ?? null;
@@ -218,6 +226,8 @@ async function openPage(vp, { dpr = 1, theme = 'dark', appTour = false, tips = f
 for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, desktop: { width: 1366, height: 900 } })) {
   // STORE_SHOTS=1 also saves crisp phone-sized captures for the Play Store screenshots
   const store = process.env.STORE_SHOTS === '1' && vpName === 'phone';
+  // each screen size is a fresh run: nothing seen on the account yet
+  table.seen_moments = [];
   table.notifications.forEach((n) => { n.read_at = null; });
   const { page, errors } = await openPage(vp, { dpr: store ? 2 : 1 });
   for (const [name, path, expected] of [
@@ -613,6 +623,16 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
     await page.goto(base + '/matches', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1200);
     if ((await page.locator('body').innerText()).includes('are now friends')) failures.push(`${vpName}: friend handshake shown twice`);
+    // ...and not on another device either (the website, another phone): seen once on the account is enough
+    {
+      const other = await openPage(vp);
+      await other.page.addInitScript((uid) => localStorage.setItem(`matchday.friendsCelebrated.${uid}`, new Date(Date.now() - 3600_000).toISOString()), ME);
+      await other.page.goto(base + '/matches', { waitUntil: 'networkidle' });
+      await other.page.waitForTimeout(2600);
+      if ((await other.page.locator('body').innerText()).includes('are now friends')) failures.push(`${vpName}: friend handshake shown again on another device`);
+      if (!table.seen_moments.some((x) => x.key === 'friends')) failures.push(`${vpName}: seen friends not saved to the account`);
+      await other.page.close();
+    }
     table.notifications = table.notifications.filter((n) => n.id !== 'n-fa');
 
     // several accepted while I was away: one combined moment, not one each

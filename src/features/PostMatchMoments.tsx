@@ -8,6 +8,7 @@ import { pendingReveals, type MatchReveal } from '@/domain/matchReveal';
 import { MatchRevealCard } from './MatchRevealCard';
 import { AchievementCelebration } from './AchievementCelebration';
 import { useHoldSpotlight } from '@/lib/spotlight';
+import { useSeenFlags } from '@/lib/seenMoments';
 
 const seenKey = (uid: string) => `matchday.revealed.${uid}`;
 
@@ -30,13 +31,20 @@ export function PostMatchMoments() {
     return () => { alive = false; };
   }, [userId]);
 
-  const pending = useMemo(() => (seen && reveals.data ? pendingReveals(reveals.data, seen) : null), [seen, reveals.data]);
+  // seen on this device, or on the account (e.g. on the website)
+  const { ready: accountReady, isSeen, markSeen: markAccount } = useSeenFlags(useMemo(() => seen?.map((id) => `reveal:${id}`) ?? null, [seen]));
+  const allSeen = useMemo(() => {
+    if (!seen || !accountReady || !reveals.data) return null;
+    return [...seen, ...reveals.data.map((r) => r.session_id).filter((id) => isSeen(`reveal:${id}`))];
+  }, [seen, accountReady, isSeen, reveals.data]);
+  const pending = useMemo(() => (allSeen && reveals.data ? pendingReveals(reveals.data, allSeen) : null), [allSeen, reveals.data]);
 
   const markSeen = (ids: string[]) => {
     if (!userId || !seen) return;
     const next = [...new Set([...seen, ...ids])].slice(-60);
     setSeen(next);
     AsyncStorage.setItem(seenKey(userId), JSON.stringify(next)).catch(() => undefined);
+    markAccount(ids.map((id) => `reveal:${id}`));
   };
 
   useHoldSpotlight('match-reveal', !!pending?.show.length);
