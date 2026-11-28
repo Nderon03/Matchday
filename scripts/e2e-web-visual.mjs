@@ -797,7 +797,13 @@ for (const [vpName, vp] of Object.entries({ phone: { width: 375, height: 812 }, 
 
   // after a finalised game: the match reveal comes first, then medal level-ups
   rpcs.get_match_reveals = [reveal];
-  await page.evaluate((uid) => localStorage.setItem(`matchday.achievementsSeen.${uid}`, new Date(Date.now() - 3 * 86400_000).toISOString()), ME);
+  // rewind "medals seen" to 3 days ago, on this device and on the account (seen markers are per account now)
+  const threeDaysAgo = new Date(Date.now() - 3 * 86400_000).toISOString();
+  table.seen_moments = table.seen_moments.filter((x) => x.key !== 'achievements').concat({ key: 'achievements', value: threeDaysAgo });
+  await page.evaluate(([uid, at]) => {
+    localStorage.setItem(`matchday.achievementsSeen.${uid}`, at);
+    localStorage.removeItem('matchday.offlineCache.v2'); // the offline copy of the account's markers
+  }, [ME, threeDaysAgo]);
   await page.goto(base + '/achievements', { waitUntil: 'networkidle' });
   await page.waitForTimeout(1800);
   let ct = await page.locator('body').innerText();
